@@ -56,9 +56,9 @@ func Sign(subject string, keyID string, audience string, privateKey *rsa.Private
 }
 
 func Verify(token []byte, publicKey *rsa.PublicKey) (verified bool, err error) {
-	jwt, parseErr := jws.ParseJWT(token)
-	if parseErr != nil {
-		return false, parseErr
+	jwt, err := jws.ParseJWT(token)
+	if err != nil {
+		return false, err
 	}
 
 	validationErr := jwt.Validate(publicKey, signingMethod)
