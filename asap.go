@@ -4,7 +4,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	//"github.com/SermoDigital/jose"
 	"errors"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
