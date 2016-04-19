@@ -42,8 +42,7 @@ func TestSignVerify(t *testing.T) {
 		t.Errorf("Failed to generate a valid key, test broken: %+v", err)
 	}
 	token, _ := Sign("subject", "keyID", "audience", key)
-	verified, err := Verify(token, &key.PublicKey)
-	if err != nil || verified == false {
-		t.Errorf("Valid: %v Error: %+v", verified, err)
+	if Verify(token, &key.PublicKey) != nil {
+		t.Errorf("Failed to verify token: %+v", err)
 	}
 }
