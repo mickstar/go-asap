@@ -5,6 +5,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	//"github.com/SermoDigital/jose"
+	"errors"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/satori/go.uuid"
@@ -22,6 +23,10 @@ type ASAPConfiguration struct {
 
 var signingMethod = crypto.SigningMethodRS256
 
+func nullPtrError(varName string) error {
+	return errors.New("Null pointer: " + varName)
+}
+
 func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err error) {
 	var block *pem.Block
 
@@ -33,6 +38,9 @@ func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err
 }
 
 func Sign(subject string, keyID string, audience string, privateKey *rsa.PrivateKey) (token []byte, err error) {
+	if privateKey == nil {
+		return nil, nullPtrError("Sign::privateKey")
+	}
 	now := time.Now()
 	jit := uuid.NewV4().String()
 	exp := now.Add(time.Minute).Unix()
