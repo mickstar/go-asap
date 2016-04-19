@@ -42,7 +42,7 @@ func TestSignVerify(t *testing.T) {
 		t.Error("Failed to generate a valid key, test broken: " + generateErr.Error())
 	}
 	token, _ := Sign("subject", "keyID", "audience", key)
-	verified, err := Verify(token, key.PublicKey)
+	verified, err := Verify(token, &key.PublicKey)
 	if err != nil || verified == false {
 		t.Error(err)
 	}

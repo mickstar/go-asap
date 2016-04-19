@@ -55,12 +55,12 @@ func Sign(subject string, keyID string, audience string, privateKey *rsa.Private
 	return jwt.Serialize(privateKey)
 }
 
-func Verify(token []byte, publicKey rsa.PublicKey) (verified bool, err error) {
+func Verify(token []byte, publicKey *rsa.PublicKey) (verified bool, err error) {
 	jwt, parseErr := jws.ParseJWT(token)
 	if parseErr != nil {
 		return false, parseErr
 	}
 
 	validationErr := jwt.Validate(publicKey, signingMethod)
-	return validationErr != nil, validationErr
+	return validationErr == nil, validationErr
 }
