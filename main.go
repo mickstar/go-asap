@@ -1,13 +1,15 @@
-package main
+package asap
 
 import (
-	jwt "github.com/dgrijalva/jwt-go"
-	"time"
-	"github.com/satori/go.uuid"
-	"encoding/pem"
-	"log"
-	"crypto/x509"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	//"github.com/SermoDigital/jose"
+	"github.com/SermoDigital/jose/crypto"
+	"github.com/SermoDigital/jose/jws"
+	"github.com/satori/go.uuid"
+	"log"
+	"time"
 )
 
 type ASAPConfiguration struct {
@@ -18,9 +20,9 @@ type ASAPConfiguration struct {
 	Subject           string
 }
 
-var algorithm = "RS256"
+var algorithm = crypto.SigningMethodRS256
 
-func PrivateKeyFromBytes(privateKeyData []byte) (*rsa.PrivateKey, error) {
+func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err error) {
 	var block *pem.Block
 
 	if block, _ = pem.Decode(privateKeyData); block == nil || block.Type != "RSA PRIVATE KEY" {
@@ -30,21 +32,22 @@ func PrivateKeyFromBytes(privateKeyData []byte) (*rsa.PrivateKey, error) {
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
-func Sign(subject string, keyId string, audience string, privateKey *rsa.PrivateKey) (string, error) {
+func Sign(subject string, keyID string, audience string, privateKey *rsa.PrivateKey) (tokenBytes []byte, err error) {
 	now := time.Now()
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Claims = map[string]interface{}{
-		"alg": algorithm,
-		"iss": subject,
-		"kid": keyId,
-		"aud": audience,
-		"iat": now.Unix(),
-		"exp": now.Add(time.Minute).Unix(),
-		"jti": uuid.NewV4(),
-	}
-	return token.SignedString(privateKey)
+	jit := uuid.NewV4().String()
+	exp := now.Add(time.Minute).Unix()
+
+	claims := jws.Claims{}
+	claims.SetSubject(subject)
+	claims.SetJWTID(jit)
+	claims.SetIssuedAt(float64(now.Unix()))
+	claims.SetExpiration(float64(exp))
+	claims.SetAudience(audience)
+
+	token := jws.NewJWT(claims, algorithm)
+	return token.Serialize(privateKey)
 }
 
-func Verify(tokenString string, rsa.PublicKey) (bool, error) {
+func Verify(tokenString string, publicKey rsa.PublicKey) (verified bool, err error) {
 	return true, nil
 }
