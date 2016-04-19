@@ -35,6 +35,16 @@ func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
+func PublicKeyFromBytes(publicKeyData []byte) (publicKey *rsa.PublicKey, err error) {
+	block, _ := pem.Decode(publicKeyData)
+
+	publicKeyUnsafe, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if publicKeyUnsafe == nil && err == nil {
+		return nil, errors.New("Unsupported algorithm")
+	}
+	return publicKeyUnsafe.(*rsa.PublicKey), nil
+}
+
 func Sign(subject string, keyID string, audience string, privateKey *rsa.PrivateKey) (token []byte, err error) {
 	if privateKey == nil {
 		return nil, nullPtrError("Sign::privateKey")
