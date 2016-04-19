@@ -20,7 +20,7 @@ type ASAPConfiguration struct {
 	Subject           string
 }
 
-var algorithm = crypto.SigningMethodRS256
+var signingMethod = crypto.SigningMethodRS256
 
 func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err error) {
 	var block *pem.Block
@@ -32,7 +32,7 @@ func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
-func Sign(subject string, keyID string, audience string, privateKey *rsa.PrivateKey) (tokenBytes []byte, err error) {
+func Sign(subject string, keyID string, audience string, privateKey *rsa.PrivateKey) (token []byte, err error) {
 	now := time.Now()
 	jit := uuid.NewV4().String()
 	exp := now.Add(time.Minute).Unix()
@@ -44,10 +44,16 @@ func Sign(subject string, keyID string, audience string, privateKey *rsa.Private
 	claims.SetExpiration(float64(exp))
 	claims.SetAudience(audience)
 
-	token := jws.NewJWT(claims, algorithm)
-	return token.Serialize(privateKey)
+	jwt := jws.NewJWT(claims, signingMethod)
+	return jwt.Serialize(privateKey)
 }
 
-func Verify(tokenString string, publicKey rsa.PublicKey) (verified bool, err error) {
-	return true, nil
+func Verify(token []byte, publicKey rsa.PublicKey) (verified bool, err error) {
+	jwt, parseErr := jws.ParseJWT(token)
+	if parseErr != nil {
+		return false, parseErr
+	}
+
+	validationErr := jwt.Validate(publicKey, signingMethod)
+	return validationErr != nil, validationErr
 }
