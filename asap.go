@@ -8,7 +8,6 @@ import (
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/satori/go.uuid"
-	"log"
 	"time"
 )
 
@@ -30,7 +29,7 @@ func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err
 	var block *pem.Block
 
 	if block, _ = pem.Decode(privateKeyData); block == nil || block.Type != "RSA PRIVATE KEY" {
-		log.Fatal("No valid PEM data found")
+		return nil, errors.New("No valid PEM data found")
 	}
 
 	return x509.ParsePKCS1PrivateKey(block.Bytes)
