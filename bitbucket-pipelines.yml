@@ -6,7 +6,7 @@ pipelines:
         script:
           # Install go-asap dependencies
           - go get github.com/SermoDigital/jose/crypto github.com/SermoDigital/jose/jws github.com/satori/go.uuid
-          - mv -v /go/bin/* /usr/local/bin
+          # - mv -v /go/bin/* /usr/local/bin
           - mkdir -p /go/src/bitbucket.org/drpotato_atlassian &&  cp -R `pwd` /go/src/bitbucket.org/bitbucket/drpotato_atlassian/go-asap
           
           # Build and test
