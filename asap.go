@@ -3,10 +3,12 @@ package asap
 import (
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/satori/go.uuid"
+	"strings"
 	"time"
 )
 
@@ -43,7 +45,11 @@ func (asap *ASAP) makeClaims(audience string) jws.Claims {
 
 func (asap *ASAP) signClaims(claims jws.Claims, privateKey *rsa.PrivateKey, signingMethod crypto.SigningMethod) (token []byte, err error) {
 	jwt := jws.NewJWT(claims, signingMethod)
+
+	// Need to hack the kid attribute into the right JWS header part, since jose
+	// doesn't support adding to that yet.
 	jwt.(jws.JWS).Protected().Set(KEY_ID, asap.KeyID)
+
 	return jwt.Serialize(privateKey)
 }
 
@@ -59,6 +65,36 @@ func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 	return jws.ParseJWT(token)
 }
 
+func asapValidator(kid string) *jwt.Validator {
+	validationFn := func(clientClaims jws.Claims) error {
+		if _, p := clientClaims.Issuer(); p == false {
+			return errors.New("Missing iss from JWT")
+		}
+		if _, p := clientClaims.Expiration(); p == false {
+			return errors.New("Missing exp from JWT")
+		}
+		if _, p := clientClaims.IssuedAt(); p == false {
+			return errors.New("Missing iat from JWT")
+		}
+		if _, p := clientClaims.Audience(); p == false {
+			return errors.New("Missing aud from JWT")
+		}
+		if _, p := clientClaims.JWTID(); p == false {
+			return errors.New("Missing jti from JWT")
+		}
+
+		issuer, _ := clientClaims.Issuer()
+		if !strings.HasPrefix(kid, issuer+"/") {
+			return fmt.Errorf("Issuer %v is not valid for key ID %v", issuer, kid)
+		}
+
+		return nil
+	}
+
+	return jws.NewValidator(jws.Claims{}, 0, 0, validationFn)
+}
+
 func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
-	return jwt.Validate(publicKey, crypto.SigningMethodRS256)
+	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
+	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid))
 }
