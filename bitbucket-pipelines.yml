@@ -10,4 +10,4 @@ pipelines:
           - mkdir -p /go/src/bitbucket.org/drpotato_atlassian &&  cp -R `pwd` /go/src/bitbucket.org/drpotato_atlassian/go-asap
           
           # Build and test
-          - cd /go/src/bitbucket.org/bitbucket/go-asap && go test
+          - cd /go/src/bitbucket.org/bitbucket/drpotato_atlassian/go-asap && go test
