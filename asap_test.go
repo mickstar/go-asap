@@ -9,40 +9,48 @@ import (
 
 const minValidBits = 768
 
+var (
+	asap       *ASAP
+	keyID      string
+	serviceID  string
+	privateKey *rsa.PrivateKey
+)
+
+func beforeEach() {
+	serviceID = "service"
+	keyID = serviceID + "/"
+	privateKey, _ = rsa.GenerateKey(rand.Reader, minValidBits)
+	asap = NewASAP(keyID, "service", []string{"service"})
+}
+
 func TestSignWorksWithValidKey(t *testing.T) {
-	key, err := rsa.GenerateKey(rand.Reader, minValidBits)
-	if err != nil {
-		t.Error("Failed to generate a valid key, test broken: " + err.Error())
-	}
-	if _, err := Sign("subject", "keyID", "audience", key); err != nil {
+	beforeEach()
+	if _, err := asap.Sign(serviceID, privateKey); err != nil {
 		t.Errorf("Failed to sign: %+v", err)
 	}
 }
 
 func TestSignFailsWithNilKey(t *testing.T) {
-	if _, err := Sign("subject", "keyID", "audience", nil); err == nil {
+	beforeEach()
+	privateKey = nil
+	if _, err := asap.Sign(serviceID, privateKey); err == nil {
 		t.Errorf("Did not fail to sign: %+v", err)
 	}
 }
 
 func TestSignFailsWithInvalidKey(t *testing.T) {
-	key, err := rsa.GenerateKey(rand.Reader, minValidBits)
-	if err != nil {
-		t.Errorf("Failed to generate an invalid key, test broken: %+v", err)
-	}
-	key.D = big.NewInt(0) // Break the key
-	if _, err := Sign("subject", "keyID", "audience", key); err != nil {
+	beforeEach()
+	privateKey.D = big.NewInt(0) // Break the key
+	if _, err := asap.Sign(serviceID, privateKey); err != nil {
 		t.Errorf("Did not fail to sign: %+v", err)
 	}
 }
 
-func TestSignVerify(t *testing.T) {
-	key, err := rsa.GenerateKey(rand.Reader, minValidBits)
-	if err != nil {
-		t.Errorf("Failed to generate a valid key, test broken: %+v", err)
-	}
-	token, _ := Sign("subject", "keyID", "audience", key)
-	if Verify(token, &key.PublicKey) != nil {
+func TestSignParseValidate(t *testing.T) {
+	beforeEach()
+	token, _ := asap.Sign(serviceID, privateKey)
+	jwt, _ := asap.Parse(token)
+	if err := asap.Validate(jwt, &privateKey.PublicKey); err != nil {
 		t.Errorf("Failed to verify token: %+v", err)
 	}
 }

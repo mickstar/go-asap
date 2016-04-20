@@ -2,72 +2,54 @@ package asap
 
 import (
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
 	"errors"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
+	"github.com/SermoDigital/jose/jwt"
 	"github.com/satori/go.uuid"
 	"time"
 )
 
-type ASAPConfiguration struct {
-	KeyIdentifier     string
-	ServiceIdentifier string
-	Audience          string
-	Identifier        string
-	Subject           string
+const KEY_ID = "kid"
+
+type ASAP struct {
+	ServiceID          string
+	KeyID              string
+	AuthorisedSubjects []string
 }
 
-var signingMethod = crypto.SigningMethodRS256
-
-func nullPtrError(varName string) error {
-	return errors.New("Null pointer: " + varName)
-}
-
-func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err error) {
-	var block *pem.Block
-
-	if block, _ = pem.Decode(privateKeyData); block == nil || block.Type != "RSA PRIVATE KEY" {
-		return nil, errors.New("No valid PEM data found")
+func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string) (asap *ASAP) {
+	return &ASAP{
+		KeyID:              keyIdentifier,
+		ServiceID:          serviceID,
+		AuthorisedSubjects: authorisedSubjects,
 	}
-
-	return x509.ParsePKCS1PrivateKey(block.Bytes)
 }
 
-func PublicKeyFromBytes(publicKeyData []byte) (publicKey *rsa.PublicKey, err error) {
-	block, _ := pem.Decode(publicKeyData)
-
-	publicKeyUnsafe, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if publicKeyUnsafe == nil && err == nil {
-		return nil, errors.New("Unsupported algorithm")
-	}
-	return publicKeyUnsafe.(*rsa.PublicKey), nil
-}
-
-func Sign(subject string, keyID string, audience string, privateKey *rsa.PrivateKey) (token []byte, err error) {
+func (asap *ASAP) Sign(audience string, privateKey *rsa.PrivateKey) (token []byte, err error) {
 	if privateKey == nil {
-		return nil, nullPtrError("Sign::privateKey")
+		return nil, errors.New("nil reference to privateKey")
 	}
 	now := time.Now()
 	jit := uuid.NewV4().String()
 	exp := now.Add(time.Minute).Unix()
 
 	claims := jws.Claims{}
-	claims.SetSubject(subject)
+	claims.SetIssuer(asap.ServiceID)
+	claims.Set(KEY_ID, asap.KeyID)
 	claims.SetJWTID(jit)
 	claims.SetIssuedAt(float64(now.Unix()))
 	claims.SetExpiration(float64(exp))
 	claims.SetAudience(audience)
 
-	jwt := jws.NewJWT(claims, signingMethod)
+	jwt := jws.NewJWT(claims, crypto.SigningMethodRS256)
 	return jwt.Serialize(privateKey)
 }
 
-func Verify(token []byte, publicKey *rsa.PublicKey) (err error) {
-	jwt, err := jws.ParseJWT(token)
-	if err != nil {
-		return err
-	}
-	return jwt.Validate(publicKey, signingMethod)
+func (asap *ASAP) Parse(token []byte) (jwt jwt.JWT, err error) {
+	return jws.ParseJWT(token)
+}
+
+func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) (err error) {
+	return jwt.Validate(publicKey, crypto.SigningMethodRS256)
 }
