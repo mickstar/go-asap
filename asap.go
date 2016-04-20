@@ -65,7 +65,7 @@ func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 	return jws.ParseJWT(token)
 }
 
-func asapValidator(kid string) *jwt.Validator {
+func asapValidator(kid string, audience string) *jwt.Validator {
 	validationFn := func(clientClaims jws.Claims) error {
 		if _, p := clientClaims.Issuer(); p == false {
 			return errors.New("Missing iss from JWT")
@@ -83,9 +83,20 @@ func asapValidator(kid string) *jwt.Validator {
 			return errors.New("Missing jti from JWT")
 		}
 
-		issuer, _ := clientClaims.Issuer()
-		if !strings.HasPrefix(kid, issuer+"/") {
+		if issuer, _ := clientClaims.Issuer(); !strings.HasPrefix(kid, issuer+"/") {
 			return fmt.Errorf("Issuer %v is not valid for key ID %v", issuer, kid)
+		}
+
+		clientAudiences, _ := clientClaims.Audience()
+		inAudience := false
+		for _, aud := range clientAudiences {
+			if strings.Compare(aud, audience) == 0 {
+				inAudience = true
+				break
+			}
+		}
+		if !inAudience {
+			return fmt.Errorf("Missing expected audience %v from JWT", audience)
 		}
 
 		return nil
@@ -94,7 +105,7 @@ func asapValidator(kid string) *jwt.Validator {
 	return jws.NewValidator(jws.Claims{}, 0, 0, validationFn)
 }
 
-func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
+func (asap *ASAP) Validate(jwt jwt.JWT, audience string, publicKey *rsa.PublicKey) error {
 	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
-	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid))
+	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid, audience))
 }
