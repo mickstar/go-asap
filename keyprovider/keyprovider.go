@@ -4,7 +4,6 @@ import (
 	"crypto/rsa"
 )
 
-type KeyProvider interface {
-	GetPrivateKey() (*rsa.PrivateKey, error)
+type PublicKeyProvider interface {
 	GetPublicKey(keyID string) (*rsa.PublicKey, error)
 }

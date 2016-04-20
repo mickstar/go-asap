@@ -12,18 +12,18 @@ import (
 const minValidBits = 768
 
 var (
-	asap      *ASAP
-	keyID     string
-	kp        *keyprovider.MockKeyProvider
-	serviceID string
+	asap       *ASAP
+	keyID      string
+	kp         *keyprovider.MockKeyProvider
+	serviceID  string
+	privateKey *rsa.PrivateKey
 )
 
 func beforeEach() {
 	serviceID = "service"
 	keyID = serviceID + "/"
-	privateKey, _ := rsa.GenerateKey(rand.Reader, minValidBits)
+	privateKey, _ = rsa.GenerateKey(rand.Reader, minValidBits)
 	kp = &keyprovider.MockKeyProvider{
-		PrivateKey: privateKey,
 		PublicKeys: map[string]*rsa.PublicKey{
 			keyID: &privateKey.PublicKey,
 		},
@@ -33,30 +33,31 @@ func beforeEach() {
 
 func TestSignWorksWithValidKey(t *testing.T) {
 	beforeEach()
-	if _, err := asap.Sign(serviceID); err != nil {
+	if _, err := asap.Sign(serviceID, privateKey); err != nil {
 		t.Errorf("Failed to sign: %+v", err)
 	}
 }
 
 func TestSignFailsWithNilKey(t *testing.T) {
 	beforeEach()
-	kp.PrivateKey = nil
+	privateKey = nil
 	kp.Err = errors.New("")
-	if _, err := asap.Sign(serviceID); err == nil {
+	if _, err := asap.Sign(serviceID, privateKey); err == nil {
 		t.Errorf("Did not fail to sign: %+v", err)
 	}
 }
 
 func TestSignFailsWithInvalidKey(t *testing.T) {
 	beforeEach()
-	kp.PrivateKey.D = big.NewInt(0) // Break the key
-	if _, err := asap.Sign(serviceID); err != nil {
+	privateKey.D = big.NewInt(0) // Break the key
+	if _, err := asap.Sign(serviceID, privateKey); err != nil {
 		t.Errorf("Did not fail to sign: %+v", err)
 	}
 }
 
 func TestSignVerify(t *testing.T) {
-	token, _ := asap.Sign(serviceID)
+	beforeEach()
+	token, _ := asap.Sign(serviceID, privateKey)
 	if err := asap.Verify(token); err != nil {
 		t.Errorf("Failed to verify token: %+v", err)
 	}

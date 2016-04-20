@@ -2,6 +2,7 @@ package asap
 
 import (
 	"bitbucket.org/drpotato_atlassian/go-asap/keyprovider"
+	"crypto/rsa"
 	"errors"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
@@ -15,22 +16,21 @@ type ASAP struct {
 	ServiceID          string
 	KeyID              string
 	AuthorisedSubjects []string
-	KeyProvider        keyprovider.KeyProvider
+	PublicKeyProvider  keyprovider.PublicKeyProvider
 }
 
-func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string, keyProvider keyprovider.KeyProvider) (asap *ASAP) {
+func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string, publicKeyProvider keyprovider.PublicKeyProvider) (asap *ASAP) {
 	return &ASAP{
 		KeyID:              keyIdentifier,
 		ServiceID:          serviceID,
 		AuthorisedSubjects: authorisedSubjects,
-		KeyProvider:        keyProvider,
+		PublicKeyProvider:  publicKeyProvider,
 	}
 }
 
-func (asap *ASAP) Sign(audience string) (token []byte, err error) {
-	privateKey, err := asap.KeyProvider.GetPrivateKey()
-	if err != nil {
-		return nil, err
+func (asap *ASAP) Sign(audience string, privateKey *rsa.PrivateKey) (token []byte, err error) {
+	if privateKey == nil {
+		return nil, errors.New("nil reference to privateKey")
 	}
 	now := time.Now()
 	jit := uuid.NewV4().String()
@@ -59,7 +59,7 @@ func (asap *ASAP) Verify(token []byte) (err error) {
 		return errors.New("No identifier in claims")
 	}
 
-	publicKey, err := asap.KeyProvider.GetPublicKey(keyID)
+	publicKey, err := asap.PublicKeyProvider.GetPublicKey(keyID)
 	if err != nil {
 		return err
 	}
