@@ -33,7 +33,6 @@ func (asap *ASAP) makeClaims(audience string) jws.Claims {
 
 	claims := jws.Claims{}
 	claims.SetIssuer(asap.ServiceID)
-	claims.Set(KEY_ID, asap.KeyID)
 	claims.SetJWTID(jit)
 	claims.SetIssuedAt(float64(now.Unix()))
 	claims.SetExpiration(float64(exp))
@@ -42,8 +41,9 @@ func (asap *ASAP) makeClaims(audience string) jws.Claims {
 	return claims
 }
 
-func signClaims(claims jws.Claims, privateKey *rsa.PrivateKey, signingMethod crypto.SigningMethod) (token []byte, err error) {
+func (asap *ASAP) signClaims(claims jws.Claims, privateKey *rsa.PrivateKey, signingMethod crypto.SigningMethod) (token []byte, err error) {
 	jwt := jws.NewJWT(claims, signingMethod)
+	jwt.(jws.JWS).Protected().Set(KEY_ID, asap.KeyID)
 	return jwt.Serialize(privateKey)
 }
 
@@ -52,13 +52,13 @@ func (asap *ASAP) Sign(audience string, privateKey *rsa.PrivateKey) (token []byt
 		return nil, errors.New("nil reference to privateKey")
 	}
 	claims := asap.makeClaims(audience)
-	return signClaims(claims, privateKey, crypto.SigningMethodRS256)
+	return asap.signClaims(claims, privateKey, crypto.SigningMethodRS256)
 }
 
-func (asap *ASAP) Parse(token []byte) (jwt jwt.JWT, err error) {
+func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 	return jws.ParseJWT(token)
 }
 
-func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) (err error) {
+func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
 	return jwt.Validate(publicKey, crypto.SigningMethodRS256)
 }

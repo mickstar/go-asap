@@ -63,7 +63,7 @@ func TestJtiRequired(t *testing.T) {
 func TestUnsignedClaimRejected(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	claims := asap.makeClaims(serviceID)
-	signed, _ := signClaims(claims, privateKey, crypto.Unsecured)
+	signed, _ := asap.signClaims(claims, privateKey, crypto.Unsecured)
 	parsed, _ := asap.Parse(signed)
 	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
 		t.Error("Unsigned JWT should not be allowed")
@@ -74,7 +74,7 @@ func TestIssCheckedAgainstKid(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	claims := asap.makeClaims(serviceID)
 	claims.SetIssuer("malicious/")
-	signed, _ := signClaims(claims, privateKey, signingMethod)
+	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
 	parsed, _ := asap.Parse(signed)
 	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
 		t.Error("Issuer shouldn't be allowed to make requests with another service's key")
