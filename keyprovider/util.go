@@ -1,4 +1,4 @@
-package asap
+package keyprovider
 
 import (
 	"crypto/rsa"
@@ -6,11 +6,6 @@ import (
 	"encoding/pem"
 	"errors"
 )
-
-type KeyStore interface {
-	GetPrivateKey() (*rsa.PrivateKey, error)
-	GetPublicKey(keyID string) (*rsa.PublicKey, error)
-}
 
 func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err error) {
 	var block *pem.Block

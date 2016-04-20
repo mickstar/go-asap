@@ -1,6 +1,7 @@
 package asap
 
 import (
+	"bitbucket.org/drpotato_atlassian/go-asap/keyprovider"
 	"errors"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
@@ -14,20 +15,20 @@ type ASAP struct {
 	ServiceID          string
 	KeyID              string
 	AuthorisedSubjects []string
-	KeyStore           KeyStore
+	KeyProvider        keyprovider.KeyProvider
 }
 
-func NewASAP(keyIdentifier, serviceIdentifier string, authorisedSubjects []string, keyStore KeyStore) (asap *ASAP) {
+func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string, keyProvider keyprovider.KeyProvider) (asap *ASAP) {
 	return &ASAP{
 		KeyID:              keyIdentifier,
-		ServiceID:          serviceIdentifier,
+		ServiceID:          serviceID,
 		AuthorisedSubjects: authorisedSubjects,
-		KeyStore:           keyStore,
+		KeyProvider:        keyProvider,
 	}
 }
 
 func (asap *ASAP) Sign(audience string) (token []byte, err error) {
-	privateKey, err := asap.KeyStore.GetPrivateKey()
+	privateKey, err := asap.KeyProvider.GetPrivateKey()
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func (asap *ASAP) Verify(token []byte) (err error) {
 		return errors.New("No identifier in claims")
 	}
 
-	publicKey, err := asap.KeyStore.GetPublicKey(keyID)
+	publicKey, err := asap.KeyProvider.GetPublicKey(keyID)
 	if err != nil {
 		return err
 	}
