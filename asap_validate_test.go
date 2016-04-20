@@ -59,3 +59,13 @@ func TestJtiRequired(t *testing.T) {
 		t.Error("JWT with missing jti should not be allowed")
 	}
 }
+
+func TestUnsignedClaimRejected(t *testing.T) {
+	asap, _, serviceID, privateKey := setUp()
+	claims := asap.makeClaims(serviceID)
+	signed, _ := signClaims(claims, privateKey, crypto.Unsecured)
+	parsed, _ := asap.Parse(signed)
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
+		t.Error("Unsigned JWT should not be allowed")
+	}
+}
