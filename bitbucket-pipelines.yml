@@ -4,10 +4,10 @@ pipelines:
     - step:
         name: Build, test, and deploy (if master)
         script:
-          # Install go-asap dependencies
-          - go get github.com/SermoDigital/jose/crypto github.com/SermoDigital/jose/jws github.com/satori/go.uuid
           # - mv -v /go/bin/* /usr/local/bin
           - mkdir -p /go/src/bitbucket.org/drpotato_atlassian &&  cp -R `pwd` /go/src/bitbucket.org/drpotato_atlassian/go-asap
           
           # Build and test
-          - cd /go/src/bitbucket.org/drpotato_atlassian/go-asap && go test ./...
+          - cd /go/src/bitbucket.org/drpotato_atlassian/go-asap
+          - go get ./...
+          - go test ./...
