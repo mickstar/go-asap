@@ -105,7 +105,7 @@ func asapValidator(kid string, audience string) *jwt.Validator {
 	return jws.NewValidator(jws.Claims{}, 0, 0, validationFn)
 }
 
-func (asap *ASAP) Validate(jwt jwt.JWT, audience string, publicKey *rsa.PublicKey) error {
+func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
 	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
-	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid, audience))
+	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid, asap.ServiceID))
 }

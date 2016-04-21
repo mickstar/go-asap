@@ -19,7 +19,7 @@ func TestIssRequired(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	_, token := setUpSigned(asap, serviceID, privateKey)
 	token.Claims().RemoveIssuer()
-	if err := asap.Validate(token, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(token, &privateKey.PublicKey); err == nil {
 		t.Error("JWT with missing iss should not be allowed")
 	}
 }
@@ -28,7 +28,7 @@ func TestExpRequired(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	_, token := setUpSigned(asap, serviceID, privateKey)
 	token.Claims().RemoveExpiration()
-	if err := asap.Validate(token, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(token, &privateKey.PublicKey); err == nil {
 		t.Error("JWT with missing exp should not be allowed")
 	}
 }
@@ -37,7 +37,7 @@ func TestIatRequired(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	_, token := setUpSigned(asap, serviceID, privateKey)
 	token.Claims().RemoveIssuedAt()
-	if err := asap.Validate(token, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(token, &privateKey.PublicKey); err == nil {
 		t.Error("JWT with missing iat should not be allowed")
 	}
 }
@@ -46,7 +46,7 @@ func TestAudRequired(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	_, token := setUpSigned(asap, serviceID, privateKey)
 	token.Claims().RemoveAudience()
-	if err := asap.Validate(token, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(token, &privateKey.PublicKey); err == nil {
 		t.Error("JWT with missing aud should not be allowed")
 	}
 }
@@ -55,7 +55,7 @@ func TestJtiRequired(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	_, token := setUpSigned(asap, serviceID, privateKey)
 	token.Claims().RemoveJWTID()
-	if err := asap.Validate(token, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(token, &privateKey.PublicKey); err == nil {
 		t.Error("JWT with missing jti should not be allowed")
 	}
 }
@@ -64,7 +64,7 @@ func TestSubNotRequired(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	_, token := setUpSigned(asap, serviceID, privateKey)
 	token.Claims().RemoveSubject()
-	if err := asap.Validate(token, serviceID, &privateKey.PublicKey); err != nil {
+	if err := asap.Validate(token, &privateKey.PublicKey); err != nil {
 		t.Error("JWT should not require sub and should infer it from iss: " + err.Error())
 	}
 }
@@ -74,7 +74,7 @@ func TestUnsignedClaimRejected(t *testing.T) {
 	claims := asap.makeClaims(serviceID)
 	signed, _ := asap.signClaims(claims, privateKey, crypto.Unsecured)
 	parsed, _ := asap.Parse(signed)
-	if err := asap.Validate(parsed, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
 		t.Error("Unsigned JWT should not be allowed")
 	}
 }
@@ -85,7 +85,7 @@ func TestIssCheckedAgainstKid(t *testing.T) {
 	claims.SetIssuer("malicious/")
 	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
 	parsed, _ := asap.Parse(signed)
-	if err := asap.Validate(parsed, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
 		t.Error("Issuer shouldn't be allowed to make requests with another service's key")
 	}
 }
@@ -96,7 +96,7 @@ func TestWrongAudienceRejected(t *testing.T) {
 	claims.SetAudience("theotherone")
 	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
 	parsed, _ := asap.Parse(signed)
-	if err := asap.Validate(parsed, serviceID, &privateKey.PublicKey); err == nil {
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
 		t.Error("Requests must have the serviceID in their aud")
 	}
 }
