@@ -13,7 +13,7 @@ func setUp() (asap *ASAP, keyID string, serviceID string, privateKey *rsa.Privat
 	serviceID = "service"
 	keyID = serviceID + "/"
 	privateKey, _ = rsa.GenerateKey(rand.Reader, minValidBits)
-	asap = NewASAP(keyID, "service", []string{"service"})
+	asap = NewASAP(keyID, serviceID, []string{"service"})
 	return
 }
 
@@ -44,7 +44,7 @@ func TestSignParseValidate(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	token, _ := asap.Sign(serviceID, privateKey)
 	jwt, _ := asap.Parse(token)
-	if err := asap.Validate(jwt, serviceID, &privateKey.PublicKey); err != nil {
+	if err := asap.Validate(jwt, &privateKey.PublicKey); err != nil {
 		t.Errorf("Failed to verify token: %+v", err)
 	}
 }
