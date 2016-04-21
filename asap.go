@@ -99,6 +99,13 @@ func asapValidator(kid string, audience string) *jwt.Validator {
 			return fmt.Errorf("Missing expected audience %v from JWT", audience)
 		}
 
+		issuedAt, _ := clientClaims.IssuedAt()
+		expiration, _ := clientClaims.Expiration()
+
+		if time.Unix(int64(issuedAt), 0).Add(time.Hour).Before(time.Unix(int64(expiration), 0)) {
+			return fmt.Errorf("iat %v is more than an hour before exp %v", issuedAt, expiration)
+		}
+
 		return nil
 	}
 
