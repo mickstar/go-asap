@@ -5,6 +5,7 @@ import (
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jwt"
 	"testing"
+	"time"
 )
 
 var signingMethod = crypto.SigningMethodRS256
@@ -98,5 +99,30 @@ func TestWrongAudienceRejected(t *testing.T) {
 	parsed, _ := asap.Parse(signed)
 	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
 		t.Error("Requests must have the serviceID in their aud")
+	}
+}
+
+func TestExpirationNotMoreThanAnHourAfterIssueAt(t *testing.T) {
+	asap, _, serviceID, privateKey := setUp()
+	claims := asap.makeClaims(serviceID)
+	now := time.Now()
+	claims.SetIssuedAt(float64(now.Unix()))
+	claims.SetExpiration(float64(now.Add(time.Hour).Add(-time.Second).Unix()))
+	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
+	parsed, _ := asap.Parse(signed)
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err != nil {
+		t.Error(err)
+	}
+}
+func TestExpirationMoreThanAnHourAfterIssuedAt(t *testing.T) {
+	asap, _, serviceID, privateKey := setUp()
+	claims := asap.makeClaims(serviceID)
+	now := time.Now()
+	claims.SetIssuedAt(float64(now.Unix()))
+	claims.SetExpiration(float64(now.Add(time.Hour).Add(time.Second).Unix()))
+	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
+	parsed, _ := asap.Parse(signed)
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
+		t.Fail()
 	}
 }
