@@ -1,13 +1,14 @@
 package middleware
 
 import (
+	"net/http"
+	"regexp"
+
 	"bitbucket.org/drpotato_atlassian/go-asap"
 	"bitbucket.org/drpotato_atlassian/go-asap/keyprovider"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/Sirupsen/logrus"
 	"github.com/deckarep/golang-set"
-	"net/http"
-	"regexp"
 )
 
 var REGEXP = regexp.MustCompile("[Bb]earer ")

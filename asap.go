@@ -4,13 +4,14 @@ import (
 	"crypto/rsa"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
+
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/satori/go.uuid"
-	"regexp"
-	"strings"
-	"time"
 )
 
 const KEY_ID = "kid"

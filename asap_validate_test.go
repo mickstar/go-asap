@@ -2,10 +2,11 @@ package asap
 
 import (
 	"crypto/rsa"
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jwt"
 	"testing"
 	"time"
+
+	"github.com/SermoDigital/jose/crypto"
+	"github.com/SermoDigital/jose/jwt"
 )
 
 var signingMethod = crypto.SigningMethodRS256
