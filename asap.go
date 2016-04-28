@@ -8,6 +8,7 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	"github.com/SermoDigital/jose/jwt"
 	"github.com/satori/go.uuid"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -114,5 +115,19 @@ func asapValidator(kid string, audience string) *jwt.Validator {
 
 func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
 	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
+	if !validateKid(kid) {
+		return errors.New("Invalid kid")
+	}
 	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid, asap.ServiceID))
+}
+
+var kidRegex = regexp.MustCompile(`^[\w.\-\+/]*$`)
+
+func validateKid(kid string) bool {
+	for _, s := range strings.Split(kid, "/") {
+		if s == "." || s == ".." {
+			return false
+		}
+	}
+	return kidRegex.MatchString(kid)
 }
