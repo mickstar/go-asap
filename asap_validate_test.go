@@ -128,6 +128,17 @@ func TestExpirationMoreThanAnHourAfterIssuedAt(t *testing.T) {
 	}
 }
 
+func TestKeyIdNotPrefixedByServiceId(t *testing.T) {
+	asap, _, serviceID, privateKey := setUp()
+	claims := asap.makeClaims(serviceID)
+	asap.KeyID = "other-service/key"
+	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
+	parsed, _ := asap.Parse(signed)
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
+		t.Fail()
+	}
+}
+
 func TestKeyIdWithFunkyPath(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	claims := asap.makeClaims(serviceID)
