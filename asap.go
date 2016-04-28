@@ -85,8 +85,8 @@ func asapValidator(kid string, audience string) *jwt.Validator {
 			return errors.New("Missing jti from JWT")
 		}
 
-		if issuer, _ := clientClaims.Issuer(); !strings.HasPrefix(kid, issuer+"/") {
-			return fmt.Errorf("Issuer %v is not valid for key ID %v", issuer, kid)
+		if issuer, _ := clientClaims.Issuer(); !validateKid(issuer, kid) {
+			return fmt.Errorf("Invalid kid: %v", kid)
 		}
 
 		clientAudiences, _ := clientClaims.Audience()
@@ -116,15 +116,15 @@ func asapValidator(kid string, audience string) *jwt.Validator {
 
 func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
 	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
-	if !validateKid(kid) {
-		return errors.New("Invalid kid")
-	}
 	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid, asap.ServiceID))
 }
 
 var kidRegex = regexp.MustCompile(`^[\w.\-\+/]*$`)
 
-func validateKid(kid string) bool {
+func validateKid(issuer, kid string) bool {
+	if !strings.HasPrefix(kid, issuer+"/") {
+		return false
+	}
 	for _, s := range strings.Split(kid, "/") {
 		if s == "." || s == ".." {
 			return false
