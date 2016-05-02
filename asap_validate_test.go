@@ -2,10 +2,11 @@ package asap
 
 import (
 	"crypto/rsa"
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jwt"
 	"testing"
 	"time"
+
+	"github.com/SermoDigital/jose/crypto"
+	"github.com/SermoDigital/jose/jwt"
 )
 
 var signingMethod = crypto.SigningMethodRS256
@@ -120,6 +121,28 @@ func TestExpirationMoreThanAnHourAfterIssuedAt(t *testing.T) {
 	now := time.Now()
 	claims.SetIssuedAt(float64(now.Unix()))
 	claims.SetExpiration(float64(now.Add(time.Hour).Add(time.Second).Unix()))
+	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
+	parsed, _ := asap.Parse(signed)
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
+		t.Fail()
+	}
+}
+
+func TestKeyIdNotPrefixedByServiceId(t *testing.T) {
+	asap, _, serviceID, privateKey := setUp()
+	claims := asap.makeClaims(serviceID)
+	asap.KeyID = "other-service/key"
+	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
+	parsed, _ := asap.Parse(signed)
+	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
+		t.Fail()
+	}
+}
+
+func TestKeyIdWithFunkyPath(t *testing.T) {
+	asap, _, serviceID, privateKey := setUp()
+	claims := asap.makeClaims(serviceID)
+	asap.KeyID = asap.KeyID + "../../other-service/key"
 	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
 	parsed, _ := asap.Parse(signed)
 	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
