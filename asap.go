@@ -33,13 +33,13 @@ func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string) *ASAP
 func (asap *ASAP) makeClaims(audience string) jws.Claims {
 	now := time.Now()
 	jit := uuid.NewV4().String()
-	exp := now.Add(time.Minute).Unix()
+	exp := now.Add(time.Minute)
 
 	claims := jws.Claims{}
 	claims.SetIssuer(asap.ServiceID)
 	claims.SetJWTID(jit)
-	claims.SetIssuedAt(float64(now.Unix()))
-	claims.SetExpiration(float64(exp))
+	claims.SetIssuedAt(now)
+	claims.SetExpiration(exp)
 	claims.SetAudience(audience)
 
 	return claims
@@ -104,7 +104,7 @@ func asapValidator(kid string, audience string) *jwt.Validator {
 		issuedAt, _ := clientClaims.IssuedAt()
 		expiration, _ := clientClaims.Expiration()
 
-		if time.Unix(int64(issuedAt), 0).Add(time.Hour).Before(time.Unix(int64(expiration), 0)) {
+		if issuedAt.Add(time.Hour).Before(expiration) {
 			return fmt.Errorf("iat %v is more than an hour before exp %v", issuedAt, expiration)
 		}
 
