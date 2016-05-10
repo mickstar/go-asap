@@ -107,8 +107,8 @@ func TestExpirationNotMoreThanAnHourAfterIssueAt(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	claims := asap.makeClaims(serviceID)
 	now := time.Now()
-	claims.SetIssuedAt(float64(now.Unix()))
-	claims.SetExpiration(float64(now.Add(time.Hour).Add(-time.Second).Unix()))
+	claims.SetIssuedAt(now)
+	claims.SetExpiration(now.Add(time.Hour).Add(-time.Second))
 	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
 	parsed, _ := asap.Parse(signed)
 	if err := asap.Validate(parsed, &privateKey.PublicKey); err != nil {
@@ -119,8 +119,8 @@ func TestExpirationMoreThanAnHourAfterIssuedAt(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	claims := asap.makeClaims(serviceID)
 	now := time.Now()
-	claims.SetIssuedAt(float64(now.Unix()))
-	claims.SetExpiration(float64(now.Add(time.Hour).Add(time.Second).Unix()))
+	claims.SetIssuedAt(now)
+	claims.SetExpiration(now.Add(time.Hour).Add(time.Second))
 	signed, _ := asap.signClaims(claims, privateKey, signingMethod)
 	parsed, _ := asap.Parse(signed)
 	if err := asap.Validate(parsed, &privateKey.PublicKey); err == nil {
