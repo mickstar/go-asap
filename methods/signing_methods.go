@@ -4,23 +4,24 @@ import (
 	"github.com/SermoDigital/jose/crypto"
 )
 
-var signingMethodMap = map[string]crypto.SigningMethod{
-	// ECDSA
-	crypto.SigningMethodES256.Name: crypto.SigningMethodES256,
-	crypto.SigningMethodES384.Name: crypto.SigningMethodES384,
-	crypto.SigningMethodES512.Name: crypto.SigningMethodES512,
+const (
+	ES256 = "ES256"
+	ES384 = "ES384"
+	ES512 = "ES512"
 
-	// HMAC
-	crypto.SigningMethodHS256.Name: crypto.SigningMethodHS256,
-	crypto.SigningMethodHS384.Name: crypto.SigningMethodHS384,
-	crypto.SigningMethodHS512.Name: crypto.SigningMethodHS512,
+	RS256 = "RS256"
+	RS384 = "RS384"
+	RS512 = "RS512"
+)
+
+var SigningMethodMap = map[string]crypto.SigningMethod{
+	// ECDSA
+	ES256: crypto.SigningMethodES256,
+	ES384: crypto.SigningMethodES384,
+	ES512: crypto.SigningMethodES512,
 
 	// RSA
-	crypto.SigningMethodRS256.Name: crypto.SigningMethodRS256,
-	crypto.SigningMethodRS384.Name: crypto.SigningMethodRS384,
-	crypto.SigningMethodRS512.Name: crypto.SigningMethodRS512,
-}
-
-func MapSigningMethod(signingMethodName string) crypto.SigningMethod {
-	return signingMethodMap[signingMethodName]
+	RS256: crypto.SigningMethodRS256,
+	RS384: crypto.SigningMethodRS384,
+	RS512: crypto.SigningMethodRS512,
 }

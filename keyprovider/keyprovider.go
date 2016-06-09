@@ -1,13 +1,9 @@
 package keyprovider
 
-import (
-	"crypto/rsa"
-)
-
 type PublicKeyProvider interface {
-	GetPublicKey(keyID string) (*rsa.PublicKey, error)
+	GetPublicKey(keyID string) (interface{}, error)
 }
 
 type PrivateKeyProvider interface {
-	GetPrivateKey() (*rsa.PrivateKey, error)
+	GetPrivateKey() (interface{}, error)
 }

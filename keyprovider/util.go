@@ -1,28 +1,32 @@
 package keyprovider
 
 import (
-	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 )
 
-func PrivateKeyFromBytes(privateKeyData []byte) (privateKey *rsa.PrivateKey, err error) {
-	var block *pem.Block
+func PrivateKeyFromBytes(privateKeyData []byte) (privateKey interface{}, err error) {
 
-	if block, _ = pem.Decode(privateKeyData); block == nil || block.Type != "RSA PRIVATE KEY" {
+	block, _ := pem.Decode(privateKeyData)
+	if block == nil {
 		return nil, errors.New("No valid PEM data found")
 	}
 
-	return x509.ParsePKCS1PrivateKey(block.Bytes)
+	privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err == nil {
+		return
+	}
+
+	return x509.ParseECPrivateKey(block.Bytes)
 }
 
-func PublicKeyFromBytes(publicKeyData []byte) (publicKey *rsa.PublicKey, err error) {
-	block, _ := pem.Decode(publicKeyData)
+func PublicKeyFromBytes(publicKeyData []byte) (interface{}, error) {
 
-	publicKeyUnsafe, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if publicKeyUnsafe == nil && err == nil {
-		return nil, errors.New("Unsupported algorithm")
+	block, _ := pem.Decode(publicKeyData)
+	if block == nil {
+		return nil, errors.New("No valid PEM data found")
 	}
-	return publicKeyUnsafe.(*rsa.PublicKey), nil
+
+	return x509.ParsePKIXPublicKey(block.Bytes)
 }

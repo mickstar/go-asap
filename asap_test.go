@@ -24,18 +24,11 @@ func TestSignWorksWithValidKey(t *testing.T) {
 	}
 }
 
-func TestSignFailsWithNilKey(t *testing.T) {
-	asap, _, serviceID, privateKey := setUp()
-	privateKey = nil
-	if _, err := asap.Sign(serviceID, privateKey); err == nil {
-		t.Errorf("Did not fail to sign: %+v", err)
-	}
-}
-
 func TestSignFailsWithInvalidKey(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	privateKey.D = big.NewInt(0) // Break the key
-	if _, err := asap.Sign(serviceID, privateKey); err != nil {
+	privateKey.Precomputed.Dp = nil
+	if _, err := asap.Sign(serviceID, privateKey); err == nil {
 		t.Errorf("Did not fail to sign: %+v", err)
 	}
 }
