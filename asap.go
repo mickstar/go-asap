@@ -5,8 +5,10 @@ import (
 	"errors"
 	"time"
 
+	"bitbucket.org/drpotato_atlassian/go-asap/methods"
 	"bitbucket.org/drpotato_atlassian/go-asap/validator"
 
+	"fmt"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/SermoDigital/jose/jwt"
@@ -14,6 +16,7 @@ import (
 )
 
 const KEY_ID = "kid"
+const ALGORITHM = "alg"
 
 type ASAP struct {
 	ServiceID          string
@@ -67,6 +70,14 @@ func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 }
 
 func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
-	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
-	return jwt.Validate(publicKey, crypto.SigningMethodRS256, validator.GenerateValidator(kid, asap.ServiceID))
+	header := jwt.(jws.JWS).Protected()
+	kid := header.Get(KEY_ID).(string)
+	alg := header.Get(ALGORITHM).(string)
+
+	signingMethod := methods.MapSigningMethod(alg)
+	if signingMethod == nil {
+		return errors.New(fmt.Sprintf("Unsupported algorithm: %s", alg))
+	}
+
+	return jwt.Validate(publicKey, signingMethod, validator.GenerateValidator(kid, asap.ServiceID))
 }
