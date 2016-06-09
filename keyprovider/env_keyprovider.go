@@ -1,7 +1,6 @@
 package keyprovider
 
 import (
-	"crypto/rsa"
 	"errors"
 	"os"
 )
@@ -10,7 +9,7 @@ type EnvironmentPrivateKeyProvider struct {
 	PrivateKeyEnvName string
 }
 
-func (kp *EnvironmentPrivateKeyProvider) GetPrivateKey() (*rsa.PrivateKey, error) {
+func (kp *EnvironmentPrivateKeyProvider) GetPrivateKey() (interface{}, error) {
 	if kp.PrivateKeyEnvName == "" {
 		return nil, errors.New("no environment variable")
 	}

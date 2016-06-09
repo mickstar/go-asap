@@ -1,10 +1,13 @@
 package asap
 
 import (
+	"crypto/ecdsa"
 	"crypto/rsa"
 	"errors"
+	"fmt"
 	"time"
 
+	"bitbucket.org/drpotato_atlassian/go-asap/methods"
 	"bitbucket.org/drpotato_atlassian/go-asap/validator"
 
 	"github.com/SermoDigital/jose/crypto"
@@ -14,6 +17,7 @@ import (
 )
 
 const KEY_ID = "kid"
+const ALGORITHM = "alg"
 
 type ASAP struct {
 	ServiceID          string
@@ -44,7 +48,7 @@ func (asap *ASAP) makeClaims(audience string) jws.Claims {
 	return claims
 }
 
-func (asap *ASAP) signClaims(claims jws.Claims, privateKey *rsa.PrivateKey, signingMethod crypto.SigningMethod) (token []byte, err error) {
+func (asap *ASAP) signClaims(claims jws.Claims, privateKey interface{}, signingMethod crypto.SigningMethod) (token []byte, err error) {
 	jwt := jws.NewJWT(claims, signingMethod)
 
 	// Need to hack the kid attribute into the right JWS header part, since jose
@@ -54,19 +58,36 @@ func (asap *ASAP) signClaims(claims jws.Claims, privateKey *rsa.PrivateKey, sign
 	return jwt.Serialize(privateKey)
 }
 
-func (asap *ASAP) Sign(audience string, privateKey *rsa.PrivateKey) (token []byte, err error) {
-	if privateKey == nil {
-		return nil, errors.New("nil reference to privateKey")
+func (asap *ASAP) Sign(audience string, privateKey interface{}) (token []byte, err error) {
+
+	var signingMethod crypto.SigningMethod
+
+	switch privateKey.(type) {
+	case *rsa.PrivateKey:
+		signingMethod = crypto.SigningMethodRS256
+	case *ecdsa.PrivateKey:
+		signingMethod = crypto.SigningMethodES256
+	default:
+		return nil, errors.New("bad private key")
 	}
+
 	claims := asap.makeClaims(audience)
-	return asap.signClaims(claims, privateKey, crypto.SigningMethodRS256)
+	return asap.signClaims(claims, privateKey, signingMethod)
 }
 
 func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 	return jws.ParseJWT(token)
 }
 
-func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
-	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
-	return jwt.Validate(publicKey, crypto.SigningMethodRS256, validator.GenerateValidator(kid, asap.ServiceID))
+func (asap *ASAP) Validate(jwt jwt.JWT, publicKey interface{}) error {
+	header := jwt.(jws.JWS).Protected()
+	kid := header.Get(KEY_ID).(string)
+	alg := header.Get(ALGORITHM).(string)
+
+	signingMethod := methods.SigningMethodMap[alg]
+	if signingMethod == nil {
+		return errors.New(fmt.Sprintf("Unsupported algorithm: %s", alg))
+	}
+
+	return jwt.Validate(publicKey, signingMethod, validator.GenerateValidator(kid, asap.ServiceID))
 }

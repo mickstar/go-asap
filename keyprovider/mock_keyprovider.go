@@ -1,19 +1,15 @@
 package keyprovider
 
-import (
-	"crypto/rsa"
-)
-
 type MockKeyProvider struct {
-	PrivateKey *rsa.PrivateKey
-	PublicKeys map[string]*rsa.PublicKey
+	PrivateKey *interface{}
+	PublicKeys map[string]*interface{}
 	Err        error
 }
 
-func (kp *MockKeyProvider) GetPublicKey(keyID string) (publicKey *rsa.PublicKey, err error) {
+func (kp *MockKeyProvider) GetPublicKey(keyID string) (interface{}, error) {
 	return kp.PublicKeys[keyID], kp.Err
 }
 
-func (kp *MockKeyProvider) GetPrivateKey() (privateKey *rsa.PrivateKey, err error) {
+func (kp *MockKeyProvider) GetPrivateKey() (interface{}, error) {
 	return kp.PrivateKey, kp.Err
 }

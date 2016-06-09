@@ -1,7 +1,6 @@
 package keyprovider
 
 import (
-	"crypto/rsa"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -12,7 +11,7 @@ type FSKeyProvider struct {
 	PublicKeyFilename string
 }
 
-func (kp *FSKeyProvider) GetPrivateKey() (*rsa.PrivateKey, error) {
+func (kp *FSKeyProvider) GetPrivateKey() (interface{}, error) {
 	privateKey, err := ioutil.ReadFile(kp.PrivateKeyPath)
 	if err != nil {
 		return nil, err
@@ -20,7 +19,7 @@ func (kp *FSKeyProvider) GetPrivateKey() (*rsa.PrivateKey, error) {
 	return PrivateKeyFromBytes(privateKey)
 }
 
-func (kp *FSKeyProvider) GetPublicKey(keyID string) (*rsa.PublicKey, error) {
+func (kp *FSKeyProvider) GetPublicKey(keyID string) (interface{}, error) {
 
 	var publicKey []byte
 	var err error
