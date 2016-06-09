@@ -3,10 +3,9 @@ package asap
 import (
 	"crypto/rsa"
 	"errors"
-	"fmt"
-	"regexp"
-	"strings"
 	"time"
+
+	"bitbucket.org/drpotato_atlassian/go-asap/validator"
 
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
@@ -67,68 +66,7 @@ func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 	return jws.ParseJWT(token)
 }
 
-func asapValidator(kid string, audience string) *jwt.Validator {
-	validationFn := func(clientClaims jws.Claims) error {
-		if _, p := clientClaims.Issuer(); p == false {
-			return errors.New("Missing iss from JWT")
-		}
-		if _, p := clientClaims.Expiration(); p == false {
-			return errors.New("Missing exp from JWT")
-		}
-		if _, p := clientClaims.IssuedAt(); p == false {
-			return errors.New("Missing iat from JWT")
-		}
-		if _, p := clientClaims.Audience(); p == false {
-			return errors.New("Missing aud from JWT")
-		}
-		if _, p := clientClaims.JWTID(); p == false {
-			return errors.New("Missing jti from JWT")
-		}
-
-		if issuer, _ := clientClaims.Issuer(); !validateKid(issuer, kid) {
-			return fmt.Errorf("Invalid kid: %v", kid)
-		}
-
-		clientAudiences, _ := clientClaims.Audience()
-		inAudience := false
-		for _, aud := range clientAudiences {
-			if strings.Compare(aud, audience) == 0 {
-				inAudience = true
-				break
-			}
-		}
-		if !inAudience {
-			return fmt.Errorf("Missing expected audience %v from JWT", audience)
-		}
-
-		issuedAt, _ := clientClaims.IssuedAt()
-		expiration, _ := clientClaims.Expiration()
-
-		if issuedAt.Add(time.Hour).Before(expiration) {
-			return fmt.Errorf("iat %v is more than an hour before exp %v", issuedAt, expiration)
-		}
-
-		return nil
-	}
-
-	return jws.NewValidator(jws.Claims{}, 0, 0, validationFn)
-}
-
 func (asap *ASAP) Validate(jwt jwt.JWT, publicKey *rsa.PublicKey) error {
 	kid := jwt.(jws.JWS).Protected().Get(KEY_ID).(string) // Eww eww eww
-	return jwt.Validate(publicKey, crypto.SigningMethodRS256, asapValidator(kid, asap.ServiceID))
-}
-
-var kidRegex = regexp.MustCompile(`^[\w.\-\+/]*$`)
-
-func validateKid(issuer, kid string) bool {
-	if !strings.HasPrefix(kid, issuer+"/") {
-		return false
-	}
-	for _, s := range strings.Split(kid, "/") {
-		if s == "." || s == ".." {
-			return false
-		}
-	}
-	return kidRegex.MatchString(kid)
+	return jwt.Validate(publicKey, crypto.SigningMethodRS256, validator.GenerateValidator(kid, asap.ServiceID))
 }
