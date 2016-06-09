@@ -1,4 +1,0 @@
-package: bitbucket.org/drpotato_atlassian/go-asap
-import:
-- package: github.com/satori/go.uuid
-- package: github.com/SermoDigital/jose
