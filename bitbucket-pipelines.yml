@@ -5,9 +5,9 @@ pipelines:
         name: Build, test, and deploy (if master)
         script:
           # - mv -v /go/bin/* /usr/local/bin
-          - mkdir -p /go/src/bitbucket.org/drpotato_atlassian &&  cp -R `pwd` /go/src/bitbucket.org/drpotato_atlassian/go-asap
+          - mkdir -p /go/src/bitbucket.org/atlassian &&  cp -R `pwd` /go/src/bitbucket.org/atlassian/go-asap
           
           # Build and test
-          - cd /go/src/bitbucket.org/drpotato_atlassian/go-asap
+          - cd /go/src/bitbucket.org/atlassian/go-asap
           - go get ./...
           - go test ./...

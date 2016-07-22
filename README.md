@@ -8,7 +8,7 @@ A library that creates and verifies JSON Web Tokens (JWT) for service to service
 
 ### Installing
 
-    go get bitbucket.org/drpotato_atlassian/go-asap
+    go get bitbucket.org/atlassian/go-asap
 
 ### Generating key pairs
 

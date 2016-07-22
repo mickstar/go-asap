@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"bitbucket.org/drpotato_atlassian/go-asap/methods"
-	"bitbucket.org/drpotato_atlassian/go-asap/validator"
+	"bitbucket.org/atlassian/go-asap/methods"
+	"bitbucket.org/atlassian/go-asap/validator"
 
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
