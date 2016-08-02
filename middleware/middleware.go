@@ -23,10 +23,22 @@ type Rule struct {
 	Clients mapset.Set
 }
 
+func NewRule(r *regexp.Regexp, clients []string) Rule {
+	clientSet := mapset.NewSet()
+	for _, c := range clients {
+		clientSet.Add(c)
+	}
+	return Rule{
+		Regexp:  r,
+		Clients: clientSet,
+	}
+}
+
 type ASAPMiddleware struct {
 	ASAP                *asap.ASAP
 	PublicKeyProvider   keyprovider.PublicKeyProvider
 	AuthenticationRules []Rule
+	Logger              *logrus.Logger
 }
 
 func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
@@ -38,7 +50,7 @@ func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 
 	authorization := r.Header.Get(HEADER_AUTHORIZATION)
 	if authorization == "" {
-		logrus.Error("missing authorization header")
+		mw.logError("missing authorization header")
 		rw.WriteHeader(403)
 		return
 	}
@@ -46,14 +58,14 @@ func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	bearer := REGEXP.ReplaceAllString(authorization, "")
 	jwt, err := mw.ASAP.Parse([]byte(bearer))
 	if err != nil {
-		logrus.Error(err)
+		mw.logError(err)
 		rw.WriteHeader(403)
 		return
 	}
 
 	issuer, _ := jwt.Claims().Issuer()
 	if !mw.clientAllowed(route, issuer) {
-		logrus.Error("not authorized for route")
+		mw.logError("not authorized for route")
 		rw.WriteHeader(403)
 		return
 	}
@@ -61,14 +73,14 @@ func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	keyID := jwt.(jws.JWS).Protected().Get(HEADER_KEY_ID).(string) // Eww eww eww
 	publicKey, err := mw.PublicKeyProvider.GetPublicKey(keyID)
 	if err != nil {
-		logrus.Error(err)
+		mw.logError(err)
 		rw.WriteHeader(403)
 		return
 	}
 
 	err = mw.ASAP.Validate(jwt, publicKey)
 	if err != nil {
-		logrus.Error(err)
+		mw.logError(err)
 		rw.WriteHeader(403)
 		return
 	}
@@ -92,4 +104,12 @@ func (mw *ASAPMiddleware) clientAllowed(route, client string) bool {
 		}
 	}
 	return false
+}
+
+func (mw *ASAPMiddleware) logError(args ...interface{}) {
+	if mw.Logger != nil {
+		mw.Logger.Error(args)
+	} else {
+		logrus.Error(args)
+	}
 }
