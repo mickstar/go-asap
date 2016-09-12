@@ -3,6 +3,7 @@ package keyprovider
 import (
 	"errors"
 	"os"
+	"github.com/vincent-petithory/dataurl"
 )
 
 type EnvironmentPrivateKeyProvider struct {
@@ -17,6 +18,11 @@ func (kp *EnvironmentPrivateKeyProvider) GetPrivateKey() (interface{}, error) {
 	privateKey := os.Getenv(kp.PrivateKeyEnvName)
 	if privateKey == "" {
 		return nil, errors.New("environment variable not set")
+	}
+
+	dataURL, err := dataurl.DecodeString(privateKey)
+	if err == nil {
+		return PrivateKeyFromBytes(dataURL.Data)
 	}
 
 	return PrivateKeyFromBytes([]byte(privateKey))

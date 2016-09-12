@@ -8,6 +8,11 @@ import (
 
 func PrivateKeyFromBytes(privateKeyData []byte) (privateKey interface{}, err error) {
 
+	keyFromDataURL, err := x509.ParsePKCS8PrivateKey(privateKeyData)
+	if err == nil {
+		return keyFromDataURL, nil
+	}
+
 	block, _ := pem.Decode(privateKeyData)
 	if block == nil {
 		return nil, errors.New("No valid PEM data found")
