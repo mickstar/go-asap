@@ -50,7 +50,7 @@ And then make your request with net/http as normal!
 
 ### Server
 
-This assumes you're using `github.com/codegangsta/negroni` for middleware.
+If you are using you're using `github.com/codegangsta/negroni` for middleware:
 
 Instantiate the ASAP middleware
 
@@ -70,4 +70,37 @@ Instantiate the ASAP middleware
         },
     }
 
+Done!
+
+If you're using `func(next http.Handler) http.Handler` middleware type:
+   
+Create a middleware config:
+
+    configs := asap.MiddlewareConfigs{
+        ASAP: &asap.ASAP{
+            ServiceID: "audience",
+            AuthorizedSubjects: []string{"service"},
+        },
+        PublicKeyProvider: &keyprovider.FSKeyProvider{
+            PublicKeyDir: "keys/public",
+        },
+        Logger: logger.Error,
+        AuthenticationRules: []asap.Rule{
+            asap.NewRule(regexp.MustCompile("/api/.*"), []string{"service"}),
+        },
+    }
+    
+Create the middleware:
+
+    asapMiddleware := asap.NewMiddleware(configs)
+
+Use it:
+
+    nopHandler := func(w http.ResponseWriter, r *http.Request) {
+        w.WriteHeader(http.StatusOK)
+    }
+    
+    mux := http.NewServeMux()
+    mux.Handle("/auth/asap", asapMiddleware(http.HandlerFunc(nopHandler)))
+    
 Done!
