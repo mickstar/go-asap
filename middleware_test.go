@@ -1,20 +1,21 @@
 package asap
 
 import (
-	"bitbucket.org/atlassian/go-asap/keyprovider"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
 	"errors"
+	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"regexp"
 	"testing"
-	"log"
-	"io/ioutil"
+
+	"bitbucket.org/atlassian/go-asap/keyprovider"
 )
 
 func TestMiddleware(t *testing.T) {
@@ -107,7 +108,7 @@ func TestMiddleware(t *testing.T) {
 			AuthenticationRules: []Rule{
 				NewRule(regexp.MustCompile(".*"), []string{"client"}),
 			},
-			ExpectedLastLogLine: "not authorized for route",
+			ExpectedLastLogLine: "not_allowed_client is not authorized for route /auth/asap",
 			ExpectedBody:        "",
 			ExpectedStatus:      http.StatusForbidden,
 		},
@@ -172,7 +173,7 @@ func TestMiddleware(t *testing.T) {
 			TestName:         "Invalid JWT token",
 			PrivateKey:       rsaValidPrivateKeyOne,
 			PublicKey:        rsaValidPublicKeyOne,
-			CustomAuthHeader: authHeader{Key: "Authorization", Value: "Invalid JWT"},
+			CustomAuthHeader: authHeader{Key: headerAuthorization, Value: "Invalid JWT"},
 			ServerName:       "server",
 			ClientName:       "client",
 			Logger:           lastLineLogger,
@@ -268,7 +269,7 @@ func TestMiddleware(t *testing.T) {
 		asapReq, _ := http.NewRequest("GET", "/auth/asap", nil)
 
 		if c.CustomAuthHeader.Key == "" && c.CustomAuthHeader.Value == "" {
-			asapReq.Header.Set("Authorization", "Bearer "+string(token))
+			asapReq.Header.Set(headerAuthorization, "Bearer "+string(token))
 		} else {
 			asapReq.Header.Set(c.CustomAuthHeader.Key, c.CustomAuthHeader.Value)
 		}
@@ -283,11 +284,11 @@ func TestMiddleware(t *testing.T) {
 			t.Fail()
 		}
 		if c.ExpectedBody != rrASAP.Body.String() {
-			t.Logf("Unexpected response body.\nGot: %s \nWant: %d\n", rrASAP.Body.String(), c.ExpectedBody)
+			t.Logf("Unexpected response body.\nGot: %s \nWant: %s\n", rrASAP.Body.String(), c.ExpectedBody)
 			t.Fail()
 		}
 		if c.ExpectedLastLogLine != lastLogLine {
-			t.Logf("Unexpected last log entry.\nGot: %s \nWant: %d\n", c.ExpectedLastLogLine, lastLogLine)
+			t.Logf("Unexpected last log entry.\nGot: %s \nWant: %s\n", lastLogLine, c.ExpectedLastLogLine)
 			t.Fail()
 		}
 		lastLogLine = "" //reset
@@ -302,19 +303,19 @@ func TestConfigsValidation(t *testing.T) {
 		Logger: func(v ...interface{}) {},
 		ASAP: &ASAP{
 			ServiceID: "serviceID",
-			KeyID: "serviceID/key",
+			KeyID:     "serviceID/key",
 		},
 	}
-	midlewareWithoutASAP := NewMiddleware(configs)
-	midlewareWithoutKeyprovider := NewMiddleware(configsWithASAP)
+	middlewareWithoutASAP := NewMiddleware(configs)
+	middlewareWithoutKeyprovider := NewMiddleware(configsWithASAP)
 
 	nopHandler := func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("test_body"))
 	}
 	mux := http.NewServeMux()
-	mux.Handle("/auth/asap", midlewareWithoutASAP(http.HandlerFunc(nopHandler)))
-	mux.Handle("/auth/keyprovider", midlewareWithoutKeyprovider(http.HandlerFunc(nopHandler)))
+	mux.Handle("/auth/asap", middlewareWithoutASAP(http.HandlerFunc(nopHandler)))
+	mux.Handle("/auth/keyprovider", middlewareWithoutKeyprovider(http.HandlerFunc(nopHandler)))
 
 	withoutASAPRequest, _ := http.NewRequest("GET", "/auth/asap", nil)
 	withoutKeyproviderRequest, _ := http.NewRequest("GET", "/auth/keyprovider", nil)
@@ -386,7 +387,7 @@ func BenchmarkMiddleware(b *testing.B) {
 	mux.HandleFunc("/auth/none", nopHandler)
 
 	asapReq, _ := http.NewRequest("GET", "/auth/asap", nil)
-	asapReq.Header.Set("Authorization", "Bearer "+string(token))
+	asapReq.Header.Set(headerAuthorization, "Bearer "+string(token))
 	noneAuthRequest, _ := http.NewRequest("GET", "/auth/none", nil)
 
 	rrASAP := httptest.NewRecorder()

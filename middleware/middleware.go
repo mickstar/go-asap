@@ -51,7 +51,7 @@ func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	authorization := r.Header.Get(HEADER_AUTHORIZATION)
 	if authorization == "" {
 		mw.logError("missing authorization header")
-		rw.WriteHeader(403)
+		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
@@ -59,14 +59,14 @@ func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	jwt, err := mw.ASAP.Parse([]byte(bearer))
 	if err != nil {
 		mw.logError(err)
-		rw.WriteHeader(403)
+		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	issuer, _ := jwt.Claims().Issuer()
 	if !mw.clientAllowed(route, issuer) {
 		mw.logError("not authorized for route")
-		rw.WriteHeader(403)
+		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
@@ -74,14 +74,14 @@ func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, nex
 	publicKey, err := mw.PublicKeyProvider.GetPublicKey(keyID)
 	if err != nil {
 		mw.logError(err)
-		rw.WriteHeader(403)
+		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
 	err = mw.ASAP.Validate(jwt, publicKey)
 	if err != nil {
 		mw.logError(err)
-		rw.WriteHeader(403)
+		rw.WriteHeader(http.StatusForbidden)
 		return
 	}
 
