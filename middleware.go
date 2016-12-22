@@ -34,8 +34,8 @@ func NewRule(r *regexp.Regexp, clients []string) Rule {
 	}
 }
 
-// Middleware is a the struct used for middleware implementation
-type Middleware struct {
+// middleware is the struct used for middleware implementation
+type middleware struct {
 	Handler             http.Handler
 	ASAP                *ASAP
 	PublicKeyProvider   keyprovider.PublicKeyProvider
@@ -54,7 +54,7 @@ type MiddlewareConfigs struct {
 // NewMiddleware creates a new middleware with specified configuration
 func NewMiddleware(configs MiddlewareConfigs) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return &Middleware{
+		return &middleware{
 			Handler:             next,
 			ASAP:                configs.ASAP,
 			PublicKeyProvider:   configs.PublicKeyProvider,
@@ -65,7 +65,7 @@ func NewMiddleware(configs MiddlewareConfigs) func(next http.Handler) http.Handl
 }
 
 // ServeHTTP implements net/http.Handler
-func (mw *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (mw *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	err := mw.validateConfigs()
 	if err != nil {
 		mw.logError("Validation error: %#s", err.Error())
@@ -119,7 +119,7 @@ func (mw *Middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	mw.Handler.ServeHTTP(w, r)
 }
 
-func (mw *Middleware) shouldAuth(route string) bool {
+func (mw *middleware) shouldAuth(route string) bool {
 	for _, r := range mw.AuthenticationRules {
 		if r.Regexp.MatchString(route) {
 			return true
@@ -128,7 +128,7 @@ func (mw *Middleware) shouldAuth(route string) bool {
 	return false
 }
 
-func (mw *Middleware) clientAllowed(route, client string) bool {
+func (mw *middleware) clientAllowed(route, client string) bool {
 	isAllowed := false
 	for _, r := range mw.AuthenticationRules {
 		if r.Regexp.MatchString(route) {
@@ -139,7 +139,7 @@ func (mw *Middleware) clientAllowed(route, client string) bool {
 	return isAllowed
 }
 
-func (mw *Middleware) logError(args ...interface{}) {
+func (mw *middleware) logError(args ...interface{}) {
 	if mw.Logger != nil {
 		mw.Logger(args)
 	} else {
@@ -147,7 +147,7 @@ func (mw *Middleware) logError(args ...interface{}) {
 	}
 }
 
-func (mw *Middleware) validateConfigs() error {
+func (mw *middleware) validateConfigs() error {
 	if mw.ASAP == nil {
 		return errors.New("ASAP object should be specified in configs")
 	}
