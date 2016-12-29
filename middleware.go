@@ -1,9 +1,12 @@
 package asap
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
+
+var ctxKey = struct{}{}
 
 type middleware struct {
 	validator Validator
@@ -46,5 +49,10 @@ func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		m.handleError(w, r, e)
 		return
 	}
-	m.wrapped.ServeHTTP(w, r)
+	m.wrapped.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKey, token)))
+}
+
+// FromContext returns the ASAP token for the current request.
+func FromContext(ctx context.Context) Token {
+	return ctx.Value(ctxKey).(Token)
 }
