@@ -9,5 +9,6 @@ pipelines:
 
           # Build and test
           - cd /go/src/bitbucket.org/atlassian/go-asap
-          - go get .
+          - curl https://glide.sh/get | sh
+          - ${GOPATH}/bin/glide install
           - go test -v -cover -race .
