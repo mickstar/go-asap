@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/vincent-petithory/dataurl"
 )
@@ -76,6 +77,13 @@ func NewHTTPKeyFetcher(baseURL string, client http.Client) KeyFetcher {
 	return &httpFetcher{baseURL, client}
 }
 
+// NewMicrosKeyFetcher pulls public keys from the shared s3 bucket given as
+// part of the ASAP env var contract in Micros. Documentation for contract:
+// https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
+func NewMicrosKeyFetcher(client http.Client) KeyFetcher {
+	return &httpFetcher{os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), client}
+}
+
 func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
 	var pkURL, e = url.Parse(f.baseURL)
 	if e != nil {
@@ -101,4 +109,32 @@ func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
 	}
 
 	return NewPublicKey(keyBytes)
+}
+
+type cacheFetcher struct {
+	lock    sync.RWMutex
+	wrapped KeyFetcher
+	cache   map[string]interface{}
+}
+
+// NewCachingFetcher wraps a given KeyFetcher implementation with an in-memory
+// cache for returned keys.
+func NewCachingFetcher(wrapped KeyFetcher) KeyFetcher {
+	return &cacheFetcher{sync.RWMutex{}, wrapped, make(map[string]interface{})}
+}
+
+func (f *cacheFetcher) Fetch(keyID string) (interface{}, error) {
+	f.lock.RLock()
+	var cached, ok = f.cache[keyID]
+	f.lock.RUnlock()
+	if ok {
+		return cached, nil
+	}
+	var result, e = f.wrapped.Fetch(keyID)
+	if e == nil {
+		f.lock.Lock()
+		defer f.lock.Unlock()
+		f.cache[keyID] = result
+	}
+	return result, e
 }
