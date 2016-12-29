@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/SermoDigital/jose/jws"
+	"github.com/SermoDigital/jose/jwt"
 )
 
 // Validator is a component used to validate incoming ASAP tokens.
@@ -183,3 +184,24 @@ var DefaultValidator = NewValidatorChain(
 	ExpirationValidator,
 	NewRequiredClaimsValidator(ClaimIssuer, ClaimExpiration, ClaimIssuedAt, ClaimAudience, ClaimTokenID),
 )
+
+type signatureValidator struct {
+	fetcher KeyFetcher
+}
+
+// NewSignatureValidator enforces that tokens are signed by the key they claim
+// to be.
+func NewSignatureValidator(fetcher KeyFetcher) Validator {
+	return &signatureValidator{fetcher}
+}
+
+func (v *signatureValidator) Validate(t Token) error {
+	var alg = t.(jws.JWS).Protected().Get(ClaimAlgorithm).(string)
+	var signingMethod = signingMethodMap[alg]
+	var kid = t.(jws.JWS).Protected().Get(ClaimKeyID).(string)
+	var k, e = v.fetcher.Fetch(kid)
+	if e != nil {
+		return e
+	}
+	return t.Validate(k, signingMethod, &jwt.Validator{Fn: func(jwt.Claims) error { return nil }})
+}

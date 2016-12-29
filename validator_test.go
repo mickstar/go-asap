@@ -256,6 +256,25 @@ func TestExpirationValidatorLongLived(t *testing.T) {
 	}
 }
 
+func TestSignatureValidator(t *testing.T) {
+	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
+	var privKey, _ = NewPrivateKey([]byte(privateKey))
+	var pubKey, _ = NewPublicKey([]byte(publicKey))
+	var b, _ = token.Serialize(privKey)
+	var v = NewSignatureValidator(&fixtureFetcher{value: pubKey})
+	var incoming, _ = ParseToken(string(b))
+	var e = v.Validate(incoming)
+	if e != nil {
+		t.Fatalf("Failed to validate a properly signed token.")
+	}
+
+	v = NewSignatureValidator(&fixtureFetcher{value: privKey})
+	e = v.Validate(incoming)
+	if e == nil {
+		t.Fatalf("Failed to error on an invalid signature.")
+	}
+}
+
 // DefaultValidator tests
 
 func TestIssRequired(t *testing.T) {

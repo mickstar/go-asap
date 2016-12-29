@@ -69,18 +69,18 @@ func NewPublicKey(publicKeyData []byte) (interface{}, error) {
 
 type httpFetcher struct {
 	baseURL string
-	client  http.Client
+	client  *http.Client
 }
 
 // NewHTTPKeyFetcher pulls public keys from an HTTP accessible source.
-func NewHTTPKeyFetcher(baseURL string, client http.Client) KeyFetcher {
+func NewHTTPKeyFetcher(baseURL string, client *http.Client) KeyFetcher {
 	return &httpFetcher{baseURL, client}
 }
 
 // NewMicrosKeyFetcher pulls public keys from the shared s3 bucket given as
 // part of the ASAP env var contract in Micros. Documentation for contract:
 // https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
-func NewMicrosKeyFetcher(client http.Client) KeyFetcher {
+func NewMicrosKeyFetcher(client *http.Client) KeyFetcher {
 	return &httpFetcher{os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), client}
 }
 

@@ -87,7 +87,7 @@ func TestHTTPFetcherJoinsKidToPath(t *testing.T) {
 		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
 	}
 	var transport = &fixtureRoundTripper{response, nil, nil}
-	var client = http.Client{Transport: transport}
+	var client = &http.Client{Transport: transport}
 
 	var f = NewHTTPKeyFetcher("http://localhost", client)
 	f.Fetch("TEST")
@@ -102,7 +102,7 @@ func TestHTTPFetcher(t *testing.T) {
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &fixtureRoundTripper{response, nil, nil}
-	var client = http.Client{Transport: transport}
+	var client = &http.Client{Transport: transport}
 
 	var f = NewHTTPKeyFetcher("http://localhost", client)
 	var _, e = f.Fetch("TEST")
