@@ -24,10 +24,9 @@ func (h *fixtureHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func TestMiddlewareHandlesInvalidBearer(t *testing.T) {
 	var calledCallback = false
 	var callback = func(w http.ResponseWriter, r *http.Request, e error) { calledCallback = true }
-	var fetcher = &fixtureFetcher{publicKey, nil}
 	var validator = validatorFunc(func(Token) error { return nil })
 	var wrapped = &fixtureHandler{}
-	var m = NewMiddleware(fetcher, validator, callback)(wrapped)
+	var m = NewMiddleware(validator, callback)(wrapped)
 
 	var w = httptest.NewRecorder()
 	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
@@ -41,10 +40,9 @@ func TestMiddlewareHandlesInvalidBearer(t *testing.T) {
 func TestMiddlewareHandlesInvalidTokens(t *testing.T) {
 	var calledCallback = false
 	var callback = func(w http.ResponseWriter, r *http.Request, e error) { calledCallback = true }
-	var fetcher = &fixtureFetcher{publicKey, nil}
 	var validator = validatorFunc(func(Token) error { return nil })
 	var wrapped = &fixtureHandler{}
-	var m = NewMiddleware(fetcher, validator, callback)(wrapped)
+	var m = NewMiddleware(validator, callback)(wrapped)
 
 	var w = httptest.NewRecorder()
 	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
@@ -58,10 +56,9 @@ func TestMiddlewareHandlesInvalidTokens(t *testing.T) {
 func TestMiddlewareHandlesValidationFailure(t *testing.T) {
 	var calledCallback = false
 	var callback = func(w http.ResponseWriter, r *http.Request, e error) { calledCallback = true }
-	var fetcher = &fixtureFetcher{publicKey, nil}
 	var validator = validatorFunc(func(Token) error { return fmt.Errorf("") })
 	var wrapped = &fixtureHandler{}
-	var m = NewMiddleware(fetcher, validator, callback)(wrapped)
+	var m = NewMiddleware(validator, callback)(wrapped)
 	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var headerValue, _ = token.Serialize(pk)
@@ -78,9 +75,8 @@ func TestMiddlewareHandlesValidationFailure(t *testing.T) {
 func TestMiddlewareHandlesAcceptsValidTokens(t *testing.T) {
 	var calledCallback = false
 	var callback = func(w http.ResponseWriter, r *http.Request, e error) { calledCallback = true }
-	var fetcher = &fixtureFetcher{publicKey, nil}
 	var wrapped = &fixtureHandler{}
-	var m = NewMiddleware(fetcher, DefaultValidator, callback)(wrapped)
+	var m = NewMiddleware(DefaultValidator, callback)(wrapped)
 	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var headerValue, _ = token.Serialize(pk)
@@ -95,10 +91,9 @@ func TestMiddlewareHandlesAcceptsValidTokens(t *testing.T) {
 }
 
 func TestMiddlewareHandlesSends403ByDefault(t *testing.T) {
-	var fetcher = &fixtureFetcher{publicKey, nil}
 	var validator = validatorFunc(func(Token) error { return nil })
 	var wrapped = &fixtureHandler{}
-	var m = NewMiddleware(fetcher, validator, nil)(wrapped)
+	var m = NewMiddleware(validator, nil)(wrapped)
 
 	var w = httptest.NewRecorder()
 	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))

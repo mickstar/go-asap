@@ -6,18 +6,17 @@ import (
 )
 
 type middleware struct {
-	keyFetcher KeyFetcher
-	validator  Validator
-	callback   func(http.ResponseWriter, *http.Request, error)
-	wrapped    http.Handler
+	validator Validator
+	callback  func(http.ResponseWriter, *http.Request, error)
+	wrapped   http.Handler
 }
 
 // NewMiddleware generates a func(http.Handler) http.Handler that validates
 // all incoming requests. An optional callback can be provided to handle
 // validation failure. If nil, the middleware will respond with a 403.
-func NewMiddleware(keyFetcher KeyFetcher, validator Validator, callback func(http.ResponseWriter, *http.Request, error)) func(http.Handler) http.Handler {
+func NewMiddleware(validator Validator, callback func(http.ResponseWriter, *http.Request, error)) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return &middleware{keyFetcher, validator, callback, next}
+		return &middleware{validator, callback, next}
 	}
 }
 
