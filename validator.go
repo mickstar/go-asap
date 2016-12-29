@@ -52,7 +52,7 @@ type requiredClaimsValidator struct {
 
 // NewRequiredClaimsValidator takes a set of names and returns a Validator
 // that fails if any of the given claims are not present.
-func NewRequiredClaimsValidator(names []string) Validator {
+func NewRequiredClaimsValidator(names ...string) Validator {
 	return &requiredClaimsValidator{names}
 }
 
@@ -102,10 +102,7 @@ func NewAllowedAudienceValidator(values ...string) Validator {
 }
 
 func (v *allowedAudienceValidator) Validate(t Token) error {
-	var audienceValues, ok = t.Claims().Audience()
-	if !ok {
-		return fmt.Errorf("Audience claim missing or invalid.")
-	}
+	var audienceValues, _ = t.Claims().Audience()
 	for _, allowed := range v.allowedStrings {
 		for _, given := range audienceValues {
 			if given == allowed {
@@ -184,5 +181,5 @@ var DefaultValidator = NewValidatorChain(
 	KidValidator,
 	AlgorithmValidator,
 	ExpirationValidator,
-	NewRequiredClaimsValidator([]string{ClaimIssuer, ClaimExpiration, ClaimIssuedAt, ClaimAudience, ClaimTokenID}),
+	NewRequiredClaimsValidator(ClaimIssuer, ClaimExpiration, ClaimIssuedAt, ClaimAudience, ClaimTokenID),
 )

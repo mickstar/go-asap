@@ -2,6 +2,7 @@ package asap
 
 import (
 	"os"
+	"sync"
 	"time"
 
 	"github.com/SermoDigital/jose/crypto"
@@ -46,4 +47,42 @@ func NewProvisioner(kid string, ttl time.Duration, issuer string, audience []str
 // provisioner. Contract documentation: https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
 func NewMicrosProvisioner(audience []string, ttl time.Duration) Provisioner {
 	return NewProvisioner(os.Getenv("ASAP_KEY_ID"), ttl, os.Getenv("ASAP_ISSUER"), audience, crypto.SigningMethodRS256)
+}
+
+type cacheProvisioner struct {
+	wrapped Provisioner
+	cache   Token
+	lock    *sync.RWMutex
+}
+
+// NewCachingProvisioner wraps any given provisioner in a time-based cache. It
+// will only call the underlying provisioner when the cached token is expired.
+func NewCachingProvisioner(wrapped Provisioner) Provisioner {
+	return &cacheProvisioner{wrapped, nil, &sync.RWMutex{}}
+}
+
+func (p *cacheProvisioner) Provision() (Token, error) {
+	p.lock.RLock()
+	if p.cache == nil {
+		p.lock.RUnlock()
+		p.lock.Lock()
+		defer p.lock.Unlock()
+		var t, e = p.wrapped.Provision()
+		if e == nil {
+			p.cache = t
+		}
+		return t, e
+	}
+	if exp, _ := p.cache.Claims().Expiration(); time.Since(exp) <= 0 {
+		p.lock.RUnlock()
+		return p.cache, nil
+	}
+	p.lock.RUnlock()
+	p.lock.Lock()
+	defer p.lock.Unlock()
+	var t, e = p.wrapped.Provision()
+	if e == nil {
+		p.cache = t
+	}
+	return t, e
 }
