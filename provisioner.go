@@ -36,20 +36,14 @@ func (p *standardProvisioner) Provision() (Token, error) {
 	return t, nil
 }
 
-func newProvisioner(kid string, ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod) Provisioner {
+// NewProvisioner generates a Provisioner implementation that sets all the
+// required claims and headers for ASAP.
+func NewProvisioner(kid string, ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod) Provisioner {
 	return &standardProvisioner{kid, func() string { return uuid.NewV4().String() }, ttl, issuer, audience, signingMethod}
-}
-
-func NewRSProvisioner(kid string, issuer string, audience []string, ttl time.Duration) Provisioner {
-	return newProvisioner(kid, ttl, issuer, audience, crypto.SigningMethodRS256)
-}
-
-func NewESProvisioner(kid string, issuer string, audience []string, ttl time.Duration) Provisioner {
-	return newProvisioner(kid, ttl, issuer, audience, crypto.SigningMethodES256)
 }
 
 // NewMicrosProvisioner uses the contracted ASAP env var to populate the
 // provisioner. Contract documentation: https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
 func NewMicrosProvisioner(audience []string, ttl time.Duration) Provisioner {
-	return newProvisioner(os.Getenv("ASAP_KEY_ID"), ttl, os.Getenv("ASAP_ISSUER"), audience, crypto.SigningMethodRS256)
+	return NewProvisioner(os.Getenv("ASAP_KEY_ID"), ttl, os.Getenv("ASAP_ISSUER"), audience, crypto.SigningMethodRS256)
 }
