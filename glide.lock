@@ -1,0 +1,14 @@
+hash: f8d804c63fab56178dcab28206788c7472ab5367531986e309f8514e75f6f6d3
+updated: 2016-12-29T11:26:57.967795214-06:00
+imports:
+- name: github.com/satori/go.uuid
+  version: b061729afc07e77a8aa4fad0a2fd840958f1942a
+- name: github.com/SermoDigital/jose
+  version: 2bd9b81ac51d6d6134fcd4fd846bd2e7347a15f9
+  subpackages:
+  - crypto
+  - jws
+  - jwt
+- name: github.com/vincent-petithory/dataurl
+  version: 9a301d65acbb728fcc3ace14f45f511a4cfeea9c
+testImports: []

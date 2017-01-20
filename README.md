@@ -1,6 +1,7 @@
-# Go ASAP
+# go-asap
 
-A library that creates and verifies JSON Web Tokens (JWT) for service to service authentication purposes using the Atlassian Service Authentication Protocol (ASAP).
+A library that creates and verifies JSON Web Tokens (JWT) for service to service
+authentication purposes using the Atlassian Service Authentication Protocol (ASAP).
 
 [Atlassian S2S Authentication Protocol (ASAP) - Specification](http://s2sauth.bitbucket.org/)
 
@@ -8,99 +9,62 @@ A library that creates and verifies JSON Web Tokens (JWT) for service to service
 
 ### Installing
 
+```shell
     go get bitbucket.org/atlassian/go-asap
+```
 
 ### Generating key pairs
 
 Use OpenSSL from the command line to generate the key pairs.
 
+```shell
     openssl genrsa -out private-key.pem 2048
     openssl rsa -in private-key.pem -pubout > public-key.pem
+```
+
+## Usage
+
+### Generate a token for an outgoing request
 
 
-##Usage
-
-### Client
-
-Instantiate an ASAP object
-
-    asap := asap.NewASAP("service/key", "service", nil)
-
-Setup a key provider in your application's config (or per request, if you want to)
-
-    kp := &keyprovider.FSKeyProvider{
-        PrivateKeyPath: "keys/private/service-id/key",
-    }
-
-Fetch the key later when you need it
-
-    privateKey, err := kp.GetPrivateKey()
-
-Sign a request!
-
-    token, err := asap.Sign("audience", privateKey)
-    if err != nil {
-        log.Error(err)
-    }
-    request.Header = r.Header
-    request.Header.Set("Authorization", "Bearer "+string(token))
-
-And then make your request with net/http as normal!
+```go
+var privateKey, _ = asap.NewPrivateKey(os.Getenv("ASAP_PRIVATE_KEY"))
+var p = asap.NewMicrosProvisioner([]string{"target_service1", "target_service1"}, time.Minute)
+var token, _ = p.Provision()
+var headerValue, _ = token.Serialize(privateKey)
+var bearer = fmt.Sprintf("Bearer %s", string(headerValue))
+```
 
 
-### Server
+### Validate incoming requests
 
-If you are using you're using `github.com/codegangsta/negroni` for middleware:
+To validate a token we need to two things: a way of fetching public keys for
+signature verification and a set of validation rules to apply. Every service
+should define its own custom validation rules and combine them with the
+`DefaultValidator` which enforces the minimum ASAP requirements.
 
-Instantiate the ASAP middleware
+```go
+var v = asap.NewValidatorChain(
+  asap.DefaultValidator,
+  asap.NewAllowedAudienceValidator("myserviceid"),
+  asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
+)
+var token, _ = asap.ParseToken(valueFromAuthorizationHeader)
+var e = v.Validate(token)
+if e != nil {
+  // Invalid token
+}
+```
 
-    &middleware.ASAPMiddleware{
-        ASAP: &asap.ASAP{
-            ServiceID:          "audience",
-            AuthorisedSubjects: []string{"service"},
-        },
-        PublicKeyProvider: &keyprovider.FSKeyProvider{
-            PublicKeyDir: "keys/public",
-        },
-        AuthenticationRules: []middleware.Rule{
-            middleware.Rule{
-                Regexp:  regexp.MustCompile("/api/.*"),
-                Clients: mapset.NewSet("service"),
-            },
-        },
-    }
+If using an http mux that supports middleware you can add your validation rules
+to all incoming requests via:
 
-Done!
+```go
+var v = asap.NewValidatorChain(
+  asap.DefaultValidator,
+  asap.NewAllowedAudienceValidator("myserviceid"),
+  asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
+)
 
-If you're using `func(next http.Handler) http.Handler` middleware type:
-   
-Create a middleware config:
-
-    configs := asap.MiddlewareConfigs{
-        ASAP: &asap.ASAP{
-            ServiceID: "audience",
-            AuthorizedSubjects: []string{"service"},
-        },
-        PublicKeyProvider: &keyprovider.FSKeyProvider{
-            PublicKeyDir: "keys/public",
-        },
-        Logger: logger.Error,
-        AuthenticationRules: []asap.Rule{
-            asap.NewRule(regexp.MustCompile("/api/.*"), []string{"service"}),
-        },
-    }
-    
-Create the middleware:
-
-    asapMiddleware := asap.NewMiddleware(configs)
-
-Use it:
-
-    nopHandler := func(w http.ResponseWriter, r *http.Request) {
-        w.WriteHeader(http.StatusOK)
-    }
-    
-    mux := http.NewServeMux()
-    mux.Handle("/auth/asap", asapMiddleware(http.HandlerFunc(nopHandler)))
-    
-Done!
+var m = asap.NewMiddleware(v, nil) // func(http.Handler) http.Handler
+```

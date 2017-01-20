@@ -1,158 +1,58 @@
 package asap
 
 import (
-	"errors"
-	"log"
+	"context"
+	"fmt"
 	"net/http"
-	"regexp"
-
-	"bitbucket.org/atlassian/go-asap/keyprovider"
-	"github.com/SermoDigital/jose/jws"
-	"github.com/deckarep/golang-set"
 )
 
-var authPrefixMatcher = regexp.MustCompile("[Bb]earer ")
+var ctxKey = struct{}{}
 
-const headerAuthorization = "Authorization"
-
-// Rule is used for creating rules that define if ASAP authentication should be enabled for the specified routes.
-// Routes are matched by provided regular expression. Also a list of allowed clients can be specified.
-type Rule struct {
-	Regexp  *regexp.Regexp
-	Clients mapset.Set
-}
-
-// NewRule creates a new Rule object with specified arguments
-func NewRule(r *regexp.Regexp, clients []string) Rule {
-	clientSet := mapset.NewSet()
-	for _, c := range clients {
-		clientSet.Add(c)
-	}
-	return Rule{
-		Regexp:  r,
-		Clients: clientSet,
-	}
-}
-
-// middleware is the struct used for middleware implementation
 type middleware struct {
-	Handler             http.Handler
-	ASAP                *ASAP
-	PublicKeyProvider   keyprovider.PublicKeyProvider
-	AuthenticationRules []Rule
-	Logger              func(v ...interface{})
+	validator Validator
+	callback  func(http.ResponseWriter, *http.Request, error)
+	wrapped   http.Handler
 }
 
-// MiddlewareConfigs represent configuration parameters used for middleware initialization
-type MiddlewareConfigs struct {
-	ASAP                *ASAP
-	PublicKeyProvider   keyprovider.PublicKeyProvider
-	AuthenticationRules []Rule
-	Logger              func(v ...interface{})
-}
-
-// NewMiddleware creates a new middleware with specified configuration
-func NewMiddleware(configs MiddlewareConfigs) func(next http.Handler) http.Handler {
+// NewMiddleware generates a func(http.Handler) http.Handler that validates
+// all incoming requests. An optional callback can be provided to handle
+// validation failure. If nil, the middleware will respond with a 403.
+func NewMiddleware(validator Validator, callback func(http.ResponseWriter, *http.Request, error)) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		return &middleware{
-			Handler:             next,
-			ASAP:                configs.ASAP,
-			PublicKeyProvider:   configs.PublicKeyProvider,
-			AuthenticationRules: configs.AuthenticationRules,
-			Logger:              configs.Logger,
-		}
+		return &middleware{validator, callback, next}
 	}
 }
 
-// ServeHTTP implements net/http.Handler
-func (mw *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	err := mw.validateConfigs()
-	if err != nil {
-		mw.logError("Validation error: %#s", err.Error())
-		w.WriteHeader(http.StatusForbidden)
-		return
-
-	}
-	route := r.URL.Path
-	if !mw.shouldAuth(route) {
-		mw.Handler.ServeHTTP(w, r)
-		return
-	}
-
-	authorization := r.Header.Get(headerAuthorization)
-	if authorization == "" {
-		mw.logError("missing authorization header")
+func (m *middleware) handleError(w http.ResponseWriter, r *http.Request, e error) {
+	if m.callback == nil {
 		w.WriteHeader(http.StatusForbidden)
 		return
 	}
-
-	bearer := authPrefixMatcher.ReplaceAllString(authorization, "")
-	jwt, err := mw.ASAP.Parse([]byte(bearer))
-	if err != nil {
-		mw.logError(err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	issuer, _ := jwt.Claims().Issuer()
-	if !mw.clientAllowed(route, issuer) {
-		mw.logError(issuer + " is not authorized for route " + route)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	keyID := jwt.(jws.JWS).Protected().Get(KEY_ID).(string)
-	publicKey, err := mw.PublicKeyProvider.GetPublicKey(keyID)
-	if err != nil {
-		mw.logError(err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	err = mw.ASAP.Validate(jwt, publicKey)
-	if err != nil {
-		mw.logError(err)
-		w.WriteHeader(http.StatusForbidden)
-		return
-	}
-
-	mw.Handler.ServeHTTP(w, r)
+	m.callback(w, r, e)
+	return
 }
 
-func (mw *middleware) shouldAuth(route string) bool {
-	for _, r := range mw.AuthenticationRules {
-		if r.Regexp.MatchString(route) {
-			return true
-		}
+func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var bearer = r.Header.Get("Authorization")
+	if len(bearer) < len("Bearer ") {
+		m.handleError(w, r, fmt.Errorf("Missing bearer string"))
+		return
 	}
-	return false
+	var rawToken = bearer[len("Bearer "):]
+	var token, e = ParseToken(rawToken)
+	if e != nil {
+		m.handleError(w, r, e)
+		return
+	}
+	e = m.validator.Validate(token)
+	if e != nil {
+		m.handleError(w, r, e)
+		return
+	}
+	m.wrapped.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKey, token)))
 }
 
-func (mw *middleware) clientAllowed(route, client string) bool {
-	isAllowed := false
-	for _, r := range mw.AuthenticationRules {
-		if r.Regexp.MatchString(route) {
-			isAllowed = r.Clients.Cardinality() == 0 || r.Clients.Contains(client)
-			break
-		}
-	}
-	return isAllowed
-}
-
-func (mw *middleware) logError(args ...interface{}) {
-	if mw.Logger != nil {
-		mw.Logger(args)
-	} else {
-		log.Print(args)
-	}
-}
-
-func (mw *middleware) validateConfigs() error {
-	if mw.ASAP == nil {
-		return errors.New("ASAP object should be specified in configs")
-	}
-	if mw.PublicKeyProvider == nil {
-		return errors.New("Public key provider should be specified in configs")
-	}
-	return nil
+// FromContext returns the ASAP token for the current request.
+func FromContext(ctx context.Context) Token {
+	return ctx.Value(ctxKey).(Token)
 }

@@ -1,0 +1,9 @@
+package: bitbucket.org/hipchat/go-asap
+import:
+- package: github.com/SermoDigital/jose
+  subpackages:
+  - crypto
+  - jws
+  - jwt
+- package: github.com/satori/go.uuid
+- package: github.com/vincent-petithory/dataurl
