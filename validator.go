@@ -36,7 +36,7 @@ func NewValidatorChain(vs ...Validator) Validator {
 }
 
 // Validate iterates through the contained Validator implementations and
-// executes them. It exits on the first error encountered.
+// executes them in the order provided. It exits on the first error encountered.
 func (v *validatorChain) Validate(t Token) error {
 	for _, validator := range v.validators {
 		var e = validator.Validate(t)
