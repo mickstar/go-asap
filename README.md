@@ -45,9 +45,9 @@ should define its own custom validation rules and combine them with the
 
 ```go
 var v = asap.NewValidatorChain(
-  asap.DefaultValidator,
-  asap.NewAllowedAudienceValidator("myserviceid"),
   asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
+  asap.NewAllowedAudienceValidator("myserviceid"),
+  asap.DefaultValidator,
 )
 var token, _ = asap.ParseToken(valueFromAuthorizationHeader)
 var e = v.Validate(token)
@@ -61,9 +61,9 @@ to all incoming requests via:
 
 ```go
 var v = asap.NewValidatorChain(
-  asap.DefaultValidator,
-  asap.NewAllowedAudienceValidator("myserviceid"),
   asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
+  asap.NewAllowedAudienceValidator("myserviceid"),
+  asap.DefaultValidator,
 )
 
 var m = asap.NewMiddleware(v, nil) // func(http.Handler) http.Handler
