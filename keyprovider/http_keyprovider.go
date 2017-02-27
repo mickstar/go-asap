@@ -6,6 +6,16 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
+
+	"github.com/gregjones/httpcache"
+)
+
+var (
+	client = &http.Client{
+		Timeout: time.Second * 1,
+		Transport: httpcache.NewMemoryCacheTransport(), // Respect HTTP cache control headers
+	}
 )
 
 type HTTPPublicKeyProvider struct {
@@ -19,7 +29,10 @@ func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error)
 	}
 	pkURL.Path = path.Join(pkURL.Path, keyID)
 
-	resp, err := http.Get(pkURL.String())
+	resp, err := client.Do(&http.Request{
+		Method: http.MethodGet,
+		URL: pkURL,
+	})
 	if err != nil {
 		return nil, err
 	}
