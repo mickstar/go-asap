@@ -13,7 +13,7 @@ import (
 
 var (
 	client = &http.Client{
-		Timeout: time.Second * 1,
+		Timeout: time.Second * 2,
 		Transport: httpcache.NewMemoryCacheTransport(), // Respect HTTP cache control headers
 	}
 )
