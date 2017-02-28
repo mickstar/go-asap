@@ -11,16 +11,17 @@ import (
 	"github.com/gregjones/httpcache"
 )
 
-var (
-	defaultClient = &http.Client{
-		Timeout:   time.Second * 2,
-		Transport: httpcache.NewMemoryCacheTransport(), // Respect HTTP cache control headers
-	}
-)
+const defaultCacheTTLInSeconds = 600
+
+var defaultClient = &http.Client{
+	Timeout:   time.Second * 2,
+	Transport: httpcache.NewMemoryCacheTransport(), // Respect HTTP cache control headers
+}
 
 type HTTPPublicKeyProvider struct {
-	BaseURL string
-	client  *http.Client
+	BaseURL           string
+	Client            *http.Client
+	CacheTTLInSeconds int
 }
 
 func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error) {
@@ -30,15 +31,23 @@ func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error)
 	}
 	pkURL.Path = path.Join(pkURL.Path, keyID)
 
-	netClient := kp.client
+	netClient := kp.Client
 	if netClient == nil {
 		netClient = defaultClient
 	}
 
-	resp, err := netClient.Do(&http.Request{
-		Method: http.MethodGet,
-		URL:    pkURL,
-	})
+	cacheTTL := kp.CacheTTLInSeconds
+	if cacheTTL == 0 {
+		cacheTTL = defaultCacheTTLInSeconds
+	}
+
+	req, err := http.NewRequest(http.MethodGet, pkURL.String(), nil)
+	req.Header.Add("Cache-Control", fmt.Sprintf("private, max-age=%d", cacheTTL))
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := netClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
