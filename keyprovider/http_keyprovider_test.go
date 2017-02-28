@@ -23,13 +23,7 @@ OOPQvTjL/3Aj0KJSAjrpbdFzYzwpIqUpwYFKW53y9eBnd2QlarrOnOGsdRBbCctV
 )
 
 func TestItReturnsKeyByID(t *testing.T) {
-	router := http.NewServeMux()
-	router.HandleFunc("/"+keyID, func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Cache-Control", "private, max-age=1")
-		io.WriteString(w, publicKeyString)
-	})
-	s3mock := httptest.NewServer(router)
+	s3mock, _ := newS3Mock()
 	defer s3mock.Close()
 
 	kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL}
@@ -42,44 +36,39 @@ func TestItReturnsKeyByID(t *testing.T) {
 func TestItRespectsCacheControlHeaders(t *testing.T) {
 	expectedRequestCount := 1
 	testDuration := time.Duration(500) * time.Millisecond
-	requestCount := 0
-
-	router := http.NewServeMux()
-	router.HandleFunc("/"+keyID, func(w http.ResponseWriter, r *http.Request) {
-		requestCount++
-		w.WriteHeader(http.StatusOK)
-		w.Header().Add("Date", time.Now().Format(time.RFC1123))
-		io.WriteString(w, publicKeyString)
-	})
-	s3mock := httptest.NewServer(router)
+	s3mock, requestCount := newS3Mock()
 	defer s3mock.Close()
 
 	kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL}
 
-	start := time.Now()
+	startRequestLoop(testDuration, kp, t)
 
-	for {
-		if time.Since(start) >= testDuration {
-			break
-		}
-		_, err := kp.GetPublicKey(keyID)
-		if err != nil {
-			t.Errorf("error in getting public key: %v", err)
-		}
-
-		time.Sleep(time.Duration(100) * time.Millisecond)
-	}
-
-	if requestCount != expectedRequestCount {
-		t.Errorf("expected %d call to S3, but actual %d", expectedRequestCount, requestCount)
+	if *requestCount != expectedRequestCount {
+		t.Errorf("expected %d call to S3, but actual %d", expectedRequestCount, *requestCount)
 	}
 }
-
 func TestItInvalidatesCacheIfStale(t *testing.T) {
 	expectedRequestCount := 3
 	testDuration := time.Duration(2) * time.Second
-	requestCount := 0
+	s3mock, requestCount := newS3Mock()
+	defer s3mock.Close()
 
+	kp := &HTTPPublicKeyProvider{
+		BaseURL:           s3mock.URL,
+		CacheTTLInSeconds: 1,
+	}
+
+	startRequestLoop(testDuration, kp, t)
+
+	if *requestCount != expectedRequestCount {
+		t.Errorf("expected %d calls to S3, but actual %d", expectedRequestCount, *requestCount)
+	}
+}
+
+// ------------------------------------------ HELPERS ------------------------------------------
+
+func newS3Mock() (*httptest.Server, *int) {
+	requestCount := 0
 	router := http.NewServeMux()
 	router.HandleFunc("/"+keyID, func(w http.ResponseWriter, r *http.Request) {
 		requestCount++
@@ -87,19 +76,14 @@ func TestItInvalidatesCacheIfStale(t *testing.T) {
 		w.Header().Add("Date", time.Now().Format(time.RFC1123))
 		io.WriteString(w, publicKeyString)
 	})
-	s3mock := httptest.NewServer(router)
-	defer s3mock.Close()
+	return httptest.NewServer(router), &requestCount
+}
 
-	kp := &HTTPPublicKeyProvider{
-		BaseURL: s3mock.URL,
-		CacheTTLInSeconds: 1,
-	}
-
+func startRequestLoop(duration time.Duration, kp *HTTPPublicKeyProvider, t *testing.T) {
 	start := time.Now()
-
 	for {
-		if time.Since(start) >= testDuration {
-			break
+		if time.Since(start) >= duration {
+			return
 		}
 		_, err := kp.GetPublicKey(keyID)
 		if err != nil {
@@ -107,9 +91,5 @@ func TestItInvalidatesCacheIfStale(t *testing.T) {
 		}
 
 		time.Sleep(time.Duration(100) * time.Millisecond)
-	}
-
-	if requestCount != expectedRequestCount {
-		t.Errorf("expected %d calls to S3, but actual %d", expectedRequestCount, requestCount)
 	}
 }
