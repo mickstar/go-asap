@@ -12,14 +12,15 @@ import (
 )
 
 var (
-	client = &http.Client{
-		Timeout: time.Second * 2,
+	defaultClient = &http.Client{
+		Timeout:   time.Second * 2,
 		Transport: httpcache.NewMemoryCacheTransport(), // Respect HTTP cache control headers
 	}
 )
 
 type HTTPPublicKeyProvider struct {
 	BaseURL string
+	client  *http.Client
 }
 
 func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error) {
@@ -29,9 +30,14 @@ func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error)
 	}
 	pkURL.Path = path.Join(pkURL.Path, keyID)
 
-	resp, err := client.Do(&http.Request{
+	netClient := kp.client
+	if netClient == nil {
+		netClient = defaultClient
+	}
+
+	resp, err := netClient.Do(&http.Request{
 		Method: http.MethodGet,
-		URL: pkURL,
+		URL:    pkURL,
 	})
 	if err != nil {
 		return nil, err
