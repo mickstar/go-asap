@@ -48,8 +48,8 @@ func TestItRespectsCacheControlHeaders(t *testing.T) {
 	}
 }
 func TestItInvalidatesCacheIfStale(t *testing.T) {
-	expectedRequestCount := 3
-	testDuration := time.Duration(2) * time.Second
+	expectedRequestCount := 2
+	testDuration := time.Duration(1) * time.Second + time.Duration(500) * time.Millisecond
 	s3mock, requestCount := newS3Mock()
 	defer s3mock.Close()
 
