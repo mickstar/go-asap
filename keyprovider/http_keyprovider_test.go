@@ -22,75 +22,53 @@ OOPQvTjL/3Aj0KJSAjrpbdFzYzwpIqUpwYFKW53y9eBnd2QlarrOnOGsdRBbCctV
 	keyID = "abc123"
 )
 
-func TestCacheControlDefaultsTo10Minutes(t *testing.T) {
-	kp := new(HTTPPublicKeyProvider)
-	cc := cacheControl(kp)
-	if cc != defaultCacheControl {
-		t.Error("wrong default for Cache-Control")
+func TestCacheControl(t *testing.T) {
+	testCases := map[string]*cacheControlTestBundle{
+		"TestCacheControlDefaultsTo10Minutes": {kp: new(HTTPPublicKeyProvider), expected: defaultCacheControl},
+		"TestCacheControlNoCacheForNegative":  {kp: &HTTPPublicKeyProvider{CacheTTLInSeconds: -1}, expected: noCacheControl},
+		"TestCacheControlAppliesConfig":       {kp: &HTTPPublicKeyProvider{CacheTTLInSeconds: 1}, expected: "private, max-age=1"},
 	}
-}
-
-func TestCacheControlNoCacheForNegative(t *testing.T) {
-	kp := &HTTPPublicKeyProvider{CacheTTLInSeconds: -1}
-	cc := cacheControl(kp)
-	if cc != noCacheControl {
-		t.Error("wrong no cache Cache-Control")
-	}
-}
-
-func TestCacheControlAppliesConfig(t *testing.T) {
-	kp := &HTTPPublicKeyProvider{CacheTTLInSeconds: 1}
-	cc := cacheControl(kp)
-	if cc != "private, max-age=1" {
-		t.Error("wrong configuration for Cache-Control")
-	}
-}
-
-func TestItReturnsKeyByID(t *testing.T) {
-	s3mock, _ := newS3Mock()
-	defer s3mock.Close()
-
-	kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL}
-	_, err := kp.GetPublicKey(keyID)
-	if err != nil {
-		t.Errorf("error in getting public key: %v", err)
+	for name, bundle := range testCases {
+		t.Run(name, func(t *testing.T) {
+			cc := cacheControl(bundle.kp)
+			if cc != bundle.expected {
+				t.Errorf("wrong Cache-Control, expected %s, but actual %s", bundle.expected, cc)
+			}
+		})
 	}
 }
 
 func TestItRespectsCacheControlHeaders(t *testing.T) {
-	expectedRequestCount := 1
-	testDuration := time.Duration(500) * time.Millisecond
-	s3mock, requestCount := newS3Mock()
-	defer s3mock.Close()
-
-	kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL}
-
-	startRequestLoop(testDuration, kp, t)
-
-	if *requestCount != expectedRequestCount {
-		t.Errorf("expected %d call to S3, but actual %d", expectedRequestCount, *requestCount)
+	testCases := map[string]*kpTestBundle{
+		"TestItCachesByDefault":         {ttl: 0, expected: 1, retries: 2},
+		"TestItCachesIfTTLProvided":     {ttl: 600, expected: 1, retries: 2},
+		"TestItInvalidatesCacheIfStale": {ttl: -1, expected: 2, retries: 2},
 	}
-}
-func TestItInvalidatesCacheIfStale(t *testing.T) {
-	expectedRequestCount := 2
-	s3mock, requestCount := newS3Mock()
-	defer s3mock.Close()
-
-	kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL, CacheTTLInSeconds: -1}
-
-	for i := 0; i < 2; i++ {
-		_, err := kp.GetPublicKey(keyID)
-		if err != nil {
-			t.Errorf("error in getting public key: %v", err)
-		}
-	}
-
-	if *requestCount != expectedRequestCount {
-		t.Errorf("expected %d calls to S3, but actual %d", expectedRequestCount, *requestCount)
+	for name, bundle := range testCases {
+		t.Run(name, func(t *testing.T) {
+			s3mock, requestCount := newS3Mock()
+			defer s3mock.Close()
+			kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL, CacheTTLInSeconds: bundle.ttl}
+			startRequestLoop(bundle.retries, kp, t)
+			if *requestCount != bundle.expected {
+				t.Errorf("expected %d call to S3, but actual %d", bundle.expected, *requestCount)
+			}
+		})
 	}
 }
 
 // ------------------------------------------ HELPERS ------------------------------------------
+
+type cacheControlTestBundle struct {
+	kp       *HTTPPublicKeyProvider
+	expected string
+}
+
+type kpTestBundle struct {
+	ttl      int
+	expected int
+	retries  int
+}
 
 func newS3Mock() (*httptest.Server, *int) {
 	requestCount := 0
@@ -104,17 +82,11 @@ func newS3Mock() (*httptest.Server, *int) {
 	return httptest.NewServer(router), &requestCount
 }
 
-func startRequestLoop(duration time.Duration, kp *HTTPPublicKeyProvider, t *testing.T) {
-	start := time.Now()
-	for {
-		if time.Since(start) >= duration {
-			return
-		}
+func startRequestLoop(retriesCount int, kp *HTTPPublicKeyProvider, t *testing.T) {
+	for i := 0; i < retriesCount; i++ {
 		_, err := kp.GetPublicKey(keyID)
 		if err != nil {
 			t.Errorf("error in getting public key: %v", err)
 		}
-
-		time.Sleep(time.Duration(100) * time.Millisecond)
 	}
 }
