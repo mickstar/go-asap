@@ -11,7 +11,10 @@ import (
 	"github.com/gregjones/httpcache"
 )
 
-const defaultCacheTTLInSeconds = 600
+const (
+	noCacheControl      = "no-cache"
+	defaultCacheControl = "private, max-age=600"
+)
 
 var defaultClient = &http.Client{
 	Timeout:   time.Second * 2,
@@ -36,13 +39,8 @@ func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error)
 		netClient = defaultClient
 	}
 
-	cacheTTL := kp.CacheTTLInSeconds
-	if cacheTTL == 0 {
-		cacheTTL = defaultCacheTTLInSeconds
-	}
-
 	req, err := http.NewRequest(http.MethodGet, pkURL.String(), nil)
-	req.Header.Add("Cache-Control", fmt.Sprintf("private, max-age=%d", cacheTTL))
+	req.Header.Add("Cache-Control", cacheControl(kp))
 	if err != nil {
 		return nil, err
 	}
@@ -61,4 +59,16 @@ func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error)
 	}
 
 	return PublicKeyFromBytes(publicKey)
+}
+
+// ------------------------------------------ PRIVATES ------------------------------------------
+
+func cacheControl(kp *HTTPPublicKeyProvider) string {
+	if kp.CacheTTLInSeconds < 0 {
+		return noCacheControl
+	} else if kp.CacheTTLInSeconds == 0 {
+		return defaultCacheControl
+	} else {
+		return fmt.Sprintf("private, max-age=%d", kp.CacheTTLInSeconds)
+	}
 }
