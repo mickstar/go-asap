@@ -22,6 +22,30 @@ OOPQvTjL/3Aj0KJSAjrpbdFzYzwpIqUpwYFKW53y9eBnd2QlarrOnOGsdRBbCctV
 	keyID = "abc123"
 )
 
+func TestCacheControlDefaultsTo10Minutes(t *testing.T) {
+	kp := new(HTTPPublicKeyProvider)
+	cc := cacheControl(kp)
+	if cc != defaultCacheControl {
+		t.Error("wrong default for Cache-Control")
+	}
+}
+
+func TestCacheControlNoCacheForNegative(t *testing.T) {
+	kp := &HTTPPublicKeyProvider{CacheTTLInSeconds: -1}
+	cc := cacheControl(kp)
+	if cc != noCacheControl {
+		t.Error("wrong no cache Cache-Control")
+	}
+}
+
+func TestCacheControlAppliesConfig(t *testing.T) {
+	kp := &HTTPPublicKeyProvider{CacheTTLInSeconds: 1}
+	cc := cacheControl(kp)
+	if cc != "private, max-age=1" {
+		t.Error("wrong configuration for Cache-Control")
+	}
+}
+
 func TestItReturnsKeyByID(t *testing.T) {
 	s3mock, _ := newS3Mock()
 	defer s3mock.Close()
@@ -49,16 +73,17 @@ func TestItRespectsCacheControlHeaders(t *testing.T) {
 }
 func TestItInvalidatesCacheIfStale(t *testing.T) {
 	expectedRequestCount := 2
-	testDuration := time.Duration(1) * time.Second + time.Duration(500) * time.Millisecond
 	s3mock, requestCount := newS3Mock()
 	defer s3mock.Close()
 
-	kp := &HTTPPublicKeyProvider{
-		BaseURL:           s3mock.URL,
-		CacheTTLInSeconds: 1,
-	}
+	kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL, CacheTTLInSeconds: -1}
 
-	startRequestLoop(testDuration, kp, t)
+	for i := 0; i < 2; i++ {
+		_, err := kp.GetPublicKey(keyID)
+		if err != nil {
+			t.Errorf("error in getting public key: %v", err)
+		}
+	}
 
 	if *requestCount != expectedRequestCount {
 		t.Errorf("expected %d calls to S3, but actual %d", expectedRequestCount, *requestCount)
