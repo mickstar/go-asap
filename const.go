@@ -3,15 +3,24 @@ package asap
 import "github.com/SermoDigital/jose/crypto"
 
 const (
-	ClaimAlgorithm  = "alg"
-	ClaimKeyID      = "kid"
-	ClaimIssuer     = "iss"
+	// ClaimAlgorithm is the JWT specific encryption algorithm claim.
+	ClaimAlgorithm = "alg"
+	// ClaimKeyID is the JWT specified key identifier claim.
+	ClaimKeyID = "kid"
+	// ClaimIssuer is the JWT specified token issuer claim.
+	ClaimIssuer = "iss"
+	// ClaimExpiration is the JWT specified token expiration claim.
 	ClaimExpiration = "exp"
-	ClaimIssuedAt   = "iat"
-	ClaimAudience   = "aud"
-	ClaimTokenID    = "jti"
-	ClaimSubject    = "sub"
-	ClaimNotBefore  = "nbf"
+	// ClaimIssuedAt is the JWT specified issued at claim.
+	ClaimIssuedAt = "iat"
+	// ClaimAudience is the JWT specified audience claim.
+	ClaimAudience = "aud"
+	// ClaimTokenID is the JWT specified JWT ID claim.
+	ClaimTokenID = "jti"
+	// ClaimSubject is the JWT specified subject claim.
+	ClaimSubject = "sub"
+	// ClaimNotBefore is the JWT specified not before claim.
+	ClaimNotBefore = "nbf"
 )
 
 const (

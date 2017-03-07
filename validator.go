@@ -119,21 +119,21 @@ var kidRegex = regexp.MustCompile(`^[\w.\-\+/]*$`)
 func kidValidator(t Token) error {
 	var kid, ok = t.(jws.JWS).Protected().Get(ClaimKeyID).(string)
 	if !ok {
-		return fmt.Errorf("Missing or invalid kid.")
+		return fmt.Errorf("missing or invalid kid")
 	}
 	var issuer, _ = t.Claims().Issuer()
 	if !strings.HasPrefix(kid, issuer+"/") {
-		return fmt.Errorf("KeyID %s does not start with the issuer name %s", kid, issuer)
+		return fmt.Errorf("the KeyID %s does not start with the issuer name %s", kid, issuer)
 	}
 
 	for _, s := range strings.Split(kid, "/") {
 		if s == "." || s == ".." {
-			return fmt.Errorf("KeyID %s contains invalid segments . or ..", kid)
+			return fmt.Errorf("the KeyID %s contains invalid segments (. or ..)", kid)
 		}
 	}
 
 	if !kidRegex.MatchString(kid) {
-		return fmt.Errorf("KeyID %s does not match the approved regexp", kid)
+		return fmt.Errorf("the KeyID %s does not match the approved regexp", kid)
 	}
 
 	return nil
