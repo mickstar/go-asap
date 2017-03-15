@@ -6,17 +6,18 @@ import (
 
 	"bitbucket.org/atlassian/go-asap"
 	"bitbucket.org/atlassian/go-asap/keyprovider"
+
 	"github.com/SermoDigital/jose/jws"
 	"github.com/Sirupsen/logrus"
 	"github.com/deckarep/golang-set"
 )
 
-var REGEXP = regexp.MustCompile("[Bb]earer ")
-
 const (
-	HEADER_AUTHORIZATION = "Authorization"
-	HEADER_KEY_ID        = "kid"
+	HeaderAuthorization = "Authorization"
+	HeaderKeyID         = "kid"
 )
+
+var bearerRegexp = regexp.MustCompile("[Bb]earer ")
 
 type Rule struct {
 	Regexp  *regexp.Regexp
@@ -41,51 +42,51 @@ type ASAPMiddleware struct {
 	Logger              *logrus.Logger
 }
 
-func (mw *ASAPMiddleware) ServeHTTP(rw http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func (mw *ASAPMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.Handler) {
 	route := r.URL.Path
 	if !mw.shouldAuth(route) {
-		next(rw, r)
+		next.ServeHTTP(w, r)
 		return
 	}
 
-	authorization := r.Header.Get(HEADER_AUTHORIZATION)
+	authorization := r.Header.Get(HeaderAuthorization)
 	if authorization == "" {
 		mw.logError("missing authorization header")
-		rw.WriteHeader(403)
+		w.WriteHeader(403)
 		return
 	}
 
-	bearer := REGEXP.ReplaceAllString(authorization, "")
+	bearer := bearerRegexp.ReplaceAllString(authorization, "")
 	jwt, err := mw.ASAP.Parse([]byte(bearer))
 	if err != nil {
 		mw.logError(err)
-		rw.WriteHeader(403)
+		w.WriteHeader(403)
 		return
 	}
 
 	issuer, _ := jwt.Claims().Issuer()
 	if !mw.clientAllowed(route, issuer) {
 		mw.logError("not authorized for route")
-		rw.WriteHeader(403)
+		w.WriteHeader(403)
 		return
 	}
 
-	keyID := jwt.(jws.JWS).Protected().Get(HEADER_KEY_ID).(string) // Eww eww eww
+	keyID := jwt.(jws.JWS).Protected().Get(HeaderKeyID).(string) // Eww eww eww
 	publicKey, err := mw.PublicKeyProvider.GetPublicKey(keyID)
 	if err != nil {
 		mw.logError(err)
-		rw.WriteHeader(403)
+		w.WriteHeader(403)
 		return
 	}
 
 	err = mw.ASAP.Validate(jwt, publicKey)
 	if err != nil {
 		mw.logError(err)
-		rw.WriteHeader(403)
+		w.WriteHeader(403)
 		return
 	}
 
-	next(rw, r)
+	next.ServeHTTP(w, r)
 }
 
 func (mw *ASAPMiddleware) shouldAuth(route string) bool {
