@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"math/big"
 	"testing"
+	"github.com/SermoDigital/jose/jws"
 )
 
 const minValidBits = 768
@@ -39,5 +40,19 @@ func TestSignParseValidate(t *testing.T) {
 	jwt, _ := asap.Parse(token)
 	if err := asap.Validate(jwt, &privateKey.PublicKey); err != nil {
 		t.Errorf("Failed to verify token: %+v", err)
+	}
+}
+
+func TestSignCustomClaims(t *testing.T) {
+	asap, _, serviceID, privateKey := setUp()
+	claims := jws.Claims{}
+	claims.Set("custom", "value")
+	token, _ := asap.SignCustomClaims(serviceID, claims, privateKey)
+	jwt, _ := asap.Parse(token)
+	if err := asap.Validate(jwt, &privateKey.PublicKey); err != nil {
+		t.Errorf("Failed to verify token: %+v", err)
+	}
+	if jwt.Claims().Get("custom") != "value" {
+		t.Error("Expected custom claim to be serialized and deserialized")
 	}
 }

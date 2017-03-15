@@ -33,19 +33,22 @@ func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string) *ASAP
 	}
 }
 
-func (asap *ASAP) makeClaims(audience string) jws.Claims {
+func (asap *ASAP) makeClaims(audience string) jws.Claims{
+	claims := jws.Claims{}
+	asap.setAsapClaims(claims, audience)
+	return claims
+}
+
+func (asap *ASAP) setAsapClaims(claims jws.Claims, audience string) {
 	now := time.Now()
 	jit := uuid.NewV4().String()
 	exp := now.Add(time.Minute)
 
-	claims := jws.Claims{}
 	claims.SetIssuer(asap.ServiceID)
 	claims.SetJWTID(jit)
 	claims.SetIssuedAt(now)
 	claims.SetExpiration(exp)
 	claims.SetAudience(audience)
-
-	return claims
 }
 
 func (asap *ASAP) signClaims(claims jws.Claims, privateKey interface{}, signingMethod crypto.SigningMethod) (token []byte, err error) {
@@ -59,7 +62,10 @@ func (asap *ASAP) signClaims(claims jws.Claims, privateKey interface{}, signingM
 }
 
 func (asap *ASAP) Sign(audience string, privateKey interface{}) (token []byte, err error) {
+	return asap.SignCustomClaims(audience, jws.Claims{}, privateKey)
+}
 
+func (asap *ASAP) SignCustomClaims(audience string, customClaims jws.Claims, privateKey interface{}) (token []byte, err error) {
 	var signingMethod crypto.SigningMethod
 
 	switch privateKey.(type) {
@@ -71,8 +77,8 @@ func (asap *ASAP) Sign(audience string, privateKey interface{}) (token []byte, e
 		return nil, errors.New("bad private key")
 	}
 
-	claims := asap.makeClaims(audience)
-	return asap.signClaims(claims, privateKey, signingMethod)
+	asap.setAsapClaims(customClaims, audience)
+	return asap.signClaims(customClaims, privateKey, signingMethod)
 }
 
 func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
