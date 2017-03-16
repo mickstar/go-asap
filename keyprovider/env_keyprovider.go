@@ -1,8 +1,10 @@
 package keyprovider
 
 import (
+	"crypto"
 	"errors"
 	"os"
+
 	"github.com/vincent-petithory/dataurl"
 )
 
@@ -10,7 +12,7 @@ type EnvironmentPrivateKeyProvider struct {
 	PrivateKeyEnvName string
 }
 
-func (kp *EnvironmentPrivateKeyProvider) GetPrivateKey() (interface{}, error) {
+func (kp *EnvironmentPrivateKeyProvider) GetPrivateKey() (crypto.PrivateKey, error) {
 	if kp.PrivateKeyEnvName == "" {
 		return nil, errors.New("no environment variable")
 	}
@@ -22,8 +24,8 @@ func (kp *EnvironmentPrivateKeyProvider) GetPrivateKey() (interface{}, error) {
 
 	dataURL, err := dataurl.DecodeString(privateKey)
 	if err == nil {
-		return PrivateKeyFromBytes(dataURL.Data)
+		return privateKeyFromBytes(dataURL.Data)
 	}
 
-	return PrivateKeyFromBytes([]byte(privateKey))
+	return privateKeyFromBytes([]byte(privateKey))
 }

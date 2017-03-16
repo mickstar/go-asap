@@ -1,9 +1,11 @@
 package keyprovider
 
+import "crypto"
+
 type PublicKeyProvider interface {
-	GetPublicKey(keyID string) (interface{}, error)
+	GetPublicKey(keyID string) (crypto.PublicKey, error)
 }
 
 type PrivateKeyProvider interface {
-	GetPrivateKey() (interface{}, error)
+	GetPrivateKey() (crypto.PrivateKey, error)
 }

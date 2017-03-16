@@ -7,33 +7,24 @@ import (
 	"testing"
 )
 
-const PUBLIC_KEY_STRING = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzIXNCB3YktXiCiXiN1yR
-W+Ox9IqN2aenMKG9NHdOBlwp/2BQkm+G4nRjkdfn+6XnmrLeLS6dA/gTj03tJ3YN
-JoqkjAcL2+x0SU3PtDYJO29TFOvIWlq2iJyTukYdlSXLhY5U3hyv/BdgI9gd6D2T
-c6sy9i3CnkKSBlPniRQC2bor5ZzCLxr7NWMfe1HsAQExw6+iGwVtaNjP4wX2kMzA
-w6cPNYKsZqpjXx8/GzkralkXZvBhW6IvVQe4EZjZW8MSoK7Gb6IAV+BM0ltOasY7
-OOPQvTjL/3Aj0KJSAjrpbdFzYzwpIqUpwYFKW53y9eBnd2QlarrOnOGsdRBbCctV
-2QIDAQAB
------END PUBLIC KEY-----
-`
-
 func TestReturnsPrivateKeyWhenSuccessful(t *testing.T) {
-
 	tmpFile, err := ioutil.TempFile("./", "privatekey")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	if _, err := tmpFile.WriteString(PrivateKeyString); err != nil {
+		t.Fatal(err)
 	}
 
-	tmpFile.WriteString(PRIVATE_KEY_STRING)
 	kp := &FSKeyProvider{
 		PrivateKeyPath: tmpFile.Name(),
 	}
 
 	if _, err := kp.GetPrivateKey(); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-	os.Remove(tmpFile.Name())
 }
 
 func TestReturnsErrorWhenFileDoesNotExist(t *testing.T) {
@@ -42,51 +33,54 @@ func TestReturnsErrorWhenFileDoesNotExist(t *testing.T) {
 	}
 
 	if _, err := kp.GetPrivateKey(); err == nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 }
 
 func TestReturnsPublicKeyWithOnlyPublicKeyDir(t *testing.T) {
-
 	tmpDir, err := ioutil.TempDir("./", "key-id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
 
 	tmpFile, err := ioutil.TempFile(tmpDir, "public-key")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
-	tmpFile.WriteString(PUBLIC_KEY_STRING)
+	tmpFile.WriteString(PublicKeyString)
 	kp := &FSKeyProvider{
 		PublicKeyDir: "./",
 	}
 
 	if _, err := kp.GetPublicKey(tmpFile.Name()); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-
-	os.RemoveAll(tmpDir)
-
 }
 
 func TestReturnsPublicKeyWhenSuccessful(t *testing.T) {
-
 	tmpDir, err := ioutil.TempDir("./", "key-id")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
 
 	tmpFile, err := ioutil.TempFile(tmpDir, "public-key")
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
-	tmpFile.WriteString(PUBLIC_KEY_STRING)
+	if _, err := tmpFile.WriteString(PublicKeyString); err != nil {
+		t.Fatal(err)
+	}
+
 	kp := &FSKeyProvider{
 		PublicKeyDir:      "./",
 		PublicKeyFilename: path.Base(tmpFile.Name()),
 	}
 
 	if _, err := kp.GetPublicKey(tmpDir); err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
-
-	os.RemoveAll(tmpDir)
-
 }

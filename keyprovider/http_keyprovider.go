@@ -1,6 +1,7 @@
 package keyprovider
 
 import (
+	"crypto"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -27,7 +28,7 @@ type HTTPPublicKeyProvider struct {
 	CacheTTLInSeconds int
 }
 
-func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error) {
+func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (crypto.PublicKey, error) {
 	pkURL, err := url.Parse(kp.BaseURL)
 	if err != nil {
 		return nil, err
@@ -58,7 +59,7 @@ func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (interface{}, error)
 		return nil, err
 	}
 
-	return PublicKeyFromBytes(publicKey)
+	return publicKeyFromBytes(publicKey)
 }
 
 // ------------------------------------------ PRIVATES ------------------------------------------
