@@ -38,7 +38,7 @@ func TestSignParseValidate(t *testing.T) {
 	asap, _, serviceID, privateKey := setUp()
 	token, _ := asap.Sign(serviceID, privateKey)
 	jwt, _ := asap.Parse(token)
-	if err := asap.Validate(jwt, &privateKey.PublicKey); err != nil {
+	if err := asap.Validate(jwt, privateKey.Public()); err != nil {
 		t.Errorf("Failed to verify token: %+v", err)
 	}
 }

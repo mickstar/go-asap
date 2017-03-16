@@ -1,13 +1,13 @@
 package asap
 
 import (
+	cr "crypto"
 	"crypto/ecdsa"
 	"crypto/rsa"
 	"errors"
 	"fmt"
 	"time"
 
-	"bitbucket.org/atlassian/go-asap/methods"
 	"bitbucket.org/atlassian/go-asap/validator"
 
 	"github.com/SermoDigital/jose/crypto"
@@ -16,8 +16,10 @@ import (
 	"github.com/satori/go.uuid"
 )
 
-const KEY_ID = "kid"
-const ALGORITHM = "alg"
+const (
+	keyID     = "kid"
+	algorithm = "alg"
+)
 
 type ASAP struct {
 	ServiceID          string
@@ -33,7 +35,7 @@ func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string) *ASAP
 	}
 }
 
-func (asap *ASAP) makeClaims(audience string) jws.Claims{
+func (asap *ASAP) makeClaims(audience string) jws.Claims {
 	claims := jws.Claims{}
 	asap.setAsapClaims(claims, audience)
 	return claims
@@ -51,21 +53,21 @@ func (asap *ASAP) setAsapClaims(claims jws.Claims, audience string) {
 	claims.SetAudience(audience)
 }
 
-func (asap *ASAP) signClaims(claims jws.Claims, privateKey interface{}, signingMethod crypto.SigningMethod) (token []byte, err error) {
+func (asap *ASAP) signClaims(claims jws.Claims, privateKey cr.PrivateKey, signingMethod crypto.SigningMethod) (token []byte, err error) {
 	jwt := jws.NewJWT(claims, signingMethod)
 
 	// Need to hack the kid attribute into the right JWS header part, since jose
 	// doesn't support adding to that yet.
-	jwt.(jws.JWS).Protected().Set(KEY_ID, asap.KeyID)
+	jwt.(jws.JWS).Protected().Set(keyID, asap.KeyID)
 
 	return jwt.Serialize(privateKey)
 }
 
-func (asap *ASAP) Sign(audience string, privateKey interface{}) (token []byte, err error) {
+func (asap *ASAP) Sign(audience string, privateKey cr.PrivateKey) (token []byte, err error) {
 	return asap.SignCustomClaims(audience, jws.Claims{}, privateKey)
 }
 
-func (asap *ASAP) SignCustomClaims(audience string, customClaims jws.Claims, privateKey interface{}) (token []byte, err error) {
+func (asap *ASAP) SignCustomClaims(audience string, customClaims jws.Claims, privateKey cr.PrivateKey) (token []byte, err error) {
 	var signingMethod crypto.SigningMethod
 
 	switch privateKey.(type) {
@@ -85,15 +87,36 @@ func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 	return jws.ParseJWT(token)
 }
 
-func (asap *ASAP) Validate(jwt jwt.JWT, publicKey interface{}) error {
+func (asap *ASAP) Validate(jwt jwt.JWT, publicKey cr.PublicKey) error {
 	header := jwt.(jws.JWS).Protected()
-	kid := header.Get(KEY_ID).(string)
-	alg := header.Get(ALGORITHM).(string)
+	kid := header.Get(keyID).(string)
+	alg := header.Get(algorithm).(string)
 
-	signingMethod := methods.SigningMethodMap[alg]
+	signingMethod := getSigningMethod(alg)
 	if signingMethod == nil {
-		return errors.New(fmt.Sprintf("Unsupported algorithm: %s", alg))
+		return fmt.Errorf("Unsupported algorithm: %s", alg)
 	}
 
 	return jwt.Validate(publicKey, signingMethod, validator.GenerateValidator(kid, asap.ServiceID))
+}
+
+func getSigningMethod(id string) crypto.SigningMethod {
+	switch id {
+	// ECDSA
+	case "ES256":
+		return crypto.SigningMethodES256
+	case "ES384":
+		return crypto.SigningMethodES384
+	case "ES512":
+		return crypto.SigningMethodES512
+	// RSA
+	case "RS256":
+		return crypto.SigningMethodRS256
+	case "RS384":
+		return crypto.SigningMethodRS384
+	case "RS512":
+		return crypto.SigningMethodRS512
+	default:
+		return nil
+	}
 }
