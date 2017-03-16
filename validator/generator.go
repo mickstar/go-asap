@@ -13,10 +13,9 @@ import (
 
 var kidRegex = regexp.MustCompile(`^[\w.\-\+/]*$`)
 
+// GenerateValidator generates a validator for a given key id and audience.
 func GenerateValidator(kid string, audience string) *jwt.Validator {
-
 	validationFn := func(clientClaims jws.Claims) error {
-
 		if err := checkMissingClaims(clientClaims); err != nil {
 			return err
 		}
@@ -51,7 +50,6 @@ func GenerateValidator(kid string, audience string) *jwt.Validator {
 }
 
 func checkMissingClaims(claims jws.Claims) error {
-
 	if _, p := claims.Issuer(); p == false {
 		return errors.New("Missing iss from JWT")
 	}
@@ -72,7 +70,6 @@ func checkMissingClaims(claims jws.Claims) error {
 }
 
 func validateKid(issuer, kid string) bool {
-
 	if !strings.HasPrefix(kid, issuer+"/") {
 		return false
 	}

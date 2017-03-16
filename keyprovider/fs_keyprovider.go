@@ -6,12 +6,14 @@ import (
 	"path/filepath"
 )
 
+// FSKeyProvider provides public and private keys stored on the filesystem.
 type FSKeyProvider struct {
 	PrivateKeyPath    string
 	PublicKeyDir      string
 	PublicKeyFilename string
 }
 
+// GetPrivateKey gets a private key stored at a known file.
 func (kp *FSKeyProvider) GetPrivateKey() (crypto.PrivateKey, error) {
 	privateKey, err := ioutil.ReadFile(kp.PrivateKeyPath)
 	if err != nil {
@@ -21,6 +23,7 @@ func (kp *FSKeyProvider) GetPrivateKey() (crypto.PrivateKey, error) {
 	return privateKeyFromBytes(privateKey)
 }
 
+// GetPublicKey gets a public key stored in a known directory.
 func (kp *FSKeyProvider) GetPublicKey(keyID string) (crypto.PublicKey, error) {
 	path := filepath.Join(kp.PublicKeyDir, keyID)
 

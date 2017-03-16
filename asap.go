@@ -17,16 +17,19 @@ import (
 )
 
 const (
-	keyID     = "kid"
+	// KeyID is the tag used in a JWT header for a key ID.
+	KeyID     = "kid"
 	algorithm = "alg"
 )
 
+// ASAP is used to manipulate JWTs.
 type ASAP struct {
 	ServiceID          string
 	KeyID              string
 	AuthorisedSubjects []string
 }
 
+// NewASAP returns a new *ASAP.
 func NewASAP(keyIdentifier, serviceID string, authorisedSubjects []string) *ASAP {
 	return &ASAP{
 		KeyID:              keyIdentifier,
@@ -58,15 +61,17 @@ func (asap *ASAP) signClaims(claims jws.Claims, privateKey cr.PrivateKey, signin
 
 	// Need to hack the kid attribute into the right JWS header part, since jose
 	// doesn't support adding to that yet.
-	jwt.(jws.JWS).Protected().Set(keyID, asap.KeyID)
+	jwt.(jws.JWS).Protected().Set(KeyID, asap.KeyID)
 
 	return jwt.Serialize(privateKey)
 }
 
+// Sign generates a signed JWT for a given audience.
 func (asap *ASAP) Sign(audience string, privateKey cr.PrivateKey) (token []byte, err error) {
 	return asap.SignCustomClaims(audience, jws.Claims{}, privateKey)
 }
 
+// SignCustomClaims generates a signed JWT for a given audience and with given custom claims.
 func (asap *ASAP) SignCustomClaims(audience string, customClaims jws.Claims, privateKey cr.PrivateKey) (token []byte, err error) {
 	var signingMethod crypto.SigningMethod
 
@@ -83,13 +88,15 @@ func (asap *ASAP) SignCustomClaims(audience string, customClaims jws.Claims, pri
 	return asap.signClaims(customClaims, privateKey, signingMethod)
 }
 
+// Parse parses a raw JWT into a jwt.JWT.
 func (asap *ASAP) Parse(token []byte) (jwt.JWT, error) {
 	return jws.ParseJWT(token)
 }
 
+// Validate validates a JWT against a given public key.
 func (asap *ASAP) Validate(jwt jwt.JWT, publicKey cr.PublicKey) error {
 	header := jwt.(jws.JWS).Protected()
-	kid := header.Get(keyID).(string)
+	kid := header.Get(KeyID).(string)
 	alg := header.Get(algorithm).(string)
 
 	signingMethod := getSigningMethod(alg)

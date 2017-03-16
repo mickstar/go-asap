@@ -22,12 +22,14 @@ var defaultClient = &http.Client{
 	Transport: httpcache.NewMemoryCacheTransport(), // Respect HTTP cache control headers
 }
 
+// HTTPPublicKeyProvider provides public keys served by an external HTTP server.
 type HTTPPublicKeyProvider struct {
 	BaseURL           string
 	Client            *http.Client
 	CacheTTLInSeconds int
 }
 
+// GetPublicKey gets a public key with the given keyID from an HTTP endpoint.
 func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (crypto.PublicKey, error) {
 	pkURL, err := url.Parse(kp.BaseURL)
 	if err != nil {
@@ -41,10 +43,10 @@ func (kp *HTTPPublicKeyProvider) GetPublicKey(keyID string) (crypto.PublicKey, e
 	}
 
 	req, err := http.NewRequest(http.MethodGet, pkURL.String(), nil)
-	req.Header.Add("Cache-Control", cacheControl(kp))
 	if err != nil {
 		return nil, err
 	}
+	req.Header.Add("Cache-Control", cacheControl(kp))
 
 	resp, err := netClient.Do(req)
 	if err != nil {
