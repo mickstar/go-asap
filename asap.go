@@ -99,31 +99,34 @@ func (asap *ASAP) Validate(jwt jwt.JWT, publicKey cr.PublicKey) error {
 	kid := header.Get(KeyID).(string)
 	alg := header.Get(algorithm).(string)
 
-	signingMethod := getSigningMethod(alg)
-	if signingMethod == nil {
-		return fmt.Errorf("Unsupported algorithm: %s", alg)
+	signingMethod, err := getSigningMethod(alg)
+	if err != nil {
+		return err
 	}
 
 	return jwt.Validate(publicKey, signingMethod, validator.GenerateValidator(kid, asap.ServiceID))
 }
 
-func getSigningMethod(id string) crypto.SigningMethod {
-	switch id {
+func getSigningMethod(alg string) (crypto.SigningMethod, error) {
+	var sm crypto.SigningMethod
+	switch alg {
 	// ECDSA
 	case "ES256":
-		return crypto.SigningMethodES256
+		sm = crypto.SigningMethodES256
 	case "ES384":
-		return crypto.SigningMethodES384
+		sm = crypto.SigningMethodES384
 	case "ES512":
-		return crypto.SigningMethodES512
+		sm = crypto.SigningMethodES512
 	// RSA
 	case "RS256":
-		return crypto.SigningMethodRS256
+		sm = crypto.SigningMethodRS256
 	case "RS384":
-		return crypto.SigningMethodRS384
+		sm = crypto.SigningMethodRS384
 	case "RS512":
-		return crypto.SigningMethodRS512
+		sm = crypto.SigningMethodRS512
 	default:
-		return nil
+		return nil, fmt.Errorf("Unsupported algorithm: %s", alg)
 	}
+
+	return sm, nil
 }
