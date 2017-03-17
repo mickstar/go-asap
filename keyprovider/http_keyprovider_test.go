@@ -8,19 +8,7 @@ import (
 	"time"
 )
 
-const (
-	publicKeyString = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzIXNCB3YktXiCiXiN1yR
-W+Ox9IqN2aenMKG9NHdOBlwp/2BQkm+G4nRjkdfn+6XnmrLeLS6dA/gTj03tJ3YN
-JoqkjAcL2+x0SU3PtDYJO29TFOvIWlq2iJyTukYdlSXLhY5U3hyv/BdgI9gd6D2T
-c6sy9i3CnkKSBlPniRQC2bor5ZzCLxr7NWMfe1HsAQExw6+iGwVtaNjP4wX2kMzA
-w6cPNYKsZqpjXx8/GzkralkXZvBhW6IvVQe4EZjZW8MSoK7Gb6IAV+BM0ltOasY7
-OOPQvTjL/3Aj0KJSAjrpbdFzYzwpIqUpwYFKW53y9eBnd2QlarrOnOGsdRBbCctV
-2QIDAQAB
------END PUBLIC KEY-----
-`
-	keyID = "abc123"
-)
+const keyID = "abc123"
 
 func TestCacheControl(t *testing.T) {
 	testCases := map[string]*cacheControlTestBundle{
@@ -40,9 +28,9 @@ func TestCacheControl(t *testing.T) {
 
 func TestItRespectsCacheControlHeaders(t *testing.T) {
 	testCases := map[string]*kpTestBundle{
-		"TestItCachesByDefault":         {ttl: 0, expected: 1, retries: 2},
-		"TestItCachesIfTTLProvided":     {ttl: 600, expected: 1, retries: 2},
-		"TestItInvalidatesCacheIfStale": {ttl: -1, expected: 2, retries: 2},
+		"TestCachesByDefault":         {ttl: 0, expected: 1, retries: 2},
+		"TestCachesIfTTLProvided":     {ttl: 600, expected: 1, retries: 2},
+		"TestInvalidatesCacheIfStale": {ttl: -1, expected: 2, retries: 2},
 	}
 	for name, bundle := range testCases {
 		t.Run(name, func(t *testing.T) {
@@ -51,7 +39,7 @@ func TestItRespectsCacheControlHeaders(t *testing.T) {
 			kp := &HTTPPublicKeyProvider{BaseURL: s3mock.URL, CacheTTLInSeconds: bundle.ttl}
 			startRequestLoop(bundle.retries, kp, t)
 			if *requestCount != bundle.expected {
-				t.Errorf("expected %d call to S3, but actual %d", bundle.expected, *requestCount)
+				t.Fatalf("expected %d call(s) to S3, but actually performed %d", bundle.expected, *requestCount)
 			}
 		})
 	}
@@ -77,7 +65,7 @@ func newS3Mock() (*httptest.Server, *int) {
 		requestCount++
 		w.WriteHeader(http.StatusOK)
 		w.Header().Add("Date", time.Now().Format(time.RFC1123))
-		io.WriteString(w, publicKeyString)
+		io.WriteString(w, PublicKeyString)
 	})
 	return httptest.NewServer(router), &requestCount
 }

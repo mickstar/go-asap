@@ -1,13 +1,13 @@
 package keyprovider
 
 import (
+	"crypto"
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
 )
 
-func PrivateKeyFromBytes(privateKeyData []byte) (privateKey interface{}, err error) {
-
+func privateKeyFromBytes(privateKeyData []byte) (crypto.PrivateKey, error) {
 	keyFromDataURL, err := x509.ParsePKCS8PrivateKey(privateKeyData)
 	if err == nil {
 		return keyFromDataURL, nil
@@ -18,16 +18,15 @@ func PrivateKeyFromBytes(privateKeyData []byte) (privateKey interface{}, err err
 		return nil, errors.New("No valid PEM data found")
 	}
 
-	privateKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+	privateKey, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 	if err == nil {
-		return
+		return privateKey, err
 	}
 
 	return x509.ParseECPrivateKey(block.Bytes)
 }
 
-func PublicKeyFromBytes(publicKeyData []byte) (interface{}, error) {
-
+func publicKeyFromBytes(publicKeyData []byte) (crypto.PublicKey, error) {
 	block, _ := pem.Decode(publicKeyData)
 	if block == nil {
 		return nil, errors.New("No valid PEM data found")
