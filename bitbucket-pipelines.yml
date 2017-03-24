@@ -4,11 +4,17 @@ pipelines:
     - step:
         name: Build, test, and deploy (if master)
         script:
-          # - mv -v /go/bin/* /usr/local/bin
-          - mkdir -p /go/src/bitbucket.org/atlassian &&  cp -R `pwd` /go/src/bitbucket.org/atlassian/go-asap
+          - mkdir -p ${GOPATH}/src/bitbucket.org/atlassian &&  cp -R $(pwd) ${GOPATH}/src/bitbucket.org/atlassian/go-asap
 
-          # Build and test
+          # Manage dependencies
           - cd /go/src/bitbucket.org/atlassian/go-asap
           - curl https://glide.sh/get | sh
           - ${GOPATH}/bin/glide install
+
+          # Style checks
+          - go get -u github.com/alecthomas/gometalinter
+          - ${GOPATH}/bin/gometalinter --install
+          - ${GOPATH}/bin/gometalinter --vendor --disable-all --enable=vet --enable=goimports --enable=vetshadow --enable=golint --enable=ineffassign --enable=goconst --tests .
+
+          # Build and test
           - go test -v -cover -race .
