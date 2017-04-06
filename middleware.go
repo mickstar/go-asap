@@ -32,6 +32,17 @@ func (m *middleware) handleError(w http.ResponseWriter, r *http.Request, e error
 	return
 }
 
+// FailedValidationError is used to signal that a given token was parsed
+// correctly but failed the validation rules
+type FailedValidationError struct {
+	Reason error
+	Token  Token
+}
+
+func (e *FailedValidationError) Error() string {
+	return e.Reason.Error()
+}
+
 func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var bearer = r.Header.Get("Authorization")
 	if len(bearer) < len("Bearer ") {
@@ -46,7 +57,7 @@ func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	e = m.validator.Validate(token)
 	if e != nil {
-		m.handleError(w, r, e)
+		m.handleError(w, r, &FailedValidationError{Reason: e, Token: token})
 		return
 	}
 	m.wrapped.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKey, token)))

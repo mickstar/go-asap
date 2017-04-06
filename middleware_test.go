@@ -55,7 +55,12 @@ func TestMiddlewareHandlesInvalidTokens(t *testing.T) {
 
 func TestMiddlewareHandlesValidationFailure(t *testing.T) {
 	var calledCallback = false
-	var callback = func(w http.ResponseWriter, r *http.Request, e error) { calledCallback = true }
+	var gotErrorType = false
+	var callback = func(w http.ResponseWriter, r *http.Request, e error) {
+		calledCallback = true
+		var _, ok = e.(*FailedValidationError)
+		gotErrorType = ok
+	}
 	var validator = validatorFunc(func(Token) error { return fmt.Errorf("") })
 	var wrapped = &fixtureHandler{}
 	var m = NewMiddleware(validator, callback)(wrapped)
@@ -69,6 +74,9 @@ func TestMiddlewareHandlesValidationFailure(t *testing.T) {
 	m.ServeHTTP(w, r)
 	if !calledCallback {
 		t.Fatal("Middleware did not reject a request that failed the validator")
+	}
+	if !gotErrorType {
+		t.Fatal("Middleware did not emit a FailedValidationError")
 	}
 }
 
