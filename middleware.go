@@ -2,6 +2,7 @@ package asap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -55,4 +56,21 @@ func (m *middleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // FromContext returns the ASAP token for the current request.
 func FromContext(ctx context.Context) Token {
 	return ctx.Value(ctxKey).(Token)
+}
+
+// FromContextSafe returns the ASAP token for the current request.
+// It returns an error instead of panicking when the token is not present
+// in the context.
+func FromContextSafe(ctx context.Context) (Token, error) {
+	var token, ok = ctx.Value(ctxKey).(Token)
+	if !ok {
+		return nil, errors.New("middleware has not run")
+	}
+	return token, nil
+}
+
+// ToContext adds an ASAP token to a context.
+// This is exposed externally to help consumers writing unit tests that depend on this middleware.
+func ToContext(parentCtx context.Context, token Token) context.Context {
+	return context.WithValue(parentCtx, ctxKey, token)
 }
