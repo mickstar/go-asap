@@ -26,7 +26,7 @@ func NewMiddleware(validator Validator, callback func(http.ResponseWriter, *http
 
 func (m *middleware) handleError(w http.ResponseWriter, r *http.Request, e error) {
 	if m.callback == nil {
-		w.WriteHeader(http.StatusForbidden)
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	m.callback(w, r, e)
