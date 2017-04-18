@@ -107,7 +107,7 @@ func TestMiddlewareHandlesSends403ByDefault(t *testing.T) {
 	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
 	r.Header.Set("Authorization", "TEST")
 	m.ServeHTTP(w, r)
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("Middleware did not default toa 403 response.")
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("Middleware did not default to a 401 response.")
 	}
 }
