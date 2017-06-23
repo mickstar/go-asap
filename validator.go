@@ -203,5 +203,5 @@ func (v *signatureValidator) Validate(t Token) error {
 	if e != nil {
 		return e
 	}
-	return t.Validate(k, signingMethod, &jwt.Validator{Fn: func(jwt.Claims) error { return nil }})
+	return t.Validate(k, signingMethod, &jwt.Validator{EXP: time.Second, NBF: time.Second})
 }
