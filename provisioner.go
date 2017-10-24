@@ -49,6 +49,8 @@ func NewMicrosProvisioner(audience []string, ttl time.Duration) Provisioner {
 	return NewProvisioner(os.Getenv("ASAP_KEY_ID"), ttl, os.Getenv("ASAP_ISSUER"), audience, crypto.SigningMethodRS256)
 }
 
+const cacheBuffer = 30 * time.Second
+
 type cacheProvisioner struct {
 	wrapped Provisioner
 	cache   Token
@@ -73,7 +75,7 @@ func (p *cacheProvisioner) Provision() (Token, error) {
 		}
 		return t, e
 	}
-	if exp, _ := p.cache.Claims().Expiration(); time.Since(exp) <= 0 {
+	if exp, _ := p.cache.Claims().Expiration(); time.Since(exp)+cacheBuffer <= 0 {
 		p.lock.RUnlock()
 		return p.cache, nil
 	}
