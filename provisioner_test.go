@@ -56,6 +56,25 @@ func TestCacheProvisionerExpired(t *testing.T) {
 	}
 }
 
+func TestCacheProvisionerAlmostExpired(t *testing.T) {
+	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
+	_, _ = cache.Provision()
+	cache.cache.Claims().SetExpiration(time.Now().Add(2 * time.Second)) // about to expire, but still valid
+	var token, e = cache.Provision()
+	if e != nil {
+		t.Fatalf("Got unexpected error provisioning a token: %s", e)
+	}
+	time.Sleep(1 * time.Second) // enter expiration buffer
+	var token2, e2 = cache.Provision()
+	if e2 != nil {
+		t.Fatalf("Got unexpected error provisioning a token: %s", e2)
+	}
+	if token == token2 {
+		t.Fatalf("Expected a new token to be returned but found %s %s", token, token2)
+	}
+}
+
 func TestCacheToken(t *testing.T) {
 	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped)

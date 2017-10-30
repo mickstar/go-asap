@@ -49,6 +49,8 @@ func NewMicrosProvisioner(audience []string, ttl time.Duration) Provisioner {
 	return NewProvisioner(os.Getenv("ASAP_KEY_ID"), ttl, os.Getenv("ASAP_ISSUER"), audience, crypto.SigningMethodRS256)
 }
 
+const minCacheLeeway = 1 * time.Second
+
 type cacheToken struct {
 	Token
 	cache []byte
@@ -98,7 +100,17 @@ func (p *cacheProvisioner) Provision() (Token, error) {
 		p.cache = t
 		return t, e
 	}
-	if exp, _ := p.cache.Claims().Expiration(); time.Since(exp) <= 0 {
+	var exp, _ = p.cache.Claims().Expiration()
+	var start, _ = p.cache.Claims().IssuedAt()
+	if nbf, ok := p.cache.Claims().NotBefore(); ok {
+		start = nbf
+	}
+	// buffer 5% of token lifetime
+	var cacheLeeway = exp.Sub(start) * time.Duration(1) / time.Duration(20)
+	if cacheLeeway < minCacheLeeway {
+		cacheLeeway = minCacheLeeway
+	}
+	if time.Since(exp)+cacheLeeway <= 0 {
 		p.lock.RUnlock()
 		return p.cache, nil
 	}
