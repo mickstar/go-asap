@@ -49,6 +49,29 @@ func NewMicrosProvisioner(audience []string, ttl time.Duration) Provisioner {
 	return NewProvisioner(os.Getenv("ASAP_KEY_ID"), ttl, os.Getenv("ASAP_ISSUER"), audience, crypto.SigningMethodRS256)
 }
 
+type cacheToken struct {
+	Token
+	cache []byte
+	lock  *sync.RWMutex
+}
+
+func (t *cacheToken) Serialize(k interface{}) ([]byte, error) {
+	t.lock.RLock()
+	if t.cache != nil {
+		defer t.lock.RUnlock()
+		return t.cache, nil
+	}
+	t.lock.RUnlock()
+	t.lock.Lock()
+	defer t.lock.Unlock()
+	var value, e = t.Token.Serialize(k)
+	if e != nil {
+		return value, e
+	}
+	t.cache = value
+	return value, nil
+}
+
 type cacheProvisioner struct {
 	wrapped Provisioner
 	cache   Token
@@ -68,9 +91,11 @@ func (p *cacheProvisioner) Provision() (Token, error) {
 		p.lock.Lock()
 		defer p.lock.Unlock()
 		var t, e = p.wrapped.Provision()
-		if e == nil {
-			p.cache = t
+		if e != nil {
+			return t, e
 		}
+		t = &cacheToken{t, nil, &sync.RWMutex{}}
+		p.cache = t
 		return t, e
 	}
 	if exp, _ := p.cache.Claims().Expiration(); time.Since(exp) <= 0 {
@@ -81,8 +106,10 @@ func (p *cacheProvisioner) Provision() (Token, error) {
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	var t, e = p.wrapped.Provision()
-	if e == nil {
-		p.cache = t
+	if e != nil {
+		return t, e
 	}
+	t = &cacheToken{t, nil, &sync.RWMutex{}}
+	p.cache = t
 	return t, e
 }
