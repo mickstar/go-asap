@@ -1,6 +1,7 @@
 package asap
 
 import (
+	"bytes"
 	"testing"
 	"time"
 
@@ -71,5 +72,28 @@ func TestCacheProvisionerAlmostExpired(t *testing.T) {
 	}
 	if token == token2 {
 		t.Fatalf("Expected a new token to be returned but found %s %s", token, token2)
+	}
+}
+
+func TestCacheToken(t *testing.T) {
+	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var cache = NewCachingProvisioner(wrapped)
+	var token, e = cache.Provision()
+	if e != nil {
+		t.Fatal(e.Error())
+	}
+	var key, _ = NewPrivateKey([]byte(privateKey))
+	var b []byte
+	b, e = token.(*cacheToken).Serialize(key)
+	if e != nil {
+		t.Fatal(e.Error())
+	}
+	var b2 []byte
+	b2, e = token.Serialize(key)
+	if e != nil {
+		t.Fatal(e.Error())
+	}
+	if !bytes.Equal(b, b2) {
+		t.Fatal("did not return a cached, signed token value")
 	}
 }
