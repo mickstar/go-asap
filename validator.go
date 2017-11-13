@@ -196,13 +196,14 @@ func NewSignatureValidator(fetcher KeyFetcher) Validator {
 }
 
 func (v *signatureValidator) Validate(t Token) error {
-	alg, ok := t.(jws.JWS).Protected().Get(ClaimAlgorithm).(string)
-	if !ok {
+	var alg, kid string
+	var ok bool
+
+	if alg, ok = t.(jws.JWS).Protected().Get(ClaimAlgorithm).(string); !ok {
 		return fmt.Errorf("Missing or invalid algorithm")
 	}
 
-	kid, ok := t.(jws.JWS).Protected().Get(ClaimKeyID).(string)
-	if !ok {
+	if kid, ok = t.(jws.JWS).Protected().Get(ClaimKeyID).(string); !ok {
 		return fmt.Errorf("Missing or invalid key id")
 	}
 
