@@ -27,23 +27,45 @@ func (v asapIssuerValidator) Validate(token Token) error {
 	return nil
 }
 
+// CachingChainedASAPValidatorEvent defines a type to represent different events from the cache
+type CachingChainedASAPValidatorEvent int
+
+const (
+	// CachingChainedASAPValidatorEventNone is default uninitialized state
+	CachingChainedASAPValidatorEventNone CachingChainedASAPValidatorEvent = iota
+
+	// CachingChainedASAPValidatorEventHit denotes a cache hit event
+	CachingChainedASAPValidatorEventHit
+
+	// CachingChainedASAPValidatorEventMiss denotes a cache miss
+	CachingChainedASAPValidatorEventMiss
+
+	// CachingChainedASAPValidatorEventPurge denotes a cache purge
+	CachingChainedASAPValidatorEventPurge
+)
+
+// CachingChainedASAPValidatorCallBack defines type for a callback function to get notified on
+// various cache events
+type CachingChainedASAPValidatorCallBack func(CachingChainedASAPValidatorEvent)
+
 // cachingChainedASAPValidator supports caching valid ASAP tokens with their expiration
 // Helps reduce CPU utilization under load by not having to validate tokens that are valid
 type cachingChainedASAPValidator struct {
 	validators Validator
 
 	purge             chan struct{}
-	purgeCB           func(context.Context)
+	callbackFunc      CachingChainedASAPValidatorCallBack
 	tokenCache        sync.Map
 	tokenCacheSize    int64
 	maxTokenCacheSize int64
 }
 
 // NewCachingChainedASAPValidator returns an instance of caching chained validators
-func NewCachingChainedASAPValidator(ctx context.Context, maxTokenCacheSize int64, purgeCB func(context.Context), vs ...Validator) Validator {
+func NewCachingChainedASAPValidator(ctx context.Context, maxTokenCacheSize int64,
+	callbackFunc CachingChainedASAPValidatorCallBack, vs ...Validator) Validator {
 	c := &cachingChainedASAPValidator{
 		purge:             make(chan struct{}, 1),
-		purgeCB:           purgeCB,
+		callbackFunc:      callbackFunc,
 		validators:        NewValidatorChain(vs...),
 		maxTokenCacheSize: maxTokenCacheSize,
 	}
@@ -53,13 +75,20 @@ func NewCachingChainedASAPValidator(ctx context.Context, maxTokenCacheSize int64
 	}
 
 	// Initiate a background cleanup of expired cached entries
-	go c.Purge(ctx)
+	go c.purgeStaleEntries(ctx)
 
 	return c
 }
 
-// Purge clears up expired tokens using a 5 minute timer
-func (v *cachingChainedASAPValidator) Purge(ctx context.Context) {
+// invokeCallBack is a helper function to relay cache events
+func (v *cachingChainedASAPValidator) invokeCallBack(e CachingChainedASAPValidatorEvent) {
+	if v.callbackFunc != nil {
+		v.callbackFunc(e)
+	}
+}
+
+// purgeStaleEntries clears up expired tokens using a 5 minute timer
+func (v *cachingChainedASAPValidator) purgeStaleEntries(ctx context.Context) {
 	ticker := time.NewTicker(5 * time.Minute)
 	defer ticker.Stop()
 
@@ -84,9 +113,7 @@ func (v *cachingChainedASAPValidator) Purge(ctx context.Context) {
 		})
 
 		// If a callback is registered, invoke it
-		if v.purgeCB != nil {
-			v.purgeCB(ctx)
-		}
+		go v.invokeCallBack(CachingChainedASAPValidatorEventPurge)
 	}
 }
 
@@ -98,6 +125,7 @@ func (v *cachingChainedASAPValidator) Validate(token Token) error {
 			if cachedTokenExpiration, ok := val.(time.Time); ok {
 				// Check if token in cache is still valid
 				if cachedTokenExpiration.After(time.Now()) {
+					go v.invokeCallBack(CachingChainedASAPValidatorEventHit)
 					return nil
 				}
 
@@ -106,6 +134,8 @@ func (v *cachingChainedASAPValidator) Validate(token Token) error {
 				atomic.AddInt64(&v.tokenCacheSize, -1)
 			}
 		}
+
+		go v.invokeCallBack(CachingChainedASAPValidatorEventMiss)
 	}
 
 	// Validate the ASAP token across registered validators - let them handle nil token

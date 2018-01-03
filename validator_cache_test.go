@@ -64,13 +64,15 @@ func TestValidatorCacheValidatePurge(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(1)
-	purgeCB := func(ctx context.Context) {
+	eventsCB := func(e CachingChainedASAPValidatorEvent) {
 		// Since we inserted an expired token, the cache should be empty after Purge
-		require.Equal(t, int64(0), cacheImpl.tokenCacheSize)
-		wg.Done()
+		if e == CachingChainedASAPValidatorEventPurge {
+			require.Equal(t, int64(0), cacheImpl.tokenCacheSize)
+			wg.Done()
+		}
 	}
 
-	cache := NewCachingChainedASAPValidator(context.Background(), 100, purgeCB, validatorFunc(validator), validatorFunc(validator))
+	cache := NewCachingChainedASAPValidator(context.Background(), 100, eventsCB, validatorFunc(validator), validatorFunc(validator))
 	require.NotNil(t, cache)
 
 	cacheImpl, ok = cache.(*cachingChainedASAPValidator)
