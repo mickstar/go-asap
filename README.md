@@ -3,7 +3,7 @@
 A library that creates and verifies JSON Web Tokens (JWT) for service to service
 authentication purposes using the Atlassian Service Authentication Protocol (ASAP).
 
-[Atlassian S2S Authentication Protocol (ASAP) - Specification](http://s2sauth.bitbucket.org/)
+[Atlassian S2S Authentication Protocol (ASAP) - Specification](https://s2sauth.bitbucket.io/)
 
 ## Getting Started
 
