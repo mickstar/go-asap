@@ -121,6 +121,10 @@ func (p *cacheProvisioner) Provision() (Token, error) {
 	p.lock.RUnlock()
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	exp, _ = p.cache.Claims().Expiration()
+	if time.Since(exp)+cacheLeeway <= 0 {
+		return p.cache, nil
+	}
 	var t, e = p.wrapped.Provision()
 	if e != nil {
 		return t, e
