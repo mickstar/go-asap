@@ -133,38 +133,6 @@ func TestCacheProvisionerGenerationRace(t *testing.T) {
 	}
 }
 
-func TestCacheProvisionerNearExpiryGenerationRace(t *testing.T) {
-	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
-	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
-	_, _ = cache.Provision()
-	cache.cache.Claims().SetExpiration(time.Now().Add(-1 * time.Hour))
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-	var token1, token2 Token
-	provision := func(token *Token) {
-		defer wg.Done()
-		var e error
-		*token, e = cache.Provision()
-		if e != nil {
-			t.Fatal(e.Error())
-		}
-	}
-	// Acquire write lock to block read lock (and following write lock) in Provision calls
-	cache.lock.Lock()
-	go provision(&token1)
-	go provision(&token2)
-	// Allow provision funcs to proceed to where read lock acquired, then unblock them
-	runtime.Gosched()
-	cache.lock.Unlock()
-	wg.Wait()
-
-	jti1 := token1.Claims()["jti"]
-	jti2 := token2.Claims()["jti"]
-	if jti1 != jti2 {
-		t.Fatalf("Expected identical tokens but found %s %s", jti1, jti2)
-	}
-}
-
 func TestCacheToken(t *testing.T) {
 	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped)
