@@ -2,7 +2,6 @@ package asap
 
 import (
 	"bytes"
-	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -121,7 +120,7 @@ func TestCacheProvisionerGenerationRace(t *testing.T) {
 		go provision(&token1)
 		go provision(&token2)
 		// Allow provision funcs to proceed to where read lock acquired, then unblock them
-		runtime.Gosched()
+		time.Sleep(time.Millisecond)
 		cache.lock.Unlock()
 		wg.Wait()
 
