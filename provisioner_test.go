@@ -87,12 +87,12 @@ func TestCacheProvisionerGenerationRace(t *testing.T) {
 	wg.Add(2)
 	var token1, token2 Token
 	provision := func(token *Token) {
+		defer wg.Done()
 		var e error
 		*token, e = cache.Provision()
 		if e != nil {
 			t.Fatal(e.Error())
 		}
-		wg.Done()
 	}
 	// Acquire write lock to block read lock (and following write lock) in Provision calls
 	cache.lock.Lock()
