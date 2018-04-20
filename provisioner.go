@@ -88,17 +88,21 @@ func NewCachingProvisioner(wrapped Provisioner) Provisioner {
 
 func (p *cacheProvisioner) Provision() (Token, error) {
 	p.lock.RLock()
-	if p.cache == nil {
+	for p.cache == nil {
 		p.lock.RUnlock()
 		p.lock.Lock()
-		defer p.lock.Unlock()
-		var t, e = p.wrapped.Provision()
-		if e != nil {
+		if p.cache == nil {
+			defer p.lock.Unlock()
+			var t, e = p.wrapped.Provision()
+			if e != nil {
+				return t, e
+			}
+			t = &cacheToken{t, nil, &sync.RWMutex{}}
+			p.cache = t
 			return t, e
 		}
-		t = &cacheToken{t, nil, &sync.RWMutex{}}
-		p.cache = t
-		return t, e
+		p.lock.Unlock()
+		p.lock.RLock()
 	}
 	var exp, _ = p.cache.Claims().Expiration()
 	var start, _ = p.cache.Claims().IssuedAt()
@@ -117,6 +121,10 @@ func (p *cacheProvisioner) Provision() (Token, error) {
 	p.lock.RUnlock()
 	p.lock.Lock()
 	defer p.lock.Unlock()
+	exp, _ = p.cache.Claims().Expiration()
+	if time.Since(exp)+cacheLeeway <= 0 {
+		return p.cache, nil
+	}
 	var t, e = p.wrapped.Provision()
 	if e != nil {
 		return t, e
