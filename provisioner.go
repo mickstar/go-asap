@@ -10,7 +10,7 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-// Provisioner is a componenet used to generate new ASAP tokens
+// Provisioner is a component used to generate new ASAP tokens
 // for outgoing requests.
 type Provisioner interface {
 	Provision() (Token, error)
