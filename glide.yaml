@@ -1,4 +1,4 @@
-package: bitbucket.org/hipchat/go-asap
+package: bitbucket.org/atlassian/go-asap
 import:
 - package: github.com/SermoDigital/jose
   subpackages:
