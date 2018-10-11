@@ -7,7 +7,7 @@ import (
 
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 )
 
 // Provisioner is a component used to generate new ASAP tokens
@@ -40,7 +40,7 @@ func (p *standardProvisioner) Provision() (Token, error) {
 // NewProvisioner generates a Provisioner implementation that sets all the
 // required claims and headers for ASAP.
 func NewProvisioner(kid string, ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod) Provisioner {
-	return &standardProvisioner{kid, func() string { return uuid.Must(uuid.NewV4()).String() }, ttl, issuer, audience, signingMethod}
+	return &standardProvisioner{kid, func() string { return uuid.New().String() }, ttl, issuer, audience, signingMethod}
 }
 
 // NewMicrosProvisioner uses the contracted ASAP env var to populate the
