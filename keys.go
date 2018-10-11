@@ -77,38 +77,24 @@ func NewHTTPKeyFetcher(baseURL string, client *http.Client) KeyFetcher {
 	return &httpFetcher{baseURL, client}
 }
 
+// NewHTTPFallbackKeyFetcher pulls public keys from one of two HTTP accessible sources.
+func NewHTTPFallbackKeyFetcher(baseURL, fallbackURL string, client *http.Client) KeyFetcher {
+	return &httpFallback{baseURL, fallbackURL, client}
+}
+
 // NewMicrosKeyFetcher pulls public keys from the shared s3 bucket given as
 // part of the ASAP env var contract in Micros. Documentation for contract:
 // https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
 func NewMicrosKeyFetcher(client *http.Client) KeyFetcher {
-	return &httpFetcher{os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), client}
+	return &httpFallback{
+		baseURL:     os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"),
+		fallBackURL: os.Getenv("ASAP_PUBLIC_KEY_FALLBACK_REPOSITORY_URL"),
+		client:      client,
+	}
 }
 
 func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
-	var pkURL, e = url.Parse(f.baseURL)
-	if e != nil {
-		return nil, e
-	}
-	pkURL.Path = path.Join(pkURL.Path, keyID)
-
-	var resp *http.Response
-	resp, e = f.client.Get(pkURL.String())
-	if e != nil {
-		return nil, e
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		var body, _ = ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Error fetching %s via HTTP. Code: %d Body: %s", pkURL.String(), resp.StatusCode, string(body))
-	}
-
-	var keyBytes []byte
-	keyBytes, e = ioutil.ReadAll(resp.Body)
-	if e != nil {
-		return nil, e
-	}
-
-	return NewPublicKey(keyBytes)
+	return httpFetch(f.baseURL, keyID, f.client)
 }
 
 type cacheFetcher struct {
@@ -137,4 +123,45 @@ func (f *cacheFetcher) Fetch(keyID string) (interface{}, error) {
 		f.cache[keyID] = result
 	}
 	return result, e
+}
+
+type httpFallback struct {
+	baseURL     string
+	fallBackURL string
+	client      *http.Client
+}
+
+func (h *httpFallback) Fetch(keyID string) (interface{}, error) {
+	fetch, err := httpFetch(h.baseURL, keyID, h.client)
+	if err == nil {
+		return fetch, err
+	}
+	return httpFetch(h.fallBackURL, keyID, h.client)
+}
+
+func httpFetch(baseURL, keyID string, client *http.Client) (interface{}, error) {
+	var pkURL, e = url.Parse(baseURL)
+	if e != nil {
+		return nil, e
+	}
+	pkURL.Path = path.Join(pkURL.Path, keyID)
+
+	var resp *http.Response
+	resp, e = client.Get(pkURL.String())
+	if e != nil {
+		return nil, e
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		var body, _ = ioutil.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", pkURL.String(), resp.StatusCode, string(body))
+	}
+
+	var keyBytes []byte
+	keyBytes, e = ioutil.ReadAll(resp.Body)
+	if e != nil {
+		return nil, e
+	}
+
+	return NewPublicKey(keyBytes)
 }
