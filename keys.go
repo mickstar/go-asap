@@ -88,12 +88,12 @@ func NewMultiFetcher(fetchers ...KeyFetcher) KeyFetcher {
 func NewMicrosKeyFetcher(client *http.Client) MultiKeyFetcher {
 	return []KeyFetcher{
 		&httpFetcher{
-			baseURL:     os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"),
-			client:      client,
+			baseURL: os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"),
+			client:  client,
 		},
 		&httpFetcher{
-			baseURL:     os.Getenv("ASAP_PUBLIC_KEY_FALLBACK_REPOSITORY_URL"),
-			client:      client,
+			baseURL: os.Getenv("ASAP_PUBLIC_KEY_FALLBACK_REPOSITORY_URL"),
+			client:  client,
 		},
 	}
 }
@@ -153,16 +153,19 @@ func (f *cacheFetcher) Fetch(keyID string) (interface{}, error) {
 	return result, e
 }
 
+// MultiKeyFetcher returns the first non error result from its list of fetchers
 type MultiKeyFetcher []KeyFetcher
+
+// MultiKeyFetcher wraps a list of KeyFetchers, tries them in order, and returns the
+// first successful fetch
 func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
 	var pk interface{}
 	var err error
 	for _, fetcher := range f {
 		pk, err = fetcher.Fetch(key)
-		if err != nil {
-			continue
+		if err == nil {
+			return pk, nil
 		}
-		return pk, nil
 	}
 	return nil, err
 }

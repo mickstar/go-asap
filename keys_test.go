@@ -130,3 +130,42 @@ func TestCacheFetcher(t *testing.T) {
 		t.Fatalf("Expected to get the cached value but instead got %s", k)
 	}
 }
+
+func TestMultiFetcherSuccess(t *testing.T) {
+	var failure = &http.Response{
+		StatusCode: http.StatusInternalServerError,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+	}
+	var success = &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var successClient = &http.Client{Transport: &fixtureRoundTripper{success, nil, nil}}
+	var failureClient = &http.Client{Transport: &fixtureRoundTripper{failure, nil, nil}}
+
+	var f = NewMultiFetcher(
+		NewHTTPKeyFetcher("http://localhost", failureClient),
+		NewHTTPKeyFetcher("http://localhost", successClient),
+	)
+	_, e := f.Fetch("TEST")
+	if e != nil {
+		t.Fatalf("MultiFetcher fetcher did not parse the response body.")
+	}
+}
+
+func TestMultiFetcherFailure(t *testing.T) {
+	var failure = &http.Response{
+		StatusCode: http.StatusInternalServerError,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+	}
+	var failureClient = &http.Client{Transport: &fixtureRoundTripper{failure, nil, nil}}
+
+	var f = NewMultiFetcher(
+		NewHTTPKeyFetcher("http://localhost", failureClient),
+		NewHTTPKeyFetcher("http://localhost", failureClient),
+	)
+	_, e := f.Fetch("TEST")
+	if e == nil {
+		t.Fatalf("MultiFetcher fetcher did fail when all delegate fetchers failed.")
+	}
+}
