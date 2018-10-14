@@ -85,8 +85,8 @@ func NewMultiFetcher(fetchers ...KeyFetcher) KeyFetcher {
 // NewMicrosKeyFetcher pulls public keys from the shared s3 bucket given as
 // part of the ASAP env var contract in Micros. Documentation for contract:
 // https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
-func NewMicrosKeyFetcher(client *http.Client) MultiKeyFetcher {
-	return []KeyFetcher{
+func NewMicrosKeyFetcher(client *http.Client) KeyFetcher {
+	var fetcher MultiKeyFetcher = []KeyFetcher{
 		&httpFetcher{
 			baseURL: os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"),
 			client:  client,
@@ -96,6 +96,7 @@ func NewMicrosKeyFetcher(client *http.Client) MultiKeyFetcher {
 			client:  client,
 		},
 	}
+	return fetcher
 }
 
 func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
@@ -156,8 +157,8 @@ func (f *cacheFetcher) Fetch(keyID string) (interface{}, error) {
 // MultiKeyFetcher returns the first non error result from its list of fetchers
 type MultiKeyFetcher []KeyFetcher
 
-// MultiKeyFetcher wraps a list of KeyFetchers, tries them in order, and returns the
-// first successful fetch
+// Fetch iterates through the list of fetchers returning first fetch result that
+// succeeds
 func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
 	var pk interface{}
 	var err error
