@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/vincent-petithory/dataurl"
@@ -86,7 +87,7 @@ func NewMultiFetcher(fetchers ...KeyFetcher) KeyFetcher {
 // part of the ASAP env var contract in Micros. Documentation for contract:
 // https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
 func NewMicrosKeyFetcher(client *http.Client) KeyFetcher {
-	var fetcher MultiKeyFetcher = []KeyFetcher{
+	return NewMultiFetcher(
 		&httpFetcher{
 			baseURL: os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"),
 			client:  client,
@@ -95,8 +96,7 @@ func NewMicrosKeyFetcher(client *http.Client) KeyFetcher {
 			baseURL: os.Getenv("ASAP_PUBLIC_KEY_FALLBACK_REPOSITORY_URL"),
 			client:  client,
 		},
-	}
-	return fetcher
+	)
 }
 
 func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
@@ -161,12 +161,14 @@ type MultiKeyFetcher []KeyFetcher
 // succeeds
 func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
 	var pk interface{}
+	var errs []string
 	var err error
 	for _, fetcher := range f {
 		pk, err = fetcher.Fetch(key)
 		if err == nil {
 			return pk, nil
 		}
+		errs = append(errs, err.Error())
 	}
-	return nil, err
+	return nil, errors.New(strings.Join(errs, ", "))
 }
