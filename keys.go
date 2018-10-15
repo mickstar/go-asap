@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"strings"
 	"sync"
 
 	"github.com/vincent-petithory/dataurl"
@@ -77,11 +78,25 @@ func NewHTTPKeyFetcher(baseURL string, client *http.Client) KeyFetcher {
 	return &httpFetcher{baseURL, client}
 }
 
+// NewMultiFetcher will return the first non error fetch result
+func NewMultiFetcher(fetchers ...KeyFetcher) KeyFetcher {
+	return MultiKeyFetcher(fetchers)
+}
+
 // NewMicrosKeyFetcher pulls public keys from the shared s3 bucket given as
 // part of the ASAP env var contract in Micros. Documentation for contract:
 // https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
 func NewMicrosKeyFetcher(client *http.Client) KeyFetcher {
-	return &httpFetcher{os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), client}
+	return NewMultiFetcher(
+		&httpFetcher{
+			baseURL: os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"),
+			client:  client,
+		},
+		&httpFetcher{
+			baseURL: os.Getenv("ASAP_PUBLIC_KEY_FALLBACK_REPOSITORY_URL"),
+			client:  client,
+		},
+	)
 }
 
 func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
@@ -99,7 +114,7 @@ func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		var body, _ = ioutil.ReadAll(resp.Body)
-		return nil, fmt.Errorf("Error fetching %s via HTTP. Code: %d Body: %s", pkURL.String(), resp.StatusCode, string(body))
+		return nil, fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", pkURL.String(), resp.StatusCode, string(body))
 	}
 
 	var keyBytes []byte
@@ -137,4 +152,23 @@ func (f *cacheFetcher) Fetch(keyID string) (interface{}, error) {
 		f.cache[keyID] = result
 	}
 	return result, e
+}
+
+// MultiKeyFetcher returns the first non error result from its list of fetchers
+type MultiKeyFetcher []KeyFetcher
+
+// Fetch iterates through the list of fetchers returning first fetch result that
+// succeeds
+func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
+	var pk interface{}
+	var errs []string
+	var err error
+	for _, fetcher := range f {
+		pk, err = fetcher.Fetch(key)
+		if err == nil {
+			return pk, nil
+		}
+		errs = append(errs, err.Error())
+	}
+	return nil, errors.New(strings.Join(errs, ", "))
 }
