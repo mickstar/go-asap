@@ -27,6 +27,12 @@ type KeyFetcher interface {
 func NewPrivateKey(privateKeyData []byte) (interface{}, error) {
 	var e error
 	var privateKey interface{}
+	var dataURL *dataurl.DataURL
+	// PEM files are typically multi-line, which makes the raw form difficult to be stored in evnironment variables.
+	// We first attempt to decode the data. If we fail, then proceed with the original input.
+	if dataURL, e = dataurl.DecodeString(string(privateKeyData)); e == nil {
+		privateKeyData = dataURL.Data
+	}
 
 	privateKey, e = x509.ParsePKCS8PrivateKey(privateKeyData)
 	if e == nil {

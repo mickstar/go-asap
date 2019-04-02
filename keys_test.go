@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"testing"
+
+	"github.com/vincent-petithory/dataurl"
 )
 
 const publicKey = `-----BEGIN PUBLIC KEY-----
@@ -69,6 +71,14 @@ func (f *fixtureFetcher) Fetch(string) (interface{}, error) {
 
 func TestPrivateKeyParser(t *testing.T) {
 	var _, e = NewPrivateKey([]byte(privateKey))
+	if e != nil {
+		t.Fatalf("Could not parse private key %s", e)
+	}
+}
+
+func TestPrivateKeyParserEncoded(t *testing.T) {
+	var data = dataurl.EncodeBytes([]byte(privateKey))
+	var _, e = NewPrivateKey([]byte(data))
 	if e != nil {
 		t.Fatalf("Could not parse private key %s", e)
 	}
