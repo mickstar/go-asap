@@ -27,6 +27,12 @@ type KeyFetcher interface {
 func NewPrivateKey(privateKeyData []byte) (interface{}, error) {
 	var e error
 	var privateKey interface{}
+	var dataURL *dataurl.DataURL
+	// PEM files are typically multi-line, which makes the raw form difficult to be stored in evnironment variables.
+	// We first attempt to decode the data. If we fail, then proceed with the original input.
+	if dataURL, e = dataurl.DecodeString(string(privateKeyData)); e == nil {
+		privateKeyData = dataURL.Data
+	}
 
 	privateKey, e = x509.ParsePKCS8PrivateKey(privateKeyData)
 	if e == nil {
@@ -49,11 +55,7 @@ func NewPrivateKey(privateKeyData []byte) (interface{}, error) {
 // NewMicrosPrivateKey plucks the key from the contracted ENV vars documented
 // here: https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
 func NewMicrosPrivateKey() (interface{}, error) {
-	var d, e = dataurl.DecodeString(os.Getenv("ASAP_PRIVATE_KEY"))
-	if e != nil {
-		return nil, e
-	}
-	return NewPrivateKey(d.Data)
+	return NewPrivateKey([]byte(os.Getenv("ASAP_PRIVATE_KEY")))
 }
 
 // NewPublicKey attempts to decode the given bytes into a valid public key of

@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
+
+	"github.com/vincent-petithory/dataurl"
 )
 
 const publicKey = `-----BEGIN PUBLIC KEY-----
@@ -74,6 +77,23 @@ func TestPrivateKeyParser(t *testing.T) {
 	}
 }
 
+func TestPrivateKeyParserEncoded(t *testing.T) {
+	var data = dataurl.EncodeBytes([]byte(privateKey))
+	var _, e = NewPrivateKey([]byte(data))
+	if e != nil {
+		t.Fatalf("Could not parse private key %s", e)
+	}
+}
+
+func TestMicrosPrivateKeyParserEncoded(t *testing.T) {
+	var data = dataurl.EncodeBytes([]byte(privateKey))
+	os.Setenv("ASAP_PRIVATE_KEY", data)
+	defer os.Unsetenv("ASAP_PRIVATE_KEY")
+	var _, e = NewMicrosPrivateKey()
+	if e != nil {
+		t.Fatalf("Could not parse private key %s", e)
+	}
+}
 func TestPublicKeyParser(t *testing.T) {
 	var _, e = NewPublicKey([]byte(publicKey))
 	if e != nil {
