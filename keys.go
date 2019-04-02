@@ -55,11 +55,7 @@ func NewPrivateKey(privateKeyData []byte) (interface{}, error) {
 // NewMicrosPrivateKey plucks the key from the contracted ENV vars documented
 // here: https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
 func NewMicrosPrivateKey() (interface{}, error) {
-	var d, e = dataurl.DecodeString(os.Getenv("ASAP_PRIVATE_KEY"))
-	if e != nil {
-		return nil, e
-	}
-	return NewPrivateKey(d.Data)
+	return NewPrivateKey([]byte(os.Getenv("ASAP_PRIVATE_KEY")))
 }
 
 // NewPublicKey attempts to decode the given bytes into a valid public key of
