@@ -10,8 +10,11 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/vincent-petithory/dataurl"
 )
@@ -173,4 +176,94 @@ func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
 		errs = append(errs, err.Error())
 	}
 	return nil, errors.New(strings.Join(errs, ", "))
+}
+
+// KeyExpirationPair contains a public key along with that key's cache expiration time
+type KeyExpirationPair struct {
+	key        interface{}
+	expiration time.Time
+}
+
+type expiringCacheFetcher struct {
+	lock    sync.RWMutex
+	baseURL string
+	client  *http.Client
+	cache   map[string]KeyExpirationPair
+}
+
+// NewExpiringCacheFetcher wraps a given KeyFetcher implementation that returns a KeyExpirationPair with an in-memory
+// cache for returned keys.
+func NewExpiringCacheFetcher(baseURL string, client *http.Client) KeyFetcher {
+	return &expiringCacheFetcher{sync.RWMutex{}, baseURL, client, make(map[string]KeyExpirationPair)}
+}
+
+func getExpiryTime(header http.Header) time.Time {
+	var cacheControl = header["Cache-Control"]
+	r, _ := regexp.Compile("^max-age=([0-9]*)$")
+	for _, v := range cacheControl {
+		match := r.FindStringSubmatch(v)
+		if len(match) != 2 {
+			continue
+		}
+		seconds, e := strconv.ParseInt(match[1], 10, 64)
+		if e != nil {
+			continue
+		}
+		return time.Now().Add(time.Second * time.Duration(seconds))
+	}
+	expires, e := http.ParseTime(header.Get("Expires"))
+	if e == nil {
+		return expires
+	}
+	return time.Time{}
+}
+
+func (f *expiringCacheFetcher) fetchCached(keyID string) (*KeyExpirationPair, error) {
+	var pkURL, e = url.Parse(f.baseURL)
+	if e != nil {
+		return nil, fmt.Errorf("cannot parse baseURL: %s", e)
+	}
+	pkURL.Path = path.Join(pkURL.Path, keyID)
+
+	var resp *http.Response
+	resp, e = f.client.Get(pkURL.String())
+	if e != nil {
+		return nil, fmt.Errorf("failed obtaining http response: %s", e)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		var body, _ = ioutil.ReadAll(resp.Body)
+		return nil, fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", pkURL.String(), resp.StatusCode, string(body))
+	}
+
+	expiry := getExpiryTime(resp.Header)
+	var keyBytes []byte
+	keyBytes, e = ioutil.ReadAll(resp.Body)
+	if e != nil {
+		return nil, fmt.Errorf("failure reading response body: %s", e)
+	}
+
+	key, e := NewPublicKey(keyBytes)
+	if e != nil {
+		return nil, fmt.Errorf("failure parsing response body as public key: %s", e)
+	}
+
+	return &KeyExpirationPair{key, expiry}, nil
+}
+
+func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
+	f.lock.RLock()
+	var cached, ok = f.cache[keyID]
+	f.lock.RUnlock()
+	if ok && cached.expiration.After(time.Now()) {
+		return cached.key, nil
+	}
+	var result, e = f.fetchCached(keyID)
+	if e != nil {
+		return nil, fmt.Errorf("failure obtaining a public key from wrapped fetcher: %s", e)
+	}
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	f.cache[keyID] = *result
+	return result.key, nil
 }
