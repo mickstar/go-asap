@@ -5,7 +5,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"regexp"
 	"testing"
+	"time"
 
 	"github.com/vincent-petithory/dataurl"
 )
@@ -187,5 +189,114 @@ func TestMultiFetcherFailure(t *testing.T) {
 	_, e := f.Fetch("TEST")
 	if e == nil {
 		t.Fatalf("MultiFetcher fetcher did fail when all delegate fetchers failed.")
+	}
+}
+
+func TestExpiringHTTPFetcher(t *testing.T) {
+	var expirationTime = time.Now().AddDate(0, 0, 2)
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Expires": {expirationTime.UTC().Format(http.TimeFormat)}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &fixtureRoundTripper{response, nil, nil}
+	var client = &http.Client{Transport: transport}
+
+	var fetcher, e = NewExpiringCacheFetcher("http://localhost", client)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+
+	var f = fetcher.(*expiringCacheFetcher)
+	_, e = f.Fetch("TEST")
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
+	}
+	expiringKeyPair, ok := f.cache["TEST"]
+	if !ok {
+		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
+	}
+	if expiringKeyPair.expiration.UTC().Format(http.TimeFormat) != expirationTime.UTC().Format(http.TimeFormat) {
+		t.Fatalf("Expiring Cache Fetcher cached %s as expiry date, but expecting %s",
+			expiringKeyPair.expiration.UTC().Format(http.TimeFormat), expirationTime.UTC().Format(http.TimeFormat))
+	}
+
+	f.cache["NEWKEY"] = keyExpirationPair{"newkey", expirationTime}
+	key, e := f.Fetch("NEWKEY")
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
+	}
+	if key != f.cache["NEWKEY"].key {
+		t.Fatalf("Expiring Cache fetcher did not use cached value")
+	}
+
+}
+
+func TestGetExpiryDate(t *testing.T) {
+	timeNow := func() time.Time {
+		return time.Time{}.Add(time.Hour * 3)
+	}
+	r, _ := regexp.Compile(maxAgeRegex)
+
+	var expiryTestTable = []struct {
+		in  http.Header
+		out time.Time
+	}{
+		{http.Header{"Cache-Control": {"public, max-age=1200"}},
+			timeNow().Add(time.Second * 1200)},
+		{http.Header{"Cache-Control": {"max-age=1200", "post-check=0", "pre-check=0"}},
+			timeNow().Add(time.Second * 1200)},
+		{http.Header{"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"}},
+			time.Time{}},
+		{http.Header{
+			"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"},
+			"Expires":       []string{timeNow().Add(time.Second * 10).Format(http.TimeFormat)}},
+			timeNow().Add(time.Second * 10)},
+		{http.Header{"Expires": {timeNow().Add(time.Second * 10).Format(http.TimeFormat)}},
+			timeNow().Add(time.Second * 10)},
+		{http.Header{"Expires": {"lol"}}, time.Time{}},
+		{http.Header{}, time.Time{}},
+	}
+
+	for _, tt := range expiryTestTable {
+		expiryTime := getExpiryTime(tt.in, r, timeNow)
+		if expiryTime != tt.out {
+			t.Fatalf("getExpiryDate(%s) returned %s instead of the expected %s",
+				tt.in, expiryTime.String(), tt.out.String())
+		}
+	}
+}
+
+func TestExpiringHTTPFetcherCache(t *testing.T) {
+	timeNow := func() time.Time {
+		return time.Time{}.Add(time.Hour * 3)
+	}
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1200"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &fixtureRoundTripper{response, nil, nil}
+	var client = &http.Client{Transport: transport}
+
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+
+	f := fetcher.(*expiringCacheFetcher)
+	f.timeNow = timeNow
+	_, e = f.Fetch("TEST")
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
+	}
+
+	expiringKeyPair, ok := f.cache["TEST"]
+	if !ok {
+		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
+	}
+
+	if expiringKeyPair.expiration != timeNow().Add(1200*time.Second) {
+		t.Fatalf("Expiring Cache Fetcher does not return correct expiry time from Cache-Control header")
 	}
 }
