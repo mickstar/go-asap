@@ -202,7 +202,7 @@ func TestExpiringHTTPFetcher(t *testing.T) {
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
 
-	var fetcher, e = NewExpiringCacheFetcher("http://localhost", client)
+	var fetcher, e = NewExpiringCacheFetcher("http://localhost", client, 3000)
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
 	}
@@ -279,7 +279,7 @@ func TestExpiringHTTPFetcherCache(t *testing.T) {
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
 
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client)
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, 3000)
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
 	}
@@ -298,5 +298,37 @@ func TestExpiringHTTPFetcherCache(t *testing.T) {
 
 	if expiringKeyPair.expiration != timeNow().Add(1200*time.Second) {
 		t.Fatalf("Expiring Cache Fetcher does not return correct expiry time from Cache-Control header")
+	}
+}
+
+func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Expires": {time.Now().Add(time.Second).Format(http.TimeFormat)}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &fixtureRoundTripper{response, nil, nil}
+	var client = &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	f := fetcher.(*expiringCacheFetcher)
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Expires": {time.Now().Add(time.Minute).Format(http.TimeFormat)}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	transport = &fixtureRoundTripper{response, nil, nil}
+	client = &http.Client{Transport: transport}
+	f.client = client
+
+	if f.cache["KEY"].expiration.Before(time.Now()) {
+		t.Fatalf("Cache refresh goroutine did not run correctly")
 	}
 }

@@ -187,17 +187,19 @@ type keyExpirationPair struct {
 const maxAgeRegex = "(?:.*?)max-age=([0-9]*)(?:,.*?|$)"
 
 type expiringCacheFetcher struct {
-	lock        sync.RWMutex
-	baseURL     string
-	client      *http.Client
-	cache       map[string]keyExpirationPair
-	maxAgeRegex *regexp.Regexp
-	timeNow     func() time.Time
+	lock           sync.RWMutex
+	baseURL        string
+	client         *http.Client
+	cache          map[string]keyExpirationPair
+	maxAgeRegex    *regexp.Regexp
+	timeNow        func() time.Time
+	refreshChannel chan int
+	prefetchBefore time.Duration // How long before the expiry date to re-fetch a key
 }
 
 // NewExpiringCacheFetcher wraps a given KeyFetcher implementation that returns a keyExpirationPair with an in-memory
 // cache for returned keys.
-func NewExpiringCacheFetcher(baseURL string, client *http.Client) (KeyFetcher, error) {
+func NewExpiringCacheFetcher(baseURL string, client *http.Client, prefetchBefore time.Duration) (KeyFetcher, error) {
 	var _, e = url.Parse(baseURL)
 	if e != nil {
 		return nil, fmt.Errorf("cannot parse baseURL: %s", e)
@@ -206,8 +208,13 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client) (KeyFetcher, e
 	if e != nil {
 		return nil, fmt.Errorf("cannot parse max age regex: %s", e)
 	}
-	return &expiringCacheFetcher{sync.RWMutex{}, baseURL, client,
-		make(map[string]keyExpirationPair), r, time.Now}, nil
+
+	ch := make(chan int, 1)
+	ch <- 0
+	var fetcher = &expiringCacheFetcher{sync.RWMutex{}, baseURL, client,
+		make(map[string]keyExpirationPair), r, time.Now,
+		ch, prefetchBefore}
+	return fetcher, nil
 }
 
 func getExpiryTime(header http.Header, maxAgeRegex *regexp.Regexp, timeNow func() time.Time) time.Time {
@@ -226,7 +233,7 @@ func getExpiryTime(header http.Header, maxAgeRegex *regexp.Regexp, timeNow func(
 	return time.Time{}
 }
 
-func (f *expiringCacheFetcher) fetchCached(keyID string) (*keyExpirationPair, error) {
+func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (*keyExpirationPair, error) {
 	var pkURL, _ = url.Parse(f.baseURL)
 	pkURL.Path = path.Join(pkURL.Path, keyID)
 
@@ -256,6 +263,30 @@ func (f *expiringCacheFetcher) fetchCached(keyID string) (*keyExpirationPair, er
 	return &keyExpirationPair{key, expiry}, nil
 }
 
+func (f *expiringCacheFetcher) fetchKeyAndUpdateCache(keyID string) (*keyExpirationPair, error) {
+	var result, e = f.fetchHTTPKey(keyID)
+	if e != nil {
+		return nil, fmt.Errorf("failure obtaining a public key from wrapped fetcher: %s", e)
+	}
+	f.lock.Lock()
+	defer f.lock.Unlock()
+	f.cache[keyID] = *result
+
+	go func() {
+		if result.expiration.Before(time.Now()) {
+			return
+		}
+		select {
+		case <-f.refreshChannel:
+			return
+		case <-time.After(result.expiration.Sub(time.Now()) - f.prefetchBefore):
+			_, _ = f.fetchKeyAndUpdateCache(keyID)
+		}
+	}()
+
+	return result, nil
+}
+
 func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
 	f.lock.RLock()
 	var cached, ok = f.cache[keyID]
@@ -263,12 +294,14 @@ func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
 	if ok && cached.expiration.After(f.timeNow()) {
 		return cached.key, nil
 	}
-	var result, e = f.fetchCached(keyID)
-	if e != nil {
-		return nil, fmt.Errorf("failure obtaining a public key from wrapped fetcher: %s", e)
+	result, err := f.fetchKeyAndUpdateCache(keyID)
+	if err != nil {
+		return nil, err
 	}
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	f.cache[keyID] = *result
 	return result.key, nil
+}
+
+func (f *expiringCacheFetcher) Close() error {
+	close(f.refreshChannel)
+	return nil
 }
