@@ -187,10 +187,11 @@ type keyExpirationPair struct {
 const maxAgeRegex = "(?:.*?)max-age=([0-9]*)(?:,.*?|$)"
 
 type expiringCacheFetcher struct {
+	keyLocks       sync.Map
 	lock           sync.RWMutex
 	baseURL        string
 	client         *http.Client
-	cache          map[string]keyExpirationPair
+	cache          sync.Map
 	maxAgeRegex    *regexp.Regexp
 	timeNow        func() time.Time
 	refreshChannel chan int
@@ -209,11 +210,9 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client, prefetchBefore
 		return nil, fmt.Errorf("cannot parse max age regex: %s", e)
 	}
 
-	ch := make(chan int, 1)
-	ch <- 0
-	var fetcher = &expiringCacheFetcher{sync.RWMutex{}, baseURL, client,
-		make(map[string]keyExpirationPair), r, time.Now,
-		ch, prefetchBefore}
+	ch := make(chan int)
+	var fetcher = &expiringCacheFetcher{sync.Map{}, sync.RWMutex{}, baseURL, client,
+		sync.Map{}, r, time.Now, ch, prefetchBefore}
 	return fetcher, nil
 }
 
@@ -238,7 +237,10 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (*keyExpirationPair, e
 	pkURL.Path = path.Join(pkURL.Path, keyID)
 
 	var resp *http.Response
+	f.lock.RLock()
 	resp, e := f.client.Get(pkURL.String())
+	f.lock.RUnlock()
+
 	if e != nil {
 		return nil, fmt.Errorf("failed obtaining http response: %s", e)
 	}
@@ -268,9 +270,7 @@ func (f *expiringCacheFetcher) fetchKeyAndUpdateCache(keyID string) (*keyExpirat
 	if e != nil {
 		return nil, fmt.Errorf("failure obtaining a public key from wrapped fetcher: %s", e)
 	}
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	f.cache[keyID] = *result
+	f.cache.Store(keyID, *result)
 
 	go func() {
 		if result.expiration.Before(time.Now()) {
@@ -288,12 +288,29 @@ func (f *expiringCacheFetcher) fetchKeyAndUpdateCache(keyID string) (*keyExpirat
 }
 
 func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
-	f.lock.RLock()
-	var cached, ok = f.cache[keyID]
-	f.lock.RUnlock()
-	if ok && cached.expiration.After(f.timeNow()) {
-		return cached.key, nil
+	var value, ok = f.cache.Load(keyID)
+	if ok {
+		var cached, convertCheck = value.(keyExpirationPair)
+		if convertCheck && cached.expiration.After(f.timeNow()) {
+			return cached.key, nil
+		}
 	}
+
+	// Cache miss identified. Wait for (potentially) another cache refresh
+	lock, _ := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
+
+	// Check if cache has been repopulated
+	value, ok = f.cache.Load(keyID)
+	if ok {
+		var cached, ok = value.(keyExpirationPair)
+		if ok && cached.expiration.After(f.timeNow()) {
+			return cached.key, nil
+		}
+	}
+
+	// Repopulate key
 	result, err := f.fetchKeyAndUpdateCache(keyID)
 	if err != nil {
 		return nil, err
