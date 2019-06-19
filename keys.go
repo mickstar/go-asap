@@ -237,9 +237,7 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (*keyExpirationPair, e
 	pkURL.Path = path.Join(pkURL.Path, keyID)
 
 	var resp *http.Response
-	f.lock.RLock()
 	resp, e := f.client.Get(pkURL.String())
-	f.lock.RUnlock()
 
 	if e != nil {
 		return nil, fmt.Errorf("failed obtaining http response: %s", e)

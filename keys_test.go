@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sync"
 	"testing"
 	"time"
 
@@ -307,13 +308,41 @@ func TestExpiringHTTPFetcherCache(t *testing.T) {
 	}
 }
 
+type lockingFixtureRoundTripper struct {
+	response *http.Response
+	e        error
+	request  *http.Request
+	lock     *sync.Mutex
+}
+
+func (r *lockingFixtureRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.request = req
+	return r.response, r.e
+}
+
+func (r *lockingFixtureRoundTripper) SetResponse(res *http.Response, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.response = res
+	r.e = err
+}
+
+func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.request
+}
+
 func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Expires": {time.Now().UTC().Add(time.Second).Format(http.TimeFormat)}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	var transport = &fixtureRoundTripper{response, nil, nil}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
 	var client = &http.Client{Transport: transport}
 	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
 	if e != nil {
@@ -332,9 +361,7 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 		Header:     map[string][]string{"Expires": {newExpiryTime}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	f.lock.Lock()
-	f.client.Transport = &fixtureRoundTripper{response, nil, nil}
-	f.lock.Unlock()
+	transport.SetResponse(response, nil)
 
 	time.Sleep(time.Millisecond)
 
@@ -354,9 +381,7 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 		Header:     map[string][]string{"Expires": {newExpiryTime}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	f.lock.Lock()
-	f.client.Transport = &fixtureRoundTripper{response, nil, nil}
-	f.lock.Unlock()
+	transport.SetResponse(response, nil)
 
 	time.Sleep(time.Millisecond)
 
