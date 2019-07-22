@@ -187,17 +187,20 @@ type keyExpirationPair struct {
 const maxAgeRegex = "(?:.*?)max-age=([0-9]*)(?:,.*?|$)"
 
 type expiringCacheFetcher struct {
-	lock        sync.RWMutex
-	baseURL     string
-	client      *http.Client
-	cache       map[string]keyExpirationPair
-	maxAgeRegex *regexp.Regexp
-	timeNow     func() time.Time
+	keyLocks       sync.Map
+	lock           sync.RWMutex
+	baseURL        string
+	client         *http.Client
+	cache          sync.Map
+	maxAgeRegex    *regexp.Regexp
+	timeNow        func() time.Time
+	refreshChannel chan int
+	prefetchBefore time.Duration // How long before the expiry date to re-fetch a key
 }
 
 // NewExpiringCacheFetcher wraps a given KeyFetcher implementation that returns a keyExpirationPair with an in-memory
 // cache for returned keys.
-func NewExpiringCacheFetcher(baseURL string, client *http.Client) (KeyFetcher, error) {
+func NewExpiringCacheFetcher(baseURL string, client *http.Client, prefetchBefore time.Duration) (KeyFetcher, error) {
 	var _, e = url.Parse(baseURL)
 	if e != nil {
 		return nil, fmt.Errorf("cannot parse baseURL: %s", e)
@@ -206,8 +209,11 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client) (KeyFetcher, e
 	if e != nil {
 		return nil, fmt.Errorf("cannot parse max age regex: %s", e)
 	}
-	return &expiringCacheFetcher{sync.RWMutex{}, baseURL, client,
-		make(map[string]keyExpirationPair), r, time.Now}, nil
+
+	ch := make(chan int)
+	var fetcher = &expiringCacheFetcher{sync.Map{}, sync.RWMutex{}, baseURL, client,
+		sync.Map{}, r, time.Now, ch, prefetchBefore}
+	return fetcher, nil
 }
 
 func getExpiryTime(header http.Header, maxAgeRegex *regexp.Regexp, timeNow func() time.Time) time.Time {
@@ -226,12 +232,13 @@ func getExpiryTime(header http.Header, maxAgeRegex *regexp.Regexp, timeNow func(
 	return time.Time{}
 }
 
-func (f *expiringCacheFetcher) fetchCached(keyID string) (*keyExpirationPair, error) {
+func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (*keyExpirationPair, error) {
 	var pkURL, _ = url.Parse(f.baseURL)
 	pkURL.Path = path.Join(pkURL.Path, keyID)
 
 	var resp *http.Response
 	resp, e := f.client.Get(pkURL.String())
+
 	if e != nil {
 		return nil, fmt.Errorf("failed obtaining http response: %s", e)
 	}
@@ -256,19 +263,60 @@ func (f *expiringCacheFetcher) fetchCached(keyID string) (*keyExpirationPair, er
 	return &keyExpirationPair{key, expiry}, nil
 }
 
-func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
-	f.lock.RLock()
-	var cached, ok = f.cache[keyID]
-	f.lock.RUnlock()
-	if ok && cached.expiration.After(f.timeNow()) {
-		return cached.key, nil
-	}
-	var result, e = f.fetchCached(keyID)
+func (f *expiringCacheFetcher) fetchKeyAndUpdateCache(keyID string) (*keyExpirationPair, error) {
+	var result, e = f.fetchHTTPKey(keyID)
 	if e != nil {
 		return nil, fmt.Errorf("failure obtaining a public key from wrapped fetcher: %s", e)
 	}
-	f.lock.Lock()
-	defer f.lock.Unlock()
-	f.cache[keyID] = *result
+	f.cache.Store(keyID, *result)
+
+	go func() {
+		if result.expiration.Before(time.Now()) {
+			return
+		}
+		select {
+		case <-f.refreshChannel:
+			return
+		case <-time.After(result.expiration.Sub(time.Now()) - f.prefetchBefore):
+			_, _ = f.fetchKeyAndUpdateCache(keyID)
+		}
+	}()
+
+	return result, nil
+}
+
+func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
+	var value, ok = f.cache.Load(keyID)
+	if ok {
+		var cached, convertCheck = value.(keyExpirationPair)
+		if convertCheck && cached.expiration.After(f.timeNow()) {
+			return cached.key, nil
+		}
+	}
+
+	// Cache miss identified. Wait for (potentially) another cache refresh
+	lock, _ := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
+	lock.(*sync.Mutex).Lock()
+	defer lock.(*sync.Mutex).Unlock()
+
+	// Check if cache has been repopulated
+	value, ok = f.cache.Load(keyID)
+	if ok {
+		var cached, ok = value.(keyExpirationPair)
+		if ok && cached.expiration.After(f.timeNow()) {
+			return cached.key, nil
+		}
+	}
+
+	// Repopulate key
+	result, err := f.fetchKeyAndUpdateCache(keyID)
+	if err != nil {
+		return nil, err
+	}
 	return result.key, nil
+}
+
+func (f *expiringCacheFetcher) Close() error {
+	close(f.refreshChannel)
+	return nil
 }

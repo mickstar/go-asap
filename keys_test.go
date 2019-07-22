@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"sync"
 	"testing"
 	"time"
 
@@ -202,7 +203,7 @@ func TestExpiringHTTPFetcher(t *testing.T) {
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
 
-	var fetcher, e = NewExpiringCacheFetcher("http://localhost", client)
+	var fetcher, e = NewExpiringCacheFetcher("http://localhost", client, 3000)
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
 	}
@@ -212,21 +213,27 @@ func TestExpiringHTTPFetcher(t *testing.T) {
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
 	}
-	expiringKeyPair, ok := f.cache["TEST"]
+	value, ok := f.cache.Load("TEST")
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
 	}
+	expiringKeyPair, _ := value.(keyExpirationPair)
 	if expiringKeyPair.expiration.UTC().Format(http.TimeFormat) != expirationTime.UTC().Format(http.TimeFormat) {
 		t.Fatalf("Expiring Cache Fetcher cached %s as expiry date, but expecting %s",
 			expiringKeyPair.expiration.UTC().Format(http.TimeFormat), expirationTime.UTC().Format(http.TimeFormat))
 	}
 
-	f.cache["NEWKEY"] = keyExpirationPair{"newkey", expirationTime}
+	f.cache.Store("NEWKEY", keyExpirationPair{"newkey", expirationTime})
 	key, e := f.Fetch("NEWKEY")
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
 	}
-	if key != f.cache["NEWKEY"].key {
+	value, ok = f.cache.Load("NEWKEY")
+	if !ok {
+		t.Fatalf("Expiring Cache fetcher did not contain key NEWKEY")
+	}
+	expiringKeyPair, _ = value.(keyExpirationPair)
+	if key != expiringKeyPair.key {
 		t.Fatalf("Expiring Cache fetcher did not use cached value")
 	}
 
@@ -279,7 +286,7 @@ func TestExpiringHTTPFetcherCache(t *testing.T) {
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
 
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client)
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, 3000)
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
 	}
@@ -291,12 +298,99 @@ func TestExpiringHTTPFetcherCache(t *testing.T) {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
 	}
 
-	expiringKeyPair, ok := f.cache["TEST"]
+	value, ok := f.cache.Load("TEST")
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
 	}
-
+	expiringKeyPair, _ := value.(keyExpirationPair)
 	if expiringKeyPair.expiration != timeNow().Add(1200*time.Second) {
 		t.Fatalf("Expiring Cache Fetcher does not return correct expiry time from Cache-Control header")
+	}
+}
+
+type lockingFixtureRoundTripper struct {
+	response *http.Response
+	e        error
+	request  *http.Request
+	lock     *sync.Mutex
+}
+
+func (r *lockingFixtureRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.request = req
+	return r.response, r.e
+}
+
+func (r *lockingFixtureRoundTripper) SetResponse(res *http.Response, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.response = res
+	r.e = err
+}
+
+func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.request
+}
+
+func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Expires": {time.Now().UTC().Add(time.Second).Format(http.TimeFormat)}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var client = &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	f := fetcher.(*expiringCacheFetcher)
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	// Test initial re-fetch
+	newExpiryTime := time.Now().UTC().Add(time.Second).Format(http.TimeFormat)
+	response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Expires": {newExpiryTime}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	transport.SetResponse(response, nil)
+
+	time.Sleep(time.Millisecond)
+
+	value, ok := f.cache.Load("KEY")
+	if !ok {
+		t.Fatalf("Cache did not contain key KEY")
+	}
+	pair, _ := value.(keyExpirationPair)
+	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
+		t.Fatalf("Cache refresh goroutine did not run correctly")
+	}
+
+	// Test second spawned re-fetch goroutine
+	newExpiryTime = time.Now().UTC().Add(time.Second).Format(http.TimeFormat)
+	response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Expires": {newExpiryTime}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	transport.SetResponse(response, nil)
+
+	time.Sleep(time.Millisecond)
+
+	value, _ = f.cache.Load("KEY")
+	pair, _ = value.(keyExpirationPair)
+	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
+		t.Fatalf("Cache refresh goroutine did not run correctly")
+	}
+	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
+		t.Fatalf("Cache refresh goroutine did not run correctly")
 	}
 }
