@@ -55,6 +55,7 @@ func makeToken(key string, expiry time.Time) Token {
 
 	return t
 }
+
 func TestValidatorCacheValidatePurge(t *testing.T) {
 	var ok bool
 	var cacheImpl *cachingChainedASAPValidator
@@ -86,7 +87,7 @@ func TestValidatorCacheValidatePurge(t *testing.T) {
 	require.Equal(t, int64(1), cacheImpl.tokenCacheSize)
 
 	// Ensure the entry in cache has expired
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 
 	// Initiate a purge and ensure the expired entry is purged
 	var trigger struct{}
@@ -108,7 +109,7 @@ func TestValidatorCacheValidateLimit(t *testing.T) {
 	cacheImpl, ok := cache.(*cachingChainedASAPValidator)
 	require.True(t, ok)
 
-	t1 := makeToken("t1", time.Now().Add(time.Second))
+	t1 := makeToken("t1", time.Now().Add(time.Minute))
 	require.NotNil(t, t1)
 
 	// Add a token to the cache
@@ -116,7 +117,7 @@ func TestValidatorCacheValidateLimit(t *testing.T) {
 	require.Nil(t, e)
 	require.Equal(t, int64(1), cacheImpl.tokenCacheSize)
 
-	t2 := makeToken("t2", time.Now().Add(time.Second))
+	t2 := makeToken("t2", time.Now().Add(time.Minute))
 	require.NotNil(t, t2)
 
 	e = cache.Validate(t2)
@@ -124,7 +125,7 @@ func TestValidatorCacheValidateLimit(t *testing.T) {
 	require.Equal(t, int64(2), cacheImpl.tokenCacheSize)
 
 	// Attempt adding more tokens than the max limit
-	t3 := makeToken("t3", time.Now().Add(time.Second))
+	t3 := makeToken("t3", time.Now().Add(time.Minute))
 	require.NotNil(t, t3)
 
 	e = cache.Validate(t3)

@@ -118,42 +118,38 @@ func (v *cachingChainedASAPValidator) purgeStaleEntries(ctx context.Context) {
 }
 
 func (v *cachingChainedASAPValidator) Validate(token Token) error {
-	// Check if we have the ASAP in our cache
-	if token != nil {
-		if val, ok := v.tokenCache.Load(token); ok {
-			// Fetch the token expiration from cache for the token
-			if cachedTokenExpiration, ok := val.(time.Time); ok {
-				// Check if token in cache is still valid
-				if cachedTokenExpiration.After(time.Now()) {
-					go v.invokeCallBack(CachingChainedASAPValidatorEventHit)
-					return nil
-				}
-
-				// If the token has expired, evict it from cache
-				v.tokenCache.Delete(token)
-				atomic.AddInt64(&v.tokenCacheSize, -1)
-			}
-		}
-
-		go v.invokeCallBack(CachingChainedASAPValidatorEventMiss)
+	cacheableToken, cacheable := token.(CacheableKeyer)
+	if !cacheable {
+		return v.validators.Validate(token)
 	}
+
+	if val, found := v.tokenCache.Load(cacheableToken.CacheKey()); found {
+		// Fetch the token expiration from cache for the token
+		if cachedTokenExpiration, valOk := val.(time.Time); valOk {
+			// Check if token in cache is still valid
+			if cachedTokenExpiration.After(time.Now()) {
+				go v.invokeCallBack(CachingChainedASAPValidatorEventHit)
+				return nil
+			}
+
+			// If the token has expired, evict it from cache
+			v.tokenCache.Delete(cacheableToken.CacheKey())
+			atomic.AddInt64(&v.tokenCacheSize, -1)
+		}
+	}
+
+	go v.invokeCallBack(CachingChainedASAPValidatorEventMiss)
 
 	// Validate the ASAP token across registered validators - let them handle nil token
 	if err := v.validators.Validate(token); err != nil {
 		return err
 	}
 
-	// If token is nil, nothing much to cache
-	if token == nil {
-		return nil
-	}
-
 	// Do we have a token that has not yet expired
-	expiration, _ := token.Claims().Expiration()
-	if expiration.After(time.Now()) {
+	if expiration, found := token.Claims().Expiration(); found && expiration.After(time.Now()) {
 		// Check if we have enough room to cache the token
 		if atomic.LoadInt64(&v.tokenCacheSize) < v.maxTokenCacheSize {
-			v.tokenCache.Store(token, expiration)
+			v.tokenCache.Store(cacheableToken.CacheKey(), expiration)
 			atomic.AddInt64(&v.tokenCacheSize, 1)
 		} else if len(v.purge) < cap(v.purge) {
 			// Initiate a purge of stale entries to make room in the background
