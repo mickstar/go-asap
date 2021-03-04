@@ -18,12 +18,11 @@ var headers = http.Header{
 	"Cache-Control": {"max-age=600, stale-while-revalidate=600"},
 }
 
-func BenchmarkGetExpiryTimeClassic(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		getExpiryTime(headers, maxAgeCompiled, time.Now)
-	}
-
-}
+// func BenchmarkGetExpiryTimeClassic(b *testing.B) {
+// 	for i := 0; i < b.N; i++ {
+// 		getExpiryTime(headers, maxAgeCompiled, time.Now)
+// 	}
+// }
 
 func BenchmarkGetExpiryTimeLib(b *testing.B) {
 	for i := 0; i < b.N; i++ {
