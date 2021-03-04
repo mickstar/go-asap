@@ -2,30 +2,14 @@ package asap
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
 )
 
-type asapIssuerValidator struct{}
-
 // Set an upper limit to prevent rogue issuers from chewing up all memory
 // Assuming each token is ~1k, this will take ~100mb => not bad
 const defaultMaxTokenCacheSize = 100000
-
-func (v asapIssuerValidator) Validate(token Token) error {
-	if token == nil {
-		return errors.New("nil token")
-	}
-
-	issuer, ok := token.Claims().Get(ClaimIssuer).(string)
-	if !ok || issuer == "" {
-		return errors.New("missing or invalid issuer")
-	}
-
-	return nil
-}
 
 // CachingChainedASAPValidatorEvent defines a type to represent different events from the cache
 type CachingChainedASAPValidatorEvent int

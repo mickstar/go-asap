@@ -1,4 +1,4 @@
-image: golang:1.10
+image: golang:1.14
 pipelines:
   default:
     - step:
@@ -8,13 +8,11 @@ pipelines:
 
           # Manage dependencies
           - cd /go/src/bitbucket.org/atlassian/go-asap
-          - curl https://glide.sh/get | sh
-          - ${GOPATH}/bin/glide install
+          - go build
 
           # Style checks
-          - go get -u github.com/alecthomas/gometalinter
-          - ${GOPATH}/bin/gometalinter --install
-          - ${GOPATH}/bin/gometalinter --vendor --disable-all --enable=vet --enable=goimports --enable=vetshadow --enable=golint --enable=ineffassign --enable=goconst --tests .
+          - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.33.0
+          - ./bin/golangci-lint run
 
           # Build and test
           - go test -v -cover -race .

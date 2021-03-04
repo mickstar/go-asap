@@ -64,6 +64,7 @@ DKt9oGANzzAbRMfur9rydmujGR/TNkbkAWXI4g/toIiLlxlDQX8=
 -----END RSA PRIVATE KEY-----
 `
 
+// nolint deadcode
 const privateKey2 = `-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAtYr4/AjZHsvizYDxFsUFS6kvLJS6rbFd7P/l7g8xzg1+T7/O
 WEGi/oI/RptrR6RP111BrcgpPvroShhcyfis6ATshf+I2bEVgFGcgWKHTjzO72Jd
@@ -153,7 +154,7 @@ func TestHTTPFetcherJoinsKidToPath(t *testing.T) {
 	var client = &http.Client{Transport: transport}
 
 	var f = NewHTTPKeyFetcher("http://localhost", client)
-	f.Fetch("TEST")
+	_, _ = f.Fetch("TEST")
 	if transport.request.URL.String() != "http://localhost/TEST" {
 		t.Fatalf("HTTP fetcher did not use the key id in the path.")
 	}

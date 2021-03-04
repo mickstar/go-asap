@@ -29,7 +29,7 @@ func TestTransportDecoratorHeaders(t *testing.T) {
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)
-	client.RoundTrip(r)
+	_, _ = client.RoundTrip(r) //nolint bodyclose
 }
 
 func TestTransportDecoratorHeadersDontDuplicate(t *testing.T) {
@@ -38,9 +38,9 @@ func TestTransportDecoratorHeadersDontDuplicate(t *testing.T) {
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)
-	client.RoundTrip(r)
-	client.RoundTrip(r)
-	client.RoundTrip(r)
+	_, _ = client.RoundTrip(r) //nolint bodyclose
+	_, _ = client.RoundTrip(r) //nolint bodyclose
+	_, _ = client.RoundTrip(r) //nolint bodyclose
 	if len(r.Header[textproto.CanonicalMIMEHeaderKey("Authorization")]) > 1 {
 		t.Fatalf("expected only one header entry but found %d", len(r.Header[textproto.CanonicalMIMEHeaderKey("Authorization")]))
 	}
@@ -64,7 +64,7 @@ func TestTransportDecoratorFailedTokenProvision(t *testing.T) {
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)
-	_, err := client.RoundTrip(r)
+	_, err := client.RoundTrip(r) //nolint bodyclose
 
 	switch err.(type) {
 	case testerr:
