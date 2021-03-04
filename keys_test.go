@@ -2,6 +2,7 @@ package asap
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -223,7 +224,7 @@ func TestExpiringHTTPFetcher(t *testing.T) {
 			expiringKeyPair.expiration.UTC().Format(http.TimeFormat), expirationTime.UTC().Format(http.TimeFormat))
 	}
 
-	f.cache.Store("NEWKEY", keyExpirationPair{"newkey", expirationTime})
+	f.cache.Store("NEWKEY", keyExpirationPair{"newkey", expirationTime, 0})
 	key, e := f.Fetch("NEWKEY")
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
@@ -393,4 +394,20 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
 		t.Fatalf("Cache refresh goroutine did not run correctly")
 	}
+}
+
+func TestParseHeaderLib(t *testing.T) {
+	headers := http.Header{
+		"Cache-Control": {"max-age=600, stale-while-revalidate=600"},
+	}
+	expiry, staleWhileRevalidate := getExpiryAndStaleOk(headers, time.Now)
+	fmt.Println(expiry.Sub(time.Now()), "should be 20 mins")
+	fmt.Println(staleWhileRevalidate, "should be 10 mins")
+	// maxAge, staleWhile := parseHeaderLib("max-age=1200, stale-while-revalidate=1200")
+	// assert.Equal(t, int32(1200), maxAge)
+	// assert.Equal(t, int32(1200), staleWhile)
+
+	// maxAge, staleWhile = parseHeaderRegex([]string{"max-age=1200", "stale-while-revalidate=1200"})
+	// assert.Equal(t, int32(1200), maxAge)
+	// assert.Equal(t, int32(1200), staleWhile)
 }

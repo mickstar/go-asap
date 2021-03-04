@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pquerna/cachecontrol/cacheobject"
 	"github.com/vincent-petithory/dataurl"
 )
 
@@ -180,11 +181,15 @@ func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
 
 // keyExpirationPair contains a public key along with that key's cache expiration time
 type keyExpirationPair struct {
-	key        interface{}
-	expiration time.Time
+	key                  interface{}
+	expiration           time.Time
+	staleWhileRevalidate time.Duration
 }
 
 const maxAgeRegex = "(?:.*?)max-age=([0-9]*)(?:,.*?|$)"
+
+var maxAgeCompiled = regexp.MustCompile(maxAgeRegex)
+var maxAgeStaleWhileCompiled = regexp.MustCompile(`(?:.*?)max-age=([0-9]*)(?:,.*?|$)stale-while-revalidate=([0-9]*)(?:,.*?|$)`)
 
 type expiringCacheFetcher struct {
 	keyLocks       sync.Map
@@ -229,7 +234,48 @@ func getExpiryTime(header http.Header, maxAgeRegex *regexp.Regexp, timeNow func(
 	if e == nil {
 		return expires
 	}
-	return time.Time{}
+
+	return timeNow()
+}
+
+// getExpiryAndStaleOk parses the Cache Control header and returns the time when the key expires AND
+// its stale-while-revalidate duration, (i.e. how long after max-age, it's ok to use a cached key but
+// needs to be "revalidated")
+func getExpiryAndStaleOk(header http.Header, timeNow func() time.Time) (time.Time, time.Duration) {
+	cacheControl, ok := header["Cache-Control"]
+	if !ok {
+		// no cache control header present => don't cache (i.e. expires now)
+		return timeNow(), time.Duration(0)
+	}
+	responseDirs, err := cacheobject.ParseResponseCacheControl(strings.Join(cacheControl, ","))
+	if err != nil {
+		// this implies malformed cache-control header (e.g. non-number values) => don't cache (i.e. expires now)
+		return timeNow(), time.Duration(0)
+	}
+
+	if responseDirs.MaxAge != -1 {
+		if responseDirs.StaleWhileRevalidate != -1 {
+			// don't consider response expired until after max-age + stale-while-revalidate
+			// if after max-age but less than max-age + stale-while-revalidate, still good to use
+			// but need to "revalidate" async
+			return timeNow().
+					Add(time.Duration(responseDirs.MaxAge) * time.Second).
+					Add(time.Duration(responseDirs.StaleWhileRevalidate) * time.Second),
+				time.Duration(responseDirs.StaleWhileRevalidate) * time.Second
+		}
+		return timeNow().Add(time.Duration(responseDirs.MaxAge) * time.Second), time.Duration(0)
+	}
+
+	// otherwise, use Expires header to determine expiry time
+	expires, e := http.ParseTime(header.Get("Expires"))
+	if e != nil {
+		// this implies malformed date in expires header => don't cache (i.e. expires now)
+		return timeNow(), time.Duration(0)
+	}
+
+	// TODO: also look at other directives in determining this? (e.g. s-maxage, or last modified header?)
+
+	return expires, time.Duration(0)
 }
 
 func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (*keyExpirationPair, error) {
@@ -248,7 +294,7 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (*keyExpirationPair, e
 		return nil, fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", pkURL.String(), resp.StatusCode, string(body))
 	}
 
-	expiry := getExpiryTime(resp.Header, f.maxAgeRegex, f.timeNow)
+	expiry, staleOk := getExpiryAndStaleOk(resp.Header, f.timeNow)
 	var keyBytes []byte
 	keyBytes, e = ioutil.ReadAll(resp.Body)
 	if e != nil {
@@ -260,7 +306,7 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (*keyExpirationPair, e
 		return nil, fmt.Errorf("failure parsing response body as public key: %s", e)
 	}
 
-	return &keyExpirationPair{key, expiry}, nil
+	return &keyExpirationPair{key, expiry, staleOk}, nil
 }
 
 func (f *expiringCacheFetcher) fetchKeyAndUpdateCache(keyID string) (*keyExpirationPair, error) {
@@ -271,13 +317,13 @@ func (f *expiringCacheFetcher) fetchKeyAndUpdateCache(keyID string) (*keyExpirat
 	f.cache.Store(keyID, *result)
 
 	go func() {
-		if result.expiration.Before(time.Now()) {
+		if result.expiration.Before(f.timeNow()) {
 			return
 		}
 		select {
 		case <-f.refreshChannel:
 			return
-		case <-time.After(result.expiration.Sub(time.Now()) - f.prefetchBefore):
+		case <-time.After(result.expiration.Sub(f.timeNow()) - result.staleWhileRevalidate):
 			_, _ = f.fetchKeyAndUpdateCache(keyID)
 		}
 	}()
