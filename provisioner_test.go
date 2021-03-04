@@ -117,8 +117,8 @@ func TestCacheProvisionerGenerationRace(t *testing.T) {
 		}
 		// Acquire write lock to block read lock (and following write lock) in Provision calls
 		cache.lock.Lock()
-		go provision(&token1)
-		go provision(&token2)
+		go provision(&token1) // nolint staticcheck
+		go provision(&token2) // nolint staticcheck
 		// Allow provision funcs to proceed to where read lock acquired, then unblock them
 		time.Sleep(time.Millisecond)
 		cache.lock.Unlock()

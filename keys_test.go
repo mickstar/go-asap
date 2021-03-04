@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
-	"regexp"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -21,6 +21,17 @@ c6sy9i3CnkKSBlPniRQC2bor5ZzCLxr7NWMfe1HsAQExw6+iGwVtaNjP4wX2kMzA
 w6cPNYKsZqpjXx8/GzkralkXZvBhW6IvVQe4EZjZW8MSoK7Gb6IAV+BM0ltOasY7
 OOPQvTjL/3Aj0KJSAjrpbdFzYzwpIqUpwYFKW53y9eBnd2QlarrOnOGsdRBbCctV
 2QIDAQAB
+-----END PUBLIC KEY-----
+`
+
+const publicKey2 = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtYr4/AjZHsvizYDxFsUF
+S6kvLJS6rbFd7P/l7g8xzg1+T7/OWEGi/oI/RptrR6RP111BrcgpPvroShhcyfis
+6ATshf+I2bEVgFGcgWKHTjzO72JdQ9z3VfwQx4THf6kTkXbWUM+9UOyn+yPi+4Rv
+Ppj4cC34x1ZKc7LyvP1YDfXlj+nmS7jDtx8idTaSQo7xwzgBjP2bqGQLLvtoAy0S
+orAyv2AiSX19YjCSYP/6gqAVAlyyR0cwL0bm5zdlh8zkI6ZZW97kHjZNpUtQxJNY
+T7+TCN9nKRjmPqftChTwZvVs9spSUNhP6R6368fOeR2jHB+pljWt7uTVVHvvUBLM
+2wIDAQAB
 -----END PUBLIC KEY-----
 `
 
@@ -50,6 +61,36 @@ Ff6fvk13LJA5zXkyXfq9QOPuhf+NUlcdYDgmGjaKj3XrfZC0DziIMqE9xINdQ3re
 gSfpAoGAFvrknxQiS+c9IUGhjPbjJlLWkJwPKRyU20kTpvQGgmncrbLvY5vCeFla
 b2zIosCQoyjL2ld2JHUHk/JUrSOXAHWbRFIJv5kExrJUws//wXtWDFtVnz9fs1Im
 DKt9oGANzzAbRMfur9rydmujGR/TNkbkAWXI4g/toIiLlxlDQX8=
+-----END RSA PRIVATE KEY-----
+`
+
+// nolint deadcode
+const privateKey2 = `-----BEGIN RSA PRIVATE KEY-----
+MIIEowIBAAKCAQEAtYr4/AjZHsvizYDxFsUFS6kvLJS6rbFd7P/l7g8xzg1+T7/O
+WEGi/oI/RptrR6RP111BrcgpPvroShhcyfis6ATshf+I2bEVgFGcgWKHTjzO72Jd
+Q9z3VfwQx4THf6kTkXbWUM+9UOyn+yPi+4RvPpj4cC34x1ZKc7LyvP1YDfXlj+nm
+S7jDtx8idTaSQo7xwzgBjP2bqGQLLvtoAy0SorAyv2AiSX19YjCSYP/6gqAVAlyy
+R0cwL0bm5zdlh8zkI6ZZW97kHjZNpUtQxJNYT7+TCN9nKRjmPqftChTwZvVs9spS
+UNhP6R6368fOeR2jHB+pljWt7uTVVHvvUBLM2wIDAQABAoIBAACiZK5UxZVy9u7q
+5WzD8XnLNIv+VQyoUwCyADatvOnQaEGVFP5/9DbZc6kmf+B3NYQ2IjWePm6m58ri
+fOiDwu7onX72Xp8MHFwfbOGS25AtbDev602CZybYw6I+14edqqDWfnc30pyGxyt8
+e52PX+gjFrMlpfnkVkxDMs/wPq+Fy+zjpNpRX1OJQ00HLrjhOGsK02kxtvpxojak
+tWbapAeZuDGThFmdO0IPYGAZgngPCj6kdwfDLSI1W+Vl0jYBoGFlgOIBLxfXbzM4
+Ba5FooeLRa11npa1Pg9SOGtR/hrLvQVcMzZ0r3HGnzGehFlgljpyg+aB5OXb2/Qm
+PxhyExECgYEA7ouV3eOdJid6a9cdbEysXU3D/2IIgmkEFF10/PM7cMgz4BG2r/bi
+dVQNE4a1zOXilX3kSwg52w1s+BUgqexjd3DhdPxA5GtvwDgQUvcoDn6Fqc1/ewFY
+D5F2sAjq8Ye9aqyhs7GU1Dzv+6sqld9Xy4DnkYQmbEtw+uDYgOfExKMCgYEAwtOf
+OITr8YGR5CBaRBMDyLTmpVwBM+ZgWOJhehV8Yd0Adz0Tutb8bpOT6sHTC3CSrbTd
+YWcQzW+NzHAHhQXLXiPOpBXCx8ZO4+SZAfH1AzB4RBUIrBGVf/fHU+BI0mRswVdT
+k9PrR7vCVSLBB4f1PC3zg10wVyejA833ABRFomkCgYEAo7eTVOVproz7vVW3MOPy
+jFraAMWUl4Rhs2Rs7Uo2anJNACTIID6uL95O1y7mSUkhWH49l61+n7O4LQ+7CkRe
+A9SqN/MEyoBeAyu3MGnGySPWsrKCIrbKbGzma2zDap9BxhvTIxPm1D86aZyRLqlJ
+hTbkN3/eKwcf9F8q2FW5O0cCgYBsySGUu5PLbF/8E5yTelKYlXpcRv1c73xI5U8s
+jia/tll2OyJzJ2wYiksDwGqJbrhYSi97HcOiEnII/10Th+LAlBnkQUpbpn2Sfqh5
+D5ORzlS5H02SVtc1dzNTwF6pK+4WHx7J4oDzswGV7CwAeogSrE3WwggmAjnh+/W5
+k5g2UQKBgCVsvgcfdOfrMLZ0ACg1rFxRpfrogL0Dc72Qfv1hajzpWFmU6xJQIuS9
+E7FtcW57i+GFA1pl0nP1/EkN2okyN+4ArSfiTynKe1RdXrXpheDrcGPlUDIicvUX
+igpLGSnt8GFQ9+qttFN4CQ20b/2afPoAlG9dJPf9xeyhLqw0yh8c
 -----END RSA PRIVATE KEY-----
 `
 
@@ -113,7 +154,7 @@ func TestHTTPFetcherJoinsKidToPath(t *testing.T) {
 	var client = &http.Client{Transport: transport}
 
 	var f = NewHTTPKeyFetcher("http://localhost", client)
-	f.Fetch("TEST")
+	_, _ = f.Fetch("TEST")
 	if transport.request.URL.String() != "http://localhost/TEST" {
 		t.Fatalf("HTTP fetcher did not use the key id in the path.")
 	}
@@ -193,7 +234,7 @@ func TestMultiFetcherFailure(t *testing.T) {
 	}
 }
 
-func TestExpiringHTTPFetcher(t *testing.T) {
+func TestExpiringHTTPFetcherFetch(t *testing.T) {
 	var expirationTime = time.Now().AddDate(0, 0, 2)
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
@@ -223,7 +264,7 @@ func TestExpiringHTTPFetcher(t *testing.T) {
 			expiringKeyPair.expiration.UTC().Format(http.TimeFormat), expirationTime.UTC().Format(http.TimeFormat))
 	}
 
-	f.cache.Store("NEWKEY", keyExpirationPair{"newkey", expirationTime})
+	f.cache.Store("NEWKEY", keyExpirationPair{"newkey", expirationTime, 0})
 	key, e := f.Fetch("NEWKEY")
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
@@ -243,33 +284,53 @@ func TestGetExpiryDate(t *testing.T) {
 	timeNow := func() time.Time {
 		return time.Time{}.Add(time.Hour * 3)
 	}
-	r, _ := regexp.Compile(maxAgeRegex)
 
 	var expiryTestTable = []struct {
-		in  http.Header
-		out time.Time
+		in    http.Header
+		out   time.Time
+		stale time.Duration
 	}{
-		{http.Header{"Cache-Control": {"public, max-age=1200"}},
-			timeNow().Add(time.Second * 1200)},
-		{http.Header{"Cache-Control": {"max-age=1200", "post-check=0", "pre-check=0"}},
-			timeNow().Add(time.Second * 1200)},
-		{http.Header{"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"}},
-			time.Time{}},
-		{http.Header{
-			"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"},
-			"Expires":       []string{timeNow().Add(time.Second * 10).Format(http.TimeFormat)}},
-			timeNow().Add(time.Second * 10)},
-		{http.Header{"Expires": {timeNow().Add(time.Second * 10).Format(http.TimeFormat)}},
-			timeNow().Add(time.Second * 10)},
-		{http.Header{"Expires": {"lol"}}, time.Time{}},
-		{http.Header{}, time.Time{}},
-	}
+		{
+			in:  http.Header{"Cache-Control": {"public, max-age=1200"}},
+			out: timeNow().Add(time.Second * 1200),
+		}, {
+			in:  http.Header{"Cache-Control": {"max-age=1200", "post-check=0", "pre-check=0"}},
+			out: timeNow().Add(time.Second * 1200),
+		}, {
+			in:  http.Header{"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"}},
+			out: timeNow(),
+		}, {
+			in: http.Header{
+				"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"},
+				"Expires":       {timeNow().Add(time.Second * 10).Format(http.TimeFormat)},
+			},
+			out: timeNow().Add(time.Second * 10),
+		}, {
+			in:  http.Header{"Expires": {timeNow().Add(time.Second * 10).Format(http.TimeFormat)}},
+			out: timeNow().Add(time.Second * 10),
+		}, {
+			in:  http.Header{"Expires": {"lol"}},
+			out: timeNow(),
+		}, {
+			in:  http.Header{},
+			out: timeNow(),
+		}, {
+			in:    http.Header{"Cache-Control": {"max-age=1200", "stale-while-revalidate=1800"}},
+			out:   timeNow().Add(time.Second * 1200),
+			stale: 1800 * time.Second,
+		}, {
+			in:  http.Header{"Cache-Control": {"max-age=1200", "stale-while-revalidate=blah"}},
+			out: timeNow(), //NOTE Either header being invalid will flop
+		}}
 
 	for _, tt := range expiryTestTable {
-		expiryTime := getExpiryTime(tt.in, r, timeNow)
+		expiryTime, staleOk := getExpiryAndStaleOk(tt.in, timeNow)
 		if expiryTime != tt.out {
-			t.Fatalf("getExpiryDate(%s) returned %s instead of the expected %s",
+			t.Fatalf("expiry time of %s returned %s instead of the expected %s",
 				tt.in, expiryTime.String(), tt.out.String())
+		} else if staleOk != tt.stale {
+			t.Fatalf("stale of %s returned %s instead of the expected %s",
+				tt.in, staleOk.String(), tt.stale.String())
 		}
 	}
 }
@@ -392,5 +453,98 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	}
 	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
 		t.Fatalf("Cache refresh goroutine did not run correctly")
+	}
+}
+
+func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var client = &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	f := fetcher.(*expiringCacheFetcher)
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	// Test initial re-fetch
+	response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey2)),
+	}
+	transport.SetResponse(response, nil)
+
+	time.Sleep(time.Second)
+
+	value, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Cache did not contain key KEY %s", err)
+	}
+	pk, _ := NewPublicKey([]byte(publicKey))
+	if !reflect.DeepEqual(value, pk) {
+		t.Fatalf("Cache didn't return cached value %+v != %+v", value, pk)
+	}
+
+	time.Sleep(time.Millisecond)
+
+	value, err = f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Cache did not contain key KEY %s", err)
+	}
+
+	pk, _ = NewPublicKey([]byte(publicKey2))
+	if !reflect.DeepEqual(value, pk) {
+		t.Fatalf("Cache didn't return cached value")
+	}
+}
+
+func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var client = &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	f := fetcher.(*expiringCacheFetcher)
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	response = &http.Response{
+		StatusCode: http.StatusForbidden,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	transport.SetResponse(response, nil)
+
+	time.Sleep(time.Second)
+
+	value, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Cache did not contain key KEY %s", err)
+	}
+	pk, _ := NewPublicKey([]byte(publicKey))
+	if !reflect.DeepEqual(value, pk) {
+		t.Fatalf("Cache didn't return cached value")
+	}
+
+	time.Sleep(time.Millisecond)
+
+	_, ok := f.cache.Load("KEY")
+	if ok {
+		t.Fatalf("Cache contained key")
 	}
 }

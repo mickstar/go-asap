@@ -7,14 +7,6 @@ import (
 	"time"
 )
 
-// Higher level cache used by SLAuth which uses more memory to store
-// the parsed key but reduces the cycles spent parsing reused tokens
-// Initially inspired by the validator cache
-
-// Set an upper limit to prevent rogue issuers from chewing up all memory
-// Assuming each token is ~2k, this will take ~100mb => not bad
-const defaultMaxCacheSize = 50000
-
 // CachingTokenEvent defines a type to represent different events from the cache
 type CachingTokenEvent int
 

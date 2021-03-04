@@ -30,7 +30,6 @@ func (m *middleware) handleError(w http.ResponseWriter, r *http.Request, e error
 		return
 	}
 	m.callback(w, r, e)
-	return
 }
 
 // FailedValidationError is used to signal that a given token was parsed
