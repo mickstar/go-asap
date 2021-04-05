@@ -234,6 +234,24 @@ func TestMultiFetcherFailure(t *testing.T) {
 	}
 }
 
+func TestExpiringHTTPFetcherJoinsKidToPath(t *testing.T) {
+	var response = &http.Response{
+		StatusCode: http.StatusInternalServerError,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+	}
+	var transport = &fixtureRoundTripper{response, nil, nil}
+	var client = &http.Client{Transport: transport}
+
+	f, err := NewExpiringCacheFetcher("http://localhost", client, 0)
+	if err != nil {
+		t.Fatalf("Failed to initialize fetcher")
+	}
+	_, _ = f.Fetch("TEST")
+	if transport.request.URL.String() != "http://localhost/TEST" {
+		t.Fatalf("HTTP fetcher did not use the key id in the path.")
+	}
+}
+
 func TestExpiringHTTPFetcherFetch(t *testing.T) {
 	var expirationTime = time.Now().AddDate(0, 0, 2)
 	var response = &http.Response{

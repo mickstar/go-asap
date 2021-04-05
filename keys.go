@@ -200,6 +200,10 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duratio
 		return nil, fmt.Errorf("cannot parse baseURL: %s", e)
 	}
 
+	if !strings.HasSuffix(baseURL, "/") {
+		baseURL = baseURL + "/"
+	}
+
 	return &expiringCacheFetcher{
 		baseURL: baseURL,
 		client:  client,
@@ -246,7 +250,9 @@ func getExpiresTime(header http.Header, timeNow func() time.Time) (time.Time, ti
 }
 
 func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, error) {
-	httpURL := path.Join(f.baseURL, keyID)
+	// keyIDs cannot be prefixed with a leading slash, and baseURL includes a trailing /.
+	// using path.Join here turns the base url from http://example.com to http:/example.com, which is invalid.
+	httpURL := f.baseURL + keyID
 	resp, err := f.client.Get(httpURL)
 	if err != nil {
 		return keyExpirationPair{}, fmt.Errorf("failed obtaining http response: %s", err)
