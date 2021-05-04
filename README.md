@@ -28,7 +28,7 @@ Use OpenSSL from the command line to generate the key pairs.
 
 
 ```go
-var privateKey, _ = asap.NewPrivateKey(os.Getenv("ASAP_PRIVATE_KEY"))
+var privateKey, _ = asap.NewPrivateKey([]byte(os.Getenv("ASAP_PRIVATE_KEY")))
 var p = asap.NewMicrosProvisioner([]string{"target_service1", "target_service1"}, time.Minute)
 var token, _ = p.Provision()
 var headerValue, _ = token.Serialize(privateKey)
