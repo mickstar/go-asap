@@ -184,6 +184,19 @@ type keyExpirationPair struct {
 	staleWhileRevalidate time.Duration
 }
 
+type keyLookupError struct {
+	error
+}
+
+type keyLookupMissError struct {
+	error
+	expiration time.Time
+}
+
+type keyLookupBadResponseError struct {
+	error
+}
+
 type expiringCacheFetcher struct {
 	keyLocks sync.Map
 	baseURL  string
@@ -255,24 +268,28 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, er
 	httpURL := f.baseURL + keyID
 	resp, err := f.client.Get(httpURL)
 	if err != nil {
-		return keyExpirationPair{}, fmt.Errorf("failed obtaining http response: %s", err)
+		return keyExpirationPair{}, keyLookupError{fmt.Errorf("failed obtaining http response: %s", err)}
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		var body, _ = ioutil.ReadAll(resp.Body)
-		return keyExpirationPair{}, fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", httpURL, resp.StatusCode, string(body))
+		err := fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", httpURL, resp.StatusCode, string(body))
+		if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {
+			return keyExpirationPair{}, keyLookupMissError{err, f.timeNow().Add(time.Second)}
+		}
+		return keyExpirationPair{}, keyLookupError{err}
 	}
 
 	expiry, staleOk := getExpiryAndStaleOk(resp.Header, f.timeNow)
 	var keyBytes []byte
 	keyBytes, err = ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return keyExpirationPair{}, fmt.Errorf("failure reading response body: %s", err)
+		return keyExpirationPair{}, keyLookupBadResponseError{fmt.Errorf("failure reading response body: %s", err)}
 	}
 
 	key, e := NewPublicKey(keyBytes)
 	if e != nil {
-		return keyExpirationPair{}, fmt.Errorf("failure parsing response body as public key: %s", e)
+		return keyExpirationPair{}, keyLookupBadResponseError{fmt.Errorf("failure parsing response body as public key: %s", e)}
 	}
 
 	return keyExpirationPair{key, expiry, staleOk}, nil
@@ -288,6 +305,10 @@ func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
 			go f.reloadOrPurge(keyID)
 			return cached.key, nil
 		}
+
+		if failed, ok := value.(keyLookupMissError); ok && failed.expiration.After(f.timeNow()) {
+			return nil, failed
+		}
 	}
 
 	return f.reload(keyID)
@@ -295,7 +316,7 @@ func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
 
 func (f *expiringCacheFetcher) reloadOrPurge(keyID string) {
 	_, err := f.reload(keyID)
-	if err != nil {
+	if _, ok := err.(keyLookupBadResponseError); ok {
 		f.cache.Delete(keyID)
 	}
 }
@@ -312,11 +333,18 @@ func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
 		if ok && cached.expiration.After(f.timeNow()) {
 			return cached.key, nil
 		}
+
+		if failed, ok := value.(keyLookupMissError); ok && failed.expiration.After(f.timeNow()) {
+			return nil, failed
+		}
 	}
 
 	// Repopulate key
 	result, err := f.fetchHTTPKey(keyID)
 	if err != nil {
+		if v, ok := err.(keyLookupMissError); ok {
+			f.cache.Store(keyID, v)
+		}
 		return nil, err
 	}
 	f.cache.Store(keyID, result)
