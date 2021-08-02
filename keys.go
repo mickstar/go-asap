@@ -197,12 +197,20 @@ type keyLookupBadResponseError struct {
 	error
 }
 
+var (
+	cachedKey        = "asap.key.cache.hit"
+	expiredKey       = "asap.key.cache.expired"
+	cachedLookupMiss = "asap.key.cache.lookup_miss"
+	cacheMiss        = "asap.key.cache.miss"
+)
+
 type expiringCacheFetcher struct {
-	keyLocks sync.Map
-	baseURL  string
-	client   *http.Client
-	cache    sync.Map
-	timeNow  func() time.Time
+	keyLocks   sync.Map
+	baseURL    string
+	client     *http.Client
+	cache      sync.Map
+	timeNow    func() time.Time
+	cacheStats func(stat string, count float64, tags ...string)
 }
 
 // NewExpiringCacheFetcher wraps a given KeyFetcher implementation that returns a keyExpirationPair with an in-memory
@@ -222,6 +230,29 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duratio
 		client:  client,
 		timeNow: time.Now,
 	}, nil
+}
+
+func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
+	f, e := NewExpiringCacheFetcher(baseURL, client, 0)
+	if e != nil {
+		return nil, e
+	}
+	return f.(*expiringCacheFetcher).WithCacheStats(stats), nil
+}
+
+// WithCacheStats adds a "count" statsd function which can increment
+// stats related to the expiring cache
+func (c *expiringCacheFetcher) WithCacheStats(count func(stat string, count float64, tags ...string)) *expiringCacheFetcher {
+	c.cacheStats = count
+	return c
+}
+
+func (c *expiringCacheFetcher) incr(stat string) {
+	if c.cacheStats == nil {
+		return
+	}
+
+	c.cacheStats(stat, 1)
 }
 
 // getExpiryAndStaleOk parses the Cache Control header and returns the time when the key expires AND
@@ -300,17 +331,21 @@ func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
 	if ok {
 		var cached, convertCheck = value.(keyExpirationPair)
 		if convertCheck && cached.expiration.After(f.timeNow()) {
+			f.incr(cachedKey)
 			return cached.key, nil
 		} else if convertCheck && cached.expiration.Add(cached.staleWhileRevalidate).Before(f.timeNow()) {
 			go f.reloadOrPurge(keyID)
+			f.incr(expiredKey)
 			return cached.key, nil
 		}
 
 		if failed, ok := value.(keyLookupMissError); ok && failed.expiration.After(f.timeNow()) {
+			f.incr(cachedLookupMiss)
 			return nil, failed
 		}
 	}
 
+	f.incr(cacheMiss)
 	return f.reload(keyID)
 }
 

@@ -9,4 +9,5 @@ require (
 	github.com/pquerna/cachecontrol v0.0.0-20201205024021-ac21108117ac
 	github.com/stretchr/testify v1.6.1
 	github.com/vincent-petithory/dataurl v0.0.0-20160330182126-9a301d65acbb
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 )

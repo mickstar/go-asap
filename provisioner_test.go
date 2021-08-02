@@ -10,6 +10,7 @@ import (
 )
 
 func TestCacheProvisionerWhenNil(t *testing.T) {
+	t.Parallel()
 	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	if cache.cache != nil {
@@ -25,6 +26,7 @@ func TestCacheProvisionerWhenNil(t *testing.T) {
 }
 
 func TestCacheProvisionerReturnsCache(t *testing.T) {
+	t.Parallel()
 	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	var token, e = cache.Provision()
@@ -41,6 +43,7 @@ func TestCacheProvisionerReturnsCache(t *testing.T) {
 }
 
 func TestCacheProvisionerExpired(t *testing.T) {
+	t.Parallel()
 	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	var token, e = cache.Provision()
@@ -58,6 +61,7 @@ func TestCacheProvisionerExpired(t *testing.T) {
 }
 
 func TestCacheProvisionerAlmostExpired(t *testing.T) {
+	t.Parallel()
 	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	_, _ = cache.Provision()
@@ -77,6 +81,7 @@ func TestCacheProvisionerAlmostExpired(t *testing.T) {
 }
 
 func TestCacheProvisionerGenerationRace(t *testing.T) {
+	t.Parallel()
 	type testcase struct {
 		name  string
 		setup func(testName string, cache *cacheProvisioner)
@@ -133,6 +138,7 @@ func TestCacheProvisionerGenerationRace(t *testing.T) {
 }
 
 func TestCacheToken(t *testing.T) {
+	t.Parallel()
 	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped)
 	var token, e = cache.Provision()

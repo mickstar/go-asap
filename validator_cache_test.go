@@ -16,6 +16,7 @@ import (
 )
 
 func TestValidatorCacheChainRunsAll(t *testing.T) {
+	t.Parallel()
 	var (
 		counter   = 0
 		validator = func(Token) error {
@@ -57,6 +58,7 @@ func makeToken(key string, expiry time.Time) Token {
 }
 
 func TestValidatorCacheValidatePurge(t *testing.T) {
+	t.Parallel()
 	var ok bool
 	var cacheImpl *cachingChainedASAPValidator
 	var validator = func(Token) error {
@@ -99,6 +101,7 @@ func TestValidatorCacheValidatePurge(t *testing.T) {
 }
 
 func TestValidatorCacheValidateLimit(t *testing.T) {
+	t.Parallel()
 	var validator = func(Token) error {
 		return nil
 	}

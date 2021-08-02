@@ -12,6 +12,7 @@ import (
 )
 
 func TestSuccessfulGet(t *testing.T) {
+	t.Parallel()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	eventsCB := func(e CachingTokenEvent) {
@@ -28,6 +29,7 @@ func TestSuccessfulGet(t *testing.T) {
 }
 
 func TestMiss(t *testing.T) {
+	t.Parallel()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	eventsCB := func(e CachingTokenEvent) {
@@ -44,6 +46,7 @@ func TestMiss(t *testing.T) {
 }
 
 func TestExpire(t *testing.T) {
+	t.Parallel()
 	var wg sync.WaitGroup
 	wg.Add(1)
 	eventsCB := func(e CachingTokenEvent) {
@@ -61,6 +64,7 @@ func TestExpire(t *testing.T) {
 }
 
 func TestPurge(t *testing.T) {
+	t.Parallel()
 	var ok bool
 	var cacheImpl *cachingToken
 
@@ -90,6 +94,7 @@ func TestPurge(t *testing.T) {
 }
 
 func TestSizeLimit(t *testing.T) {
+	t.Parallel()
 	cache := NewTokenCache(context.Background(), 2, nil)
 
 	cacheImpl, ok := cache.(*cachingToken)
