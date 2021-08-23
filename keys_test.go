@@ -955,7 +955,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 		t.Fatalf("Cache didn't return cached value %+v != %+v", value, pk)
 	}
 
-	time.Sleep(time.Millisecond)
+	time.Sleep(5 * time.Millisecond)
 
 	value, err = f.Fetch("KEY")
 	if err != nil {
