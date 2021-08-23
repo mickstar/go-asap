@@ -2,6 +2,7 @@ package asap
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	"github.com/vincent-petithory/dataurl"
+	"golang.org/x/sync/errgroup"
 )
 
 const publicKey = `-----BEGIN PUBLIC KEY-----
@@ -115,6 +117,7 @@ func (f *fixtureFetcher) Fetch(string) (interface{}, error) {
 }
 
 func TestPrivateKeyParser(t *testing.T) {
+	t.Parallel()
 	var _, e = NewPrivateKey([]byte(privateKey))
 	if e != nil {
 		t.Fatalf("Could not parse private key %s", e)
@@ -122,6 +125,7 @@ func TestPrivateKeyParser(t *testing.T) {
 }
 
 func TestPrivateKeyParserEncoded(t *testing.T) {
+	t.Parallel()
 	var data = dataurl.EncodeBytes([]byte(privateKey))
 	var _, e = NewPrivateKey([]byte(data))
 	if e != nil {
@@ -130,6 +134,7 @@ func TestPrivateKeyParserEncoded(t *testing.T) {
 }
 
 func TestMicrosPrivateKeyParserEncoded(t *testing.T) {
+	t.Parallel()
 	var data = dataurl.EncodeBytes([]byte(privateKey))
 	os.Setenv("ASAP_PRIVATE_KEY", data)
 	defer os.Unsetenv("ASAP_PRIVATE_KEY")
@@ -138,7 +143,9 @@ func TestMicrosPrivateKeyParserEncoded(t *testing.T) {
 		t.Fatalf("Could not parse private key %s", e)
 	}
 }
+
 func TestPublicKeyParser(t *testing.T) {
+	t.Parallel()
 	var _, e = NewPublicKey([]byte(publicKey))
 	if e != nil {
 		t.Fatalf("Could not parse public key %s", e)
@@ -146,6 +153,7 @@ func TestPublicKeyParser(t *testing.T) {
 }
 
 func TestHTTPFetcherJoinsKidToPath(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusInternalServerError,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
@@ -161,6 +169,7 @@ func TestHTTPFetcherJoinsKidToPath(t *testing.T) {
 }
 
 func TestHTTPFetcher(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
@@ -176,6 +185,7 @@ func TestHTTPFetcher(t *testing.T) {
 }
 
 func TestCacheFetcher(t *testing.T) {
+	t.Parallel()
 	var value = "TEST"
 	var kid = "keyID"
 	var wrapped = &fixtureFetcher{value, nil}
@@ -196,6 +206,7 @@ func TestCacheFetcher(t *testing.T) {
 }
 
 func TestMultiFetcherSuccess(t *testing.T) {
+	t.Parallel()
 	var failure = &http.Response{
 		StatusCode: http.StatusInternalServerError,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
@@ -218,6 +229,7 @@ func TestMultiFetcherSuccess(t *testing.T) {
 }
 
 func TestMultiFetcherFailure(t *testing.T) {
+	t.Parallel()
 	var failure = &http.Response{
 		StatusCode: http.StatusInternalServerError,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
@@ -235,6 +247,7 @@ func TestMultiFetcherFailure(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherJoinsKidToPath(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusInternalServerError,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
@@ -253,6 +266,7 @@ func TestExpiringHTTPFetcherJoinsKidToPath(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherFetch(t *testing.T) {
+	t.Parallel()
 	var expirationTime = time.Now().AddDate(0, 0, 2)
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
@@ -299,6 +313,7 @@ func TestExpiringHTTPFetcherFetch(t *testing.T) {
 }
 
 func TestGetExpiryDate(t *testing.T) {
+	t.Parallel()
 	timeNow := func() time.Time {
 		return time.Time{}.Add(time.Hour * 3)
 	}
@@ -354,6 +369,7 @@ func TestGetExpiryDate(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherCache(t *testing.T) {
+	t.Parallel()
 	timeNow := func() time.Time {
 		return time.Time{}.Add(time.Hour * 3)
 	}
@@ -392,11 +408,13 @@ type lockingFixtureRoundTripper struct {
 	e        error
 	request  *http.Request
 	lock     *sync.Mutex
+	sleep    time.Duration
 }
 
 func (r *lockingFixtureRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	r.lock.Lock()
 	defer r.lock.Unlock()
+	time.Sleep(r.sleep)
 	r.request = req
 	return r.response, r.e
 }
@@ -407,6 +425,16 @@ func (r *lockingFixtureRoundTripper) SetResponse(res *http.Response, err error) 
 
 	r.response = res
 	r.e = err
+	r.sleep = 0
+}
+
+func (r *lockingFixtureRoundTripper) SetDelayedResponse(res *http.Response, delay time.Duration, err error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	r.response = res
+	r.e = err
+	r.sleep = delay
 }
 
 func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
@@ -415,13 +443,25 @@ func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
 	return r.request
 }
 
+type mockStats struct {
+	calls map[string]float64
+}
+
+func (s *mockStats) call(m string, i float64, tags ...string) {
+	if s.calls == nil {
+		s.calls = map[string]float64{}
+	}
+	s.calls[m] = s.calls[m] + i
+}
+
 func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Expires": {time.Now().UTC().Add(time.Second).Format(http.TimeFormat)}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
 	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
 	if e != nil {
@@ -475,12 +515,13 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
 	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
 	if e != nil {
@@ -495,7 +536,7 @@ func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
 	// Test initial re-fetch
 	response = &http.Response{
 		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey2)),
 	}
 	transport.SetResponse(response, nil)
@@ -524,13 +565,76 @@ func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
 	}
 }
 
-func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
+func TestExpiringHTTPFetcherCacheStaleRefreshSlowResponse(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
+	var client = &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	f := fetcher.(*expiringCacheFetcher)
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	// Test initial re-fetch
+	response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey2)),
+	}
+	transport.SetDelayedResponse(response, time.Second, nil)
+
+	time.Sleep(time.Second)
+
+	var eg errgroup.Group
+	eg.Go(func() error {
+		value, err := f.Fetch("KEY")
+		if err != nil {
+			return fmt.Errorf("Cache did not contain key KEY %s", err)
+		}
+		pk, _ := NewPublicKey([]byte(publicKey))
+		if !reflect.DeepEqual(value, pk) {
+			return fmt.Errorf("Cache didn't return cached value %+v != %+v", value, pk)
+		}
+		return nil
+	})
+
+	time.Sleep(10 * time.Millisecond)
+
+	eg.Go(func() error {
+		value, err := f.Fetch("KEY")
+		if err != nil {
+			return fmt.Errorf("Cache did not contain key KEY %s", err)
+		}
+
+		pk, _ := NewPublicKey([]byte(publicKey))
+		if !reflect.DeepEqual(value, pk) {
+			return fmt.Errorf("Cache didn't return cached value")
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
+func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
+	t.Parallel()
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
 	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
 	if e != nil {
@@ -569,14 +673,87 @@ func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
 	}
 }
 
+func TestExpiringHTTPFetcherCacheStalePurgeSlowResponse(t *testing.T) {
+	t.Parallel()
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
+	var client = &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	f := fetcher.(*expiringCacheFetcher)
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	response = &http.Response{
+		StatusCode: http.StatusForbidden,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	transport.SetDelayedResponse(response, time.Second, nil)
+
+	time.Sleep(time.Second)
+
+	var eg errgroup.Group
+	eg.Go(func() error {
+		value, err := f.Fetch("KEY")
+		if err != nil {
+			return fmt.Errorf("Cache did not contain key KEY %s", err)
+		}
+		pk, _ := NewPublicKey([]byte(publicKey))
+		if !reflect.DeepEqual(value, pk) {
+			return fmt.Errorf("Cache didn't return cached value")
+		}
+		return nil
+	})
+
+	time.Sleep(10 * time.Millisecond)
+
+	eg.Go(func() error {
+		value, err := f.Fetch("KEY")
+		if err != nil {
+			return fmt.Errorf("Cache did not contain key KEY %s", err)
+		}
+		pk, _ := NewPublicKey([]byte(publicKey))
+		if !reflect.DeepEqual(value, pk) {
+			return fmt.Errorf("Cache didn't return cached value")
+		}
+		return nil
+	})
+
+	time.Sleep(1 * time.Second)
+
+	eg.Go(func() error {
+		_, err := f.Fetch("KEY")
+		if err == nil {
+			return fmt.Errorf("Fetch returned success")
+		} else if _, ok := err.(keyLookupMissError); !ok {
+			return fmt.Errorf("Cache missing key lookup error")
+		}
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		t.Fatal(err.Error())
+	}
+}
+
 func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusForbidden,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
+	var stats = &mockStats{}
 	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	fetcher, e := NewExpiringCacheFetcherWithStats("http://localhost", client, stats.call)
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
 	}
@@ -588,7 +765,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 
 	response = &http.Response{
 		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetResponse(response, nil)
@@ -608,15 +785,20 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 	if !reflect.DeepEqual(value, pk) {
 		t.Fatalf("Cache didn't return cached value")
 	}
+
+	if stats.calls["asap.key.cache.lookup_miss"] != 1 {
+		t.Fatalf("Stats not recorded correctly")
+	}
 }
 
 func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
 	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
 	if e != nil {
@@ -648,13 +830,62 @@ func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
 	time.Sleep(time.Millisecond)
 }
 
-func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
+func TestExpiringHTTPFetcherKeepOnTimeoutError(t *testing.T) {
+	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-refresh=10"}},
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
 	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
+	var client = &http.Client{Transport: transport, Timeout: 1 * time.Second}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	f := fetcher.(*expiringCacheFetcher)
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	response = &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	transport.SetDelayedResponse(response, 2*time.Second, nil)
+
+	time.Sleep(time.Second)
+
+	value, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Cache did not contain key KEY %s", err)
+	}
+	pk, _ := NewPublicKey([]byte(publicKey))
+	if !reflect.DeepEqual(value, pk) {
+		t.Fatalf("Cache didn't return cached value")
+	}
+
+	time.Sleep(time.Second)
+
+	value, err = f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Cache did not contain key KEY %s", err)
+	}
+	pk, _ = NewPublicKey([]byte(publicKey))
+	if !reflect.DeepEqual(value, pk) {
+		t.Fatalf("Cache didn't return cached value")
+	}
+}
+
+func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
+	t.Parallel()
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
 	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
 	if e != nil {
@@ -683,5 +914,64 @@ func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
 	_, err = f.Fetch("KEY")
 	if err == nil {
 		t.Fatalf("Cache did not return error")
+	}
+}
+
+func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
+	t.Parallel()
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
+	stats := &mockStats{}
+	var client = &http.Client{Transport: transport}
+	f, e := NewExpiringCacheFetcherWithStats("http://localhost", client, stats.call)
+	if e != nil {
+		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
+	}
+	_, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Fetch returned error: " + err.Error())
+	}
+
+	// Test initial re-fetch
+	response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey2)),
+	}
+	transport.SetResponse(response, nil)
+
+	time.Sleep(time.Second)
+
+	value, err := f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Cache did not contain key KEY %s", err)
+	}
+	pk, _ := NewPublicKey([]byte(publicKey))
+	if !reflect.DeepEqual(value, pk) {
+		t.Fatalf("Cache didn't return cached value %+v != %+v", value, pk)
+	}
+
+	time.Sleep(5 * time.Millisecond)
+
+	value, err = f.Fetch("KEY")
+	if err != nil {
+		t.Fatalf("Cache did not contain key KEY %s", err)
+	}
+
+	pk, _ = NewPublicKey([]byte(publicKey2))
+	if !reflect.DeepEqual(value, pk) {
+		t.Fatalf("Cache didn't return cached value")
+	}
+
+	if !reflect.DeepEqual(stats.calls, map[string]float64{
+		"asap.key.cache.expired": 1,
+		"asap.key.cache.hit":     1,
+		"asap.key.cache.miss":    1,
+	}) {
+		t.Fatalf("Unexpected stats response: %+v", stats.calls)
 	}
 }
