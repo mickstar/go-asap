@@ -333,7 +333,7 @@ func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
 		if convertCheck && cached.expiration.After(f.timeNow()) {
 			f.incr(cachedKey)
 			return cached.key, nil
-		} else if convertCheck && cached.expiration.Add(cached.staleWhileRevalidate).Before(f.timeNow()) {
+		} else if convertCheck && cached.expiration.Add(cached.staleWhileRevalidate).After(f.timeNow()) {
 			go f.reloadOrPurge(keyID)
 			f.incr(expiredKey)
 			return cached.key, nil
