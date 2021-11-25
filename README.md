@@ -10,7 +10,7 @@ authentication purposes using the Atlassian Service Authentication Protocol (ASA
 ### Installing
 
 ```shell
-    go get bitbucket.org/atlassian/go-asap
+    go get bitbucket.org/atlassian/go-asap/v2
 ```
 
 ### Generating key pairs
