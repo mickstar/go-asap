@@ -275,6 +275,21 @@ func TestSignatureValidator(t *testing.T) {
 	}
 }
 
+func TestSignatureValidatorInvalidAlgorithm(t *testing.T) {
+	// CSECHELP-348 -- the following is not a real token
+	token := `eyJhbGciOiJub25lIiwia2lkIjoiaXMvazEiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJ0YXJnZXRfc2VydmljZTEiLCJleHAiOjE2MzcyODMxMjMsImlhdCI6MTYzNzI4MjUyMywiaXNzIjoiaXMiLCJqdGkiOiJhM2M1NmMxNy1jNGFkLTRlZDQtYjYzYS0yNWNmNGU4ZTg2YTQifQ.HY86A2QK9NadmPj8-6kU2AFoHu_fiwdpbmy8ibZclwUU-HlkxYwn2BMhS0cuOIRT1aPehLGo_LY4kD1WzngVldWViISKVQY8lBCAzlijVXH_kS1zyLitErFdPVMq6LgrgLsZvk_o387oI7yz_B_xkuOD2anzF7gR-D_tP2S4VLF6PLLCIvcu5MRQ7d5k9PB4DyLE7f5FIFKwN8HEtjZP3LXj8-zZUhCVRqVs1c3TLRC4WbH9RX5SmE-U2vqWfK1vkUxb723fzdkf39VtJP3QBnVj8gQTrYUDkqRkLxDahp1CxWdlEZAln7K3MYOzK9Oc4l3-SuxwA5Zf9A7JzxRCgg` // nolint: gosec
+	v := NewSignatureValidator(&fixtureFetcher{value: ""})
+	incoming, _ := ParseToken(token)
+	err := v.Validate(incoming)
+	if err == nil {
+		t.Fatalf("Failed to return error for invalid signature method.")
+	}
+
+	if err.Error() != "Unsupported algorithm: none" {
+		t.Fatalf("Returned incorrect error message")
+	}
+}
+
 // DefaultValidator tests
 
 func TestIssRequired(t *testing.T) {

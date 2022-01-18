@@ -28,11 +28,11 @@ Use OpenSSL from the command line to generate the key pairs.
 
 
 ```go
-var privateKey, _ = asap.NewPrivateKey([]byte(os.Getenv("ASAP_PRIVATE_KEY")))
-var p = asap.NewMicrosProvisioner([]string{"target_service1", "target_service1"}, time.Minute)
-var token, _ = p.Provision()
-var headerValue, _ = token.Serialize(privateKey)
-var bearer = fmt.Sprintf("Bearer %s", string(headerValue))
+privateKey, _ := asap.NewPrivateKey([]byte(os.Getenv("ASAP_PRIVATE_KEY")))
+p := asap.NewMicrosProvisioner([]string{"target_service1", "target_service1"}, time.Minute)
+token, _ := p.Provision()
+headerValue, _ := token.Serialize(privateKey)
+bearer := fmt.Sprintf("Bearer %s", string(headerValue))
 ```
 
 
@@ -44,14 +44,14 @@ should define its own custom validation rules and combine them with the
 `DefaultValidator` which enforces the minimum ASAP requirements.
 
 ```go
-var v = asap.NewValidatorChain(
+v := asap.NewValidatorChain(
+  asap.DefaultValidator,
   asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
   asap.NewAllowedAudienceValidator("myserviceid"),
-  asap.DefaultValidator,
 )
-var token, _ = asap.ParseToken(valueFromAuthorizationHeader)
-var e = v.Validate(token)
-if e != nil {
+token, _ := asap.ParseToken(valueFromAuthorizationHeader)
+err := v.Validate(token)
+if err != nil {
   // Invalid token
 }
 ```
@@ -60,11 +60,11 @@ If using an http mux that supports middleware you can add your validation rules
 to all incoming requests via:
 
 ```go
-var v = asap.NewValidatorChain(
+v := asap.NewValidatorChain(
+  asap.DefaultValidator,
   asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
   asap.NewAllowedAudienceValidator("myserviceid"),
-  asap.DefaultValidator,
 )
 
-var m = asap.NewMiddleware(v, nil) // func(http.Handler) http.Handler
+m := asap.NewMiddleware(v, nil) // func(http.Handler) http.Handler
 ```
