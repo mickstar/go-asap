@@ -261,6 +261,10 @@ func (c *expiringCacheFetcher) incr(stat string) {
 func getExpiryAndStaleOk(header http.Header, timeNow func() time.Time) (time.Time, time.Duration) {
 	cacheControl, ok := header["Cache-Control"]
 	if !ok {
+		if header == nil {
+			header = make(http.Header)
+		}
+		header.Set("Cache-Control", fmt.Sprintf("max-age=%d", (time.Minute*10)/time.Second))
 		return getExpiresTime(header, timeNow)
 	}
 	responseDirs, err := cacheobject.ParseResponseCacheControl(strings.Join(cacheControl, ","))

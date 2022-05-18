@@ -368,6 +368,35 @@ func TestGetExpiryDate(t *testing.T) {
 	}
 }
 
+func TestDefaultCacheControl(t *testing.T) {
+	t.Parallel()
+	timeNow := func() time.Time {
+		return time.Time{}.Add(time.Hour * 3)
+	}
+
+	var cacheControlTestTable = []struct {
+		in  http.Header
+		out string
+	}{
+		{
+			in:  http.Header{"Cache-Control": {"public, max-age=1200"}},
+			out: "public, max-age=1200",
+		}, {
+			in: http.Header{
+				"Expires": {timeNow().Add(time.Second * 10).Format(http.TimeFormat)},
+			},
+			out: "max-age=600",
+		},
+	}
+
+	for _, tt := range cacheControlTestTable {
+		getExpiryAndStaleOk(tt.in, timeNow)
+		if ch := tt.in.Get("Cache-Control"); ch != tt.out {
+			t.Fatalf("Default Cache-Control was not added")
+		}
+	}
+}
+
 func TestExpiringHTTPFetcherCache(t *testing.T) {
 	t.Parallel()
 	timeNow := func() time.Time {
