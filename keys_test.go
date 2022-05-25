@@ -330,8 +330,9 @@ func TestGetExpiryDate(t *testing.T) {
 			in:  http.Header{"Cache-Control": {"max-age=1200", "post-check=0", "pre-check=0"}},
 			out: timeNow().Add(time.Second * 1200),
 		}, {
-			in:  http.Header{"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"}},
-			out: timeNow(),
+			in:    http.Header{"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"}},
+			out:   timeNow().Add(time.Minute * 10),
+			stale: time.Duration(time.Minute * 20),
 		}, {
 			in: http.Header{
 				"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"},
@@ -342,18 +343,21 @@ func TestGetExpiryDate(t *testing.T) {
 			in:  http.Header{"Expires": {timeNow().Add(time.Second * 10).Format(http.TimeFormat)}},
 			out: timeNow().Add(time.Second * 10),
 		}, {
-			in:  http.Header{"Expires": {"lol"}},
-			out: timeNow(),
+			in:    http.Header{"Expires": {"lol"}},
+			out:   timeNow().Add(time.Minute * 10),
+			stale: time.Duration(time.Minute * 20),
 		}, {
-			in:  http.Header{},
-			out: timeNow(),
+			in:    http.Header{},
+			out:   timeNow().Add(time.Minute * 10),
+			stale: time.Duration(time.Minute * 20),
 		}, {
 			in:    http.Header{"Cache-Control": {"max-age=1200", "stale-while-revalidate=1800"}},
 			out:   timeNow().Add(time.Second * 1200),
 			stale: 1800 * time.Second,
 		}, {
-			in:  http.Header{"Cache-Control": {"max-age=1200", "stale-while-revalidate=blah"}},
-			out: timeNow(), //NOTE Either header being invalid will flop
+			in:    http.Header{"Cache-Control": {"max-age=1200", "stale-while-revalidate=blah"}},
+			out:   timeNow().Add(time.Minute * 10), //NOTE Either header being invalid will flop
+			stale: time.Duration(time.Minute * 20),
 		}}
 
 	for _, tt := range expiryTestTable {
