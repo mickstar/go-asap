@@ -192,13 +192,21 @@ var DefaultValidator = NewValidatorChain(
 )
 
 type signatureValidator struct {
-	fetcher KeyFetcher
+	fetcher   KeyFetcher
+	nbfLeeway int32
+	expLeeway int32
 }
 
 // NewSignatureValidator enforces that tokens are signed by the key they claim
-// to be.
-func NewSignatureValidator(fetcher KeyFetcher) Validator {
-	return &signatureValidator{fetcher}
+// to be using a KeyFetcher for retrieving the public key and nbf/exp leeways in milliseconds
+func NewSignatureValidator(fetcher KeyFetcher, nbfLeeway, expLeeway int32) Validator {
+	if nbfLeeway < 1000 {
+		nbfLeeway = 1000
+	}
+	if expLeeway < 1000 {
+		expLeeway = 1000
+	}
+	return &signatureValidator{fetcher, nbfLeeway, expLeeway}
 }
 
 func (v *signatureValidator) Validate(t Token) error {
@@ -215,5 +223,5 @@ func (v *signatureValidator) Validate(t Token) error {
 	if e != nil {
 		return e
 	}
-	return t.Validate(k, signingMethod, &jwt.Validator{EXP: time.Second, NBF: time.Second})
+	return t.Validate(k, signingMethod, &jwt.Validator{EXP: time.Millisecond * time.Duration(v.expLeeway), NBF: time.Millisecond * time.Duration(v.nbfLeeway)})
 }
