@@ -200,11 +200,15 @@ type signatureValidator struct {
 // NewSignatureValidator enforces that tokens are signed by the key they claim
 // to be using a KeyFetcher for retrieving the public key and nbf/exp leeways in milliseconds
 func NewSignatureValidator(fetcher KeyFetcher, nbfLeeway, expLeeway int32) Validator {
-	if nbfLeeway == 0 {
+	if nbfLeeway < 1000 {
 		nbfLeeway = 1000
+	} else if nbfLeeway > 30000 {
+		nbfLeeway = 30000
 	}
-	if expLeeway == 0 {
+	if expLeeway < 1000 {
 		expLeeway = 1000
+	} else if expLeeway > 30000 {
+		expLeeway = 30000
 	}
 	return &signatureValidator{fetcher, nbfLeeway, expLeeway}
 }
