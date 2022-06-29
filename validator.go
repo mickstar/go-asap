@@ -11,6 +11,12 @@ import (
 	"github.com/SermoDigital/jose/jwt"
 )
 
+const (
+	minLeeway     = time.Second
+	defaultLeeway = time.Second
+	maxLeeway     = 30 * time.Second
+)
+
 // Validator is a component used to validate incoming ASAP tokens.
 // Example implementations would include one that ensure all
 // required claims are present for ASAP and one that verifies
@@ -192,26 +198,35 @@ var DefaultValidator = NewValidatorChain(
 )
 
 type signatureValidator struct {
-	fetcher   KeyFetcher
-	nbfLeeway int32
-	expLeeway int32
+	fetcher KeyFetcher
+	leeway  time.Duration
+}
+
+// SignatureValidatorOption is a functional option type for setting custom values
+// for fields on SignatureValidators
+type SignatureValidatorOption func(*signatureValidator)
+
+// WithLeeway is a SignatureValidatorOption that takes in a time.Duration between 1s and 30s
+// which can be used to set the leeway for NBF and EXP to account for server clock skew
+func WithLeeway(l time.Duration) SignatureValidatorOption {
+	return func(sv *signatureValidator) {
+		if l < minLeeway {
+			l = minLeeway
+		} else if l > maxLeeway {
+			l = maxLeeway
+		}
+		sv.leeway = l
+	}
 }
 
 // NewSignatureValidator enforces that tokens are signed by the key they claim
-// to be using a KeyFetcher for retrieving the public key and nbf/exp leeways in milliseconds
-// (MIN=1000ms, MAX=30000ms)
-func NewSignatureValidator(fetcher KeyFetcher, nbfLeeway, expLeeway int32) Validator {
-	if nbfLeeway < 1000 {
-		nbfLeeway = 1000
-	} else if nbfLeeway > 30000 {
-		nbfLeeway = 30000
+// to be.
+func NewSignatureValidator(fetcher KeyFetcher, options ...SignatureValidatorOption) Validator {
+	validator := &signatureValidator{fetcher, defaultLeeway}
+	for _, opt := range options {
+		opt(validator)
 	}
-	if expLeeway < 1000 {
-		expLeeway = 1000
-	} else if expLeeway > 30000 {
-		expLeeway = 30000
-	}
-	return &signatureValidator{fetcher, nbfLeeway, expLeeway}
+	return validator
 }
 
 func (v *signatureValidator) Validate(t Token) error {
@@ -228,5 +243,5 @@ func (v *signatureValidator) Validate(t Token) error {
 	if e != nil {
 		return e
 	}
-	return t.Validate(k, signingMethod, &jwt.Validator{EXP: time.Millisecond * time.Duration(v.expLeeway), NBF: time.Millisecond * time.Duration(v.nbfLeeway)})
+	return t.Validate(k, signingMethod, &jwt.Validator{EXP: v.leeway, NBF: v.leeway})
 }
