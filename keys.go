@@ -198,10 +198,12 @@ type keyLookupBadResponseError struct {
 }
 
 var (
-	cachedKey        = "asap.key.cache.hit"
-	expiredKey       = "asap.key.cache.expired"
-	cachedLookupMiss = "asap.key.cache.lookup_miss"
-	cacheMiss        = "asap.key.cache.miss"
+	cachedKey           = "asap.key.cache.hit"
+	expiredKey          = "asap.key.cache.expired"
+	cachedLookupMiss    = "asap.key.cache.lookup_miss"
+	cacheMiss           = "asap.key.cache.miss"
+	cacheRefreshSuccess = "asap.key.cache.refresh.success"
+	cacheForceReload    = "asap.key.cache.refresh.force_reload"
 )
 
 type expiringCacheFetcher struct {
@@ -366,6 +368,7 @@ func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
 	if value, ok := f.cache.Load(keyID); ok {
 		var cached, ok = value.(keyExpirationPair)
 		if ok && cached.expiration.After(f.timeNow()) {
+			f.incr(cacheRefreshSuccess)
 			return cached.key, nil
 		}
 
@@ -382,6 +385,7 @@ func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
 		}
 		return nil, err
 	}
+	f.incr(cacheForceReload)
 	f.cache.Store(keyID, result)
 	return result.key, nil
 }

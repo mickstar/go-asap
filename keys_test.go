@@ -972,9 +972,10 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 	}
 
 	if !reflect.DeepEqual(stats.calls, map[string]float64{
-		"asap.key.cache.expired": 1,
-		"asap.key.cache.hit":     1,
-		"asap.key.cache.miss":    1,
+		"asap.key.cache.expired":              1,
+		"asap.key.cache.hit":                  1,
+		"asap.key.cache.miss":                 1,
+		"asap.key.cache.refresh.force_reload": 2,
 	}) {
 		t.Fatalf("Unexpected stats response: %+v", stats.calls)
 	}
