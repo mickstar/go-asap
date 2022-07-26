@@ -244,11 +244,7 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duratio
 		ec.maxCacheSize = defaultMaxKeyCacheSize
 	}
 
-	return &expiringCacheFetcher{
-		baseURL: baseURL,
-		client:  client,
-		timeNow: time.Now,
-	}, nil
+	return ec, nil
 }
 
 func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
