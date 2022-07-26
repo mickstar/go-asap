@@ -12,6 +12,7 @@ import (
 	"path"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/pquerna/cachecontrol/cacheobject"
@@ -206,13 +207,18 @@ var (
 	cacheForceReload    = "asap.key.cache.refresh.force_reload"
 )
 
+const defaultMaxKeyCacheSize = 10000
+
 type expiringCacheFetcher struct {
-	keyLocks   sync.Map
-	baseURL    string
-	client     *http.Client
-	cache      sync.Map
-	timeNow    func() time.Time
-	cacheStats func(stat string, count float64, tags ...string)
+	purge        chan struct{}
+	keyLocks     sync.Map
+	baseURL      string
+	client       *http.Client
+	cache        sync.Map
+	timeNow      func() time.Time
+	cacheSize    int64
+	maxCacheSize int64
+	cacheStats   func(stat string, count float64, tags ...string)
 }
 
 // NewExpiringCacheFetcher wraps a given KeyFetcher implementation that returns a keyExpirationPair with an in-memory
@@ -225,6 +231,17 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duratio
 
 	if !strings.HasSuffix(baseURL, "/") {
 		baseURL = baseURL + "/"
+	}
+
+	ec := &expiringCacheFetcher{
+		purge:   make(chan struct{}, 1),
+		baseURL: baseURL,
+		client:  client,
+		timeNow: time.Now,
+	}
+
+	if ec.maxCacheSize == 0 {
+		ec.maxCacheSize = defaultMaxKeyCacheSize
 	}
 
 	return &expiringCacheFetcher{
@@ -246,6 +263,11 @@ func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats
 // stats related to the expiring cache
 func (c *expiringCacheFetcher) WithCacheStats(count func(stat string, count float64, tags ...string)) *expiringCacheFetcher {
 	c.cacheStats = count
+	return c
+}
+
+func (c *expiringCacheFetcher) WithMaxCacheSize(maxCacheSize int64) *expiringCacheFetcher {
+	c.maxCacheSize = maxCacheSize
 	return c
 }
 
@@ -355,12 +377,18 @@ func (f *expiringCacheFetcher) reloadOrPurge(keyID string) {
 	_, err := f.reload(keyID)
 	if _, ok := err.(keyLookupBadResponseError); ok {
 		f.cache.Delete(keyID)
+		atomic.AddInt64(&f.cacheSize, -1)
 	}
 }
 
 func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
 	// Cache miss identified. Wait for (potentially) another cache refresh
-	lock, _ := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
+	lock, loaded := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
+
+	if !loaded {
+		atomic.AddInt64(&f.cacheSize, 1)
+	}
+
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()
 
@@ -381,15 +409,25 @@ func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
 	result, err := f.fetchHTTPKey(keyID)
 	if err != nil {
 		if v, ok := err.(keyLookupMissError); ok {
-			f.cache.Store(keyID, v)
+			f.Store(keyID, v)
 		}
 		return nil, err
 	}
 	f.incr(cacheForceReload)
-	f.cache.Store(keyID, result)
+	f.Store(keyID, result)
 	return result.key, nil
 }
 
 func (f *expiringCacheFetcher) Close() error {
 	return nil
+}
+
+func (f *expiringCacheFetcher) Store(k string, v interface{}) {
+	if atomic.LoadInt64(&f.cacheSize) < f.maxCacheSize {
+		f.cache.Store(k, v)
+		atomic.AddInt64(&f.cacheSize, 1)
+	} else if len(f.purge) < cap(f.purge) {
+		var trigger struct{}
+		f.purge <- trigger
+	}
 }

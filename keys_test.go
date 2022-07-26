@@ -8,9 +8,11 @@ import (
 	"os"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
 	"github.com/vincent-petithory/dataurl"
 	"golang.org/x/sync/errgroup"
 )
@@ -282,11 +284,13 @@ func TestExpiringHTTPFetcherFetch(t *testing.T) {
 	}
 
 	var f = fetcher.(*expiringCacheFetcher)
+
 	_, e = f.Fetch("TEST")
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
 	}
 	value, ok := f.cache.Load("TEST")
+
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
 	}
@@ -302,6 +306,7 @@ func TestExpiringHTTPFetcherFetch(t *testing.T) {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
 	}
 	value, ok = f.cache.Load("NEWKEY")
+	fmt.Println(f.cacheSize)
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher did not contain key NEWKEY")
 	}
@@ -979,4 +984,30 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 	}) {
 		t.Fatalf("Unexpected stats response: %+v", stats.calls)
 	}
+}
+
+func TestKeyCacheSizeLimit(t *testing.T) {
+	t.Parallel()
+
+	var response = &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+	}
+	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
+	var client = &http.Client{Transport: transport}
+
+	fetcher, _ := NewExpiringCacheFetcher("http://localhost", client, time.Duration(2*time.Minute))
+
+	cacheImpl := fetcher.(*expiringCacheFetcher).WithMaxCacheSize(2)
+
+	token := makeToken("key", time.Now().Add(time.Minute))
+	cacheImpl.Store("key", token)
+	require.Equal(t, int64(1), atomic.LoadInt64(&cacheImpl.cacheSize))
+
+	cacheImpl.Store("key2", token)
+	require.Equal(t, int64(2), atomic.LoadInt64(&cacheImpl.cacheSize))
+
+	cacheImpl.Store("key3", token)
+	require.Equal(t, int64(2), atomic.LoadInt64(&cacheImpl.cacheSize))
 }
