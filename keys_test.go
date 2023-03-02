@@ -306,7 +306,7 @@ func TestExpiringHTTPFetcherFetch(t *testing.T) {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
 	}
 	value, ok = f.cache.Load("NEWKEY")
-	fmt.Println(f.cacheSize)
+
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher did not contain key NEWKEY")
 	}
