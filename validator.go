@@ -75,14 +75,18 @@ func (v *requiredClaimsValidator) Validate(t Token) error {
 
 type allowedStringsValidator struct {
 	claimName      string
-	allowedStrings []string
+	allowedStrings map[string]struct{} // (0 bytes value) set like structure for faster lookups
 }
 
 // NewAllowedStringsValidator takes a claim name and set of allowed string
 // values. If a value is given for the claim that is not in the list then the
 // Validator will return an error.
 func NewAllowedStringsValidator(name string, values ...string) Validator {
-	return &allowedStringsValidator{name, values}
+	var allowedStrings = make(map[string]struct{}, len(values))
+	for _, v := range values {
+		allowedStrings[v] = struct{}{}
+	}
+	return &allowedStringsValidator{name, allowedStrings}
 }
 
 func (v *allowedStringsValidator) Validate(t Token) error {
@@ -90,10 +94,8 @@ func (v *allowedStringsValidator) Validate(t Token) error {
 	if !ok {
 		return fmt.Errorf("Claim %s did not contain a string value", v.claimName)
 	}
-	for _, allowed := range v.allowedStrings {
-		if claimValue == allowed {
-			return nil
-		}
+	if _, ok := v.allowedStrings[claimValue]; ok {
+		return nil
 	}
 	return fmt.Errorf("Claim %s:%s did not match an approved value", v.claimName, claimValue)
 }
