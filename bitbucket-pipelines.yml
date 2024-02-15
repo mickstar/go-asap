@@ -29,7 +29,7 @@ definitions:
     - step: &go-mod-tag
         name: Tag
         script:
-          - export NEXT_VERSION=$(git fetch --tags && git describe --tags --abbrev=0 | awk -F. -v OFS=. '{$NF += 1 ; print}')
+          - export NEXT_VERSION=$(git fetch --tags && git describe --tags --abbrev=0 | awk -F. -v OFS=. '{$2 += 1 ; print}')
           - echo "\n***** Applying version tag ${NEXT_VERSION} *****"
           - git tag -a -m "[skip ci] Tagging with build version" "${NEXT_VERSION}"
           - git push origin ${NEXT_VERSION}
