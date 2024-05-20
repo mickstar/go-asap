@@ -45,6 +45,11 @@ func NewProvisioner(kid string, ttl time.Duration, issuer string, audience []str
 
 // NewMicrosProvisioner uses the contracted ASAP env var to populate the
 // provisioner. Contract documentation: https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
+//
+// Please note that as environment variables are not automatically
+// available in Lambda functions you will need to use NewProvisioner instead,
+// and provide values retrieved with the micros-serverless-platform-libs
+// library.
 func NewMicrosProvisioner(audience []string, ttl time.Duration) Provisioner {
 	return NewProvisioner(os.Getenv("ASAP_KEY_ID"), ttl, os.Getenv("ASAP_ISSUER"), audience, crypto.SigningMethodRS256)
 }
