@@ -65,6 +65,15 @@ func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
 	return keyID, nil
 }
 
+func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error) {
+	privateKey, exists := p.privateKeys[keyID]
+	if !exists {
+		return nil, errors.Errorf("Failed to get the private key from the map; keyID: %s", keyID)
+	}
+
+	return privateKey, nil
+}
+
 func (p *SecretsManagerKeypairProvider) getTheSecretValue() (map[string]string, error) {
 	getSecretValueInput := &secretsmanager.GetSecretValueInput{
 		SecretId: aws.String(p.privateKeyARN),

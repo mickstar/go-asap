@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"bitbucket.org/atlassian/go-asap/v2/mocks"
 )
@@ -90,6 +91,49 @@ func TestGetKeyID(t *testing.T) {
 
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "Failed to get the private key from the secret value")
+	})
+}
+
+func TestFetch(t *testing.T) {
+	t.Run("Gets the private key", func(t *testing.T) {
+		mockSecretsManager, provider := buildMockAndProvider(t)
+
+		input := &secretsmanager.GetSecretValueInput{
+			SecretId: aws.String(testSecretARN),
+		}
+		secretString := fmt.Sprintf(`{"ASAP_KEY_ID":"%s","ASAP_PRIVATE_KEY":"%s"}`, testKeyID, testPrivateKey) // nolint: gosec
+		output := &secretsmanager.GetSecretValueOutput{
+			SecretString: aws.String(secretString),
+		}
+		mockSecretsManager.On("GetSecretValue", input).Return(output, nil)
+
+		keyID, err := provider.GetKeyID()
+		require.NoError(t, err)
+		privateKey, err := provider.Fetch(keyID)
+
+		assert.NoError(t, err)
+		assert.Equal(t, "testPrivateKey", privateKey)
+	})
+
+	t.Run("Returns an error when failing to get the private key", func(t *testing.T) {
+		mockSecretsManager, provider := buildMockAndProvider(t)
+
+		input := &secretsmanager.GetSecretValueInput{
+			SecretId: aws.String(testSecretARN),
+		}
+		secretString := fmt.Sprintf(`{}`) // nolint: gosec
+		output := &secretsmanager.GetSecretValueOutput{
+			SecretString: aws.String(secretString),
+		}
+		mockSecretsManager.On("GetSecretValue", input).Return(output, nil)
+
+		_, err := provider.GetKeyID()
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Failed to get the keyID from the secret value")
+		_, err = provider.Fetch(testKeyID)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Failed to get the private key from the map")
 	})
 }
 
