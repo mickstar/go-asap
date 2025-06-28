@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -12,6 +13,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/pkg/errors"
+)
+
+const (
+	minCacheTTL     = 10 * time.Minute
+	maxCacheTTL     = 2 * time.Hour
+	defaultCacheTTL = 1 * time.Hour
 )
 
 var (
@@ -23,28 +30,55 @@ type SecretsManagerAPI interface {
 }
 
 type SecretsManagerKeypairProvider struct {
-	client        SecretsManagerAPI
-	privateKeys   map[string]string
-	privateKeyARN string
+	client          SecretsManagerAPI
+	privateKeyARN   string
+	cacheTTL        time.Duration
+	latestKeyID     string
+	privateKeys     map[string]string
+	lastUpdatedTime time.Time
 }
 
-func NewSecretsManagerKeypairProvider(privateKeyARN string, region string, role string) (*SecretsManagerKeypairProvider, error) {
-	err := validateTheInput(region, role)
+func NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL string) (*SecretsManagerKeypairProvider, error) {
+	err := validateTheRegionAndRole(region, role)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Invalid input; region: %s; role: %s", region, role)
 	}
 
+	cacheTTLDuration, err := parseTheCacheTTL(cacheTTL)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to validate the cacheTTL")
+	}
+
 	secretsManagerClient := buildTheSecretsManagerClient(region, role)
 	provider := &SecretsManagerKeypairProvider{
-		client:        secretsManagerClient,
-		privateKeys:   map[string]string{},
-		privateKeyARN: privateKeyARN,
+		client:          secretsManagerClient,
+		privateKeyARN:   privateKeyARN,
+		cacheTTL:        time.Duration(0), // force a cache refresh
+		latestKeyID:     "",
+		privateKeys:     map[string]string{},
+		lastUpdatedTime: time.Now(),
 	}
+
+	keyID, err := provider.GetKeyID()
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to get the keyID during initialization; privateKeyARN: %s", privateKeyARN)
+	}
+
+	provider.latestKeyID = keyID
+	provider.cacheTTL = cacheTTLDuration
 
 	return provider, nil
 }
 
 func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
+	currentTime := time.Now()
+	cacheRefreshTime := p.lastUpdatedTime.Add(p.cacheTTL)
+	isTimeToRefresh := currentTime.After(cacheRefreshTime)
+
+	if !isTimeToRefresh {
+		return p.latestKeyID, nil
+	}
+
 	secretValue, err := p.getTheSecretValue()
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to get the secret value from Secrets Manager; privateKeyARN: %s", p.privateKeyARN)
@@ -60,9 +94,11 @@ func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
 		return "", errors.Errorf("Failed to get the private key from the secret value; privateKeyARN: %s", p.privateKeyARN)
 	}
 
-	p.privateKeys[keyID] = privateKey
+	p.latestKeyID = keyID
+	p.privateKeys[p.latestKeyID] = privateKey
+	p.lastUpdatedTime = time.Now()
 
-	return keyID, nil
+	return p.latestKeyID, nil
 }
 
 func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error) {
@@ -96,7 +132,7 @@ func (p *SecretsManagerKeypairProvider) getTheSecretValue() (map[string]string, 
 	return secretValue, nil
 }
 
-func validateTheInput(region string, role string) error {
+func validateTheRegionAndRole(region string, role string) error {
 	if region == "" {
 		return errors.New("The region is empty")
 	}
@@ -110,6 +146,23 @@ func validateTheInput(region string, role string) error {
 	}
 
 	return nil
+}
+
+func parseTheCacheTTL(cacheTTL string) (time.Duration, error) {
+	if cacheTTL == "" {
+		return defaultCacheTTL, nil
+	}
+
+	cacheTTLDuration, err := time.ParseDuration(cacheTTL)
+	if err != nil {
+		return 0, errors.Wrapf(err, "Failed to parse the duration; cacheTTL: %s", cacheTTL)
+	}
+
+	if cacheTTLDuration < minCacheTTL || cacheTTLDuration > maxCacheTTL {
+		return 0, errors.Errorf("Invalid cacheTTL; it must be between 10 minutes and 2 hours (inclusive); cacheTTL: %s", cacheTTLDuration)
+	}
+
+	return cacheTTLDuration, nil
 }
 
 func buildTheSecretsManagerClient(region string, role string) SecretsManagerAPI {
