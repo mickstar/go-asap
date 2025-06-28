@@ -11,8 +11,8 @@ import (
 )
 
 func TestGetKeyID(t *testing.T) {
-	t.Run("returns the keyID successfully", func(t *testing.T) {
-		secretARN := "arn:aws:secretsmanager:us-west-2:123456789012:secret:test-prefix"
+	t.Run("Gets the keyID successfully", func(t *testing.T) {
+		secretARN := "arn:aws:secretsmanager:us-west-2:123456789012:secret:test-prefix" // nolint: gosec
 		mockSecretsManager := mocks.NewSecretsManagerAPI(t)
 		provider := &SecretsManagerKeypairProvider{
 			client:        mockSecretsManager,
@@ -23,7 +23,7 @@ func TestGetKeyID(t *testing.T) {
 		input := &secretsmanager.GetSecretValueInput{
 			SecretId: aws.String(secretARN),
 		}
-		secretString := `{"ASAP_KEY_ID":"test-keyID","ASAP_PRIVATE_KEY":"private-key"}`
+		secretString := `{"ASAP_KEY_ID":"test-keyID","ASAP_PRIVATE_KEY":"private-key"}` // nolint: gosec
 		output := &secretsmanager.GetSecretValueOutput{
 			SecretString: aws.String(secretString),
 		}
