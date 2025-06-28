@@ -28,7 +28,7 @@ type SecretsManagerKeypairProvider struct {
 	privateKeyARN string
 }
 
-func NewSecretsManagerKeypairProvider(region string, role string) (*SecretsManagerKeypairProvider, error) {
+func NewSecretsManagerKeypairProvider(privateKeyARN string, region string, role string) (*SecretsManagerKeypairProvider, error) {
 	err := validateTheInput(region, role)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Invalid input; region: %s; role: %s", region, role)
@@ -36,10 +36,10 @@ func NewSecretsManagerKeypairProvider(region string, role string) (*SecretsManag
 
 	secretsManagerClient := buildTheSecretsManagerClient(region, role)
 	provider := &SecretsManagerKeypairProvider{
-		client: secretsManagerClient,
+		client:        secretsManagerClient,
+		privateKeys:   map[string]string{},
+		privateKeyARN: privateKeyARN,
 	}
-
-	provider.privateKeys = map[string]string{}
 
 	return provider, nil
 }
