@@ -26,6 +26,7 @@ Use OpenSSL from the command line to generate the key pairs.
 
 ### Generate a token for an outgoing request
 
+#### Original method using a static keypair
 
 ```go
 privateKey, _ := asap.NewPrivateKey([]byte(os.Getenv("ASAP_PRIVATE_KEY")))
@@ -35,6 +36,17 @@ headerValue, _ := token.Serialize(privateKey)
 bearer := fmt.Sprintf("Bearer %s", string(headerValue))
 ```
 
+#### New method using a dynamic autorotating keypair
+```go
+provider, _ := asap.NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL)
+provisioner := asap.NewDynamicKeyIDProvisioner(kid, ttl, issuer, audience, signingMethod, provider)
+
+token, _ := provisioner.Provision()
+keyID, _ := asap.GetKeyIDFromToken(token)
+privateKey, _ := provider.Fetch(keyID)
+headerValue, _ := token.Serialize(privateKey)
+bearer := fmt.Sprintf("Bearer %s", string(headerValue))
+```
 
 ### Validate incoming requests
 
