@@ -39,17 +39,17 @@ type SecretsManagerKeypairProvider struct {
 }
 
 func NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL string) (*SecretsManagerKeypairProvider, error) {
-	err := validateTheRegionAndRole(region, role)
+	err := validateRegionAndRole(region, role)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Invalid input; region: %s; role: %s", region, role)
 	}
 
-	cacheTTLDuration, err := parseTheCacheTTL(cacheTTL)
+	cacheTTLDuration, err := parseCacheTTL(cacheTTL)
 	if err != nil {
 		return nil, errors.Wrap(err, "Failed to validate the cacheTTL")
 	}
 
-	secretsManagerClient := buildTheSecretsManagerClient(region, role)
+	secretsManagerClient := buildSecretsManagerClient(region, role)
 	provider := &SecretsManagerKeypairProvider{
 		client:          secretsManagerClient,
 		privateKeyARN:   privateKeyARN,
@@ -79,7 +79,7 @@ func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
 		return p.latestKeyID, nil
 	}
 
-	secretValue, err := p.getTheSecretValue()
+	secretValue, err := p.getSecretValue()
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed to get the secret value from Secrets Manager; privateKeyARN: %s", p.privateKeyARN)
 	}
@@ -110,7 +110,7 @@ func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error)
 	return privateKey, nil
 }
 
-func (p *SecretsManagerKeypairProvider) getTheSecretValue() (map[string]string, error) {
+func (p *SecretsManagerKeypairProvider) getSecretValue() (map[string]string, error) {
 	getSecretValueInput := &secretsmanager.GetSecretValueInput{
 		SecretId: aws.String(p.privateKeyARN),
 	}
@@ -132,7 +132,7 @@ func (p *SecretsManagerKeypairProvider) getTheSecretValue() (map[string]string, 
 	return secretValue, nil
 }
 
-func validateTheRegionAndRole(region string, role string) error {
+func validateRegionAndRole(region string, role string) error {
 	if region == "" {
 		return errors.New("The region is empty")
 	}
@@ -148,7 +148,7 @@ func validateTheRegionAndRole(region string, role string) error {
 	return nil
 }
 
-func parseTheCacheTTL(cacheTTL string) (time.Duration, error) {
+func parseCacheTTL(cacheTTL string) (time.Duration, error) {
 	if cacheTTL == "" {
 		return defaultCacheTTL, nil
 	}
@@ -165,7 +165,7 @@ func parseTheCacheTTL(cacheTTL string) (time.Duration, error) {
 	return cacheTTLDuration, nil
 }
 
-func buildTheSecretsManagerClient(region string, role string) SecretsManagerAPI {
+func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 	useFIPSEndpoint := endpoints.FIPSEndpointStateDisabled
 	if os.Getenv("AWS_USE_FIPS_ENDPOINT") == "true" {
 		useFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
