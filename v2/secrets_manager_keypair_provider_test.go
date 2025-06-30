@@ -24,6 +24,7 @@ const (
 
 func TestGetKeyID(t *testing.T) {
 	t.Run("Gets the keyID and updates the variables (with cache refresh)", func(t *testing.T) {
+		t.Parallel()
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		originalLastUpdatedTime := provider.lastUpdatedTime
 		provider.cacheTTL = 0 // force a cache refresh
@@ -43,6 +44,7 @@ func TestGetKeyID(t *testing.T) {
 	})
 
 	t.Run("Gets the keyID (without cache refresh)", func(t *testing.T) {
+		t.Parallel()
 		_, provider := buildMockAndProvider(t)
 
 		keyID, err := provider.GetKeyID()
@@ -57,6 +59,7 @@ func TestGetKeyID(t *testing.T) {
 	})
 
 	t.Run("Gets the keyID and updates the variables after the secret value changes (with cache refresh)", func(t *testing.T) {
+		t.Parallel()
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		originalLastUpdatedTime := provider.lastUpdatedTime
 		provider.cacheTTL = 0 // force a cache refresh
@@ -76,6 +79,7 @@ func TestGetKeyID(t *testing.T) {
 	})
 
 	t.Run("Returns an error when failing to get the secret value", func(t *testing.T) {
+		t.Parallel()
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = 0 // force a cache refresh
 
@@ -92,6 +96,7 @@ func TestGetKeyID(t *testing.T) {
 	})
 
 	t.Run("Returns an error when failing to get the keyID from the secret value", func(t *testing.T) {
+		t.Parallel()
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = 0 // force a cache refresh
 
@@ -111,6 +116,7 @@ func TestGetKeyID(t *testing.T) {
 	})
 
 	t.Run("Returns an error when failing to get the private key from the secret value", func(t *testing.T) {
+		t.Parallel()
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = 0 // force a cache refresh
 
@@ -132,6 +138,7 @@ func TestGetKeyID(t *testing.T) {
 
 func TestFetch(t *testing.T) {
 	t.Run("Gets the private key", func(t *testing.T) {
+		t.Parallel()
 		_, provider := buildMockAndProvider(t)
 
 		keyID, err := provider.GetKeyID()
@@ -143,6 +150,7 @@ func TestFetch(t *testing.T) {
 	})
 
 	t.Run("Returns an error when failing to get the private key", func(t *testing.T) {
+		t.Parallel()
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = 0 // force a cache refresh
 

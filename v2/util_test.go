@@ -12,6 +12,7 @@ import (
 
 func TestGetKeyIDFromToken(t *testing.T) {
 	t.Run("Gets the keyID", func(t *testing.T) {
+		t.Parallel()
 		provisioner := NewProvisioner("testKeyID", time.Hour, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256)
 		token, err := provisioner.Provision()
 		require.NoError(t, err)
@@ -23,6 +24,7 @@ func TestGetKeyIDFromToken(t *testing.T) {
 	})
 
 	t.Run("Returns an error when failing to get the keyID", func(t *testing.T) {
+		t.Parallel()
 		provisioner := NewProvisioner("testKeyID", time.Hour, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256)
 		token, err := provisioner.Provision()
 		require.NoError(t, err)

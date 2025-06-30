@@ -9,7 +9,6 @@ import (
 )
 
 type DynamicKeyIDProvisioner struct {
-	kid           string
 	jitProvider   func() string
 	ttl           time.Duration
 	issuer        string
@@ -18,8 +17,8 @@ type DynamicKeyIDProvisioner struct {
 	provider      *SecretsManagerKeypairProvider
 }
 
-func NewDynamicKeyIDProvisioner(kid string, ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod, provider *SecretsManagerKeypairProvider) Provisioner {
-	return &DynamicKeyIDProvisioner{kid, func() string { return uuid.New().String() }, ttl, issuer, audience, signingMethod, provider}
+func NewDynamicKeyIDProvisioner(ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod, provider *SecretsManagerKeypairProvider) Provisioner {
+	return &DynamicKeyIDProvisioner{func() string { return uuid.New().String() }, ttl, issuer, audience, signingMethod, provider}
 }
 
 func (p *DynamicKeyIDProvisioner) Provision() (Token, error) {

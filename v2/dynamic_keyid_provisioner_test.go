@@ -16,11 +16,12 @@ import (
 
 func TestProvision(t *testing.T) {
 	t.Run("Creates a valid token", func(t *testing.T) {
+		t.Parallel()
 		ttl := time.Hour
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = time.Duration(0) // force a cache refresh
 		setUpMockWithValidSecretString(mockSecretsManager, testKeyID2, testPrivateKey2)
-		provisioner := NewDynamicKeyIDProvisioner("testKeyID", ttl, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256, provider)
+		provisioner := NewDynamicKeyIDProvisioner(ttl, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256, provider)
 
 		token, err := provisioner.Provision()
 
@@ -55,6 +56,7 @@ func TestProvision(t *testing.T) {
 	})
 
 	t.Run("Returns an error when failing to get the keyID", func(t *testing.T) {
+		t.Parallel()
 		ttl := time.Hour
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = time.Duration(0) // force a cache refresh
@@ -65,7 +67,7 @@ func TestProvision(t *testing.T) {
 		mockErr := errors.New("Internal server error")
 		mockSecretsManager.On("GetSecretValue", input).Return(nil, mockErr)
 
-		provisioner := NewDynamicKeyIDProvisioner("testKeyID", ttl, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256, provider)
+		provisioner := NewDynamicKeyIDProvisioner(ttl, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256, provider)
 
 		_, err := provisioner.Provision()
 
