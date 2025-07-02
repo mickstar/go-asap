@@ -79,24 +79,10 @@ func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
 		return p.latestKeyID, nil
 	}
 
-	secretValue, err := p.getSecretValue()
+	err := p.refreshCache()
 	if err != nil {
-		return "", errors.Wrapf(err, "Failed to get the secret value from Secrets Manager; privateKeyARN: %s", p.privateKeyARN)
+		return "", errors.Wrap(err, "Failed to refresh the cache")
 	}
-
-	keyID, exists := secretValue["ASAP_KEY_ID"]
-	if !exists {
-		return "", errors.Errorf("Failed to get the keyID from the secret value; privateKeyARN: %s", p.privateKeyARN)
-	}
-
-	privateKey, exists := secretValue["ASAP_PRIVATE_KEY"]
-	if !exists {
-		return "", errors.Errorf("Failed to get the private key from the secret value; privateKeyARN: %s", p.privateKeyARN)
-	}
-
-	p.latestKeyID = keyID
-	p.privateKeys[p.latestKeyID] = privateKey
-	p.lastUpdatedTime = time.Now()
 
 	return p.latestKeyID, nil
 }
@@ -108,6 +94,29 @@ func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error)
 	}
 
 	return privateKey, nil
+}
+
+func (p *SecretsManagerKeypairProvider) refreshCache() error {
+	secretValue, err := p.getSecretValue()
+	if err != nil {
+		return errors.Wrapf(err, "Failed to get the secret value from Secrets Manager; privateKeyARN: %s", p.privateKeyARN)
+	}
+
+	keyID, exists := secretValue["ASAP_KEY_ID"]
+	if !exists {
+		return errors.Errorf("Failed to get the keyID from the secret value; privateKeyARN: %s", p.privateKeyARN)
+	}
+
+	privateKey, exists := secretValue["ASAP_PRIVATE_KEY"]
+	if !exists {
+		return errors.Errorf("Failed to get the private key from the secret value; privateKeyARN: %s", p.privateKeyARN)
+	}
+
+	p.latestKeyID = keyID
+	p.privateKeys[p.latestKeyID] = privateKey
+	p.lastUpdatedTime = time.Now()
+
+	return nil
 }
 
 func (p *SecretsManagerKeypairProvider) getSecretValue() (map[string]string, error) {
