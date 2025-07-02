@@ -53,38 +53,28 @@ func NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL stri
 	provider := &SecretsManagerKeypairProvider{
 		client:          secretsManagerClient,
 		privateKeyARN:   privateKeyARN,
-		cacheTTL:        time.Duration(0), // force a cache refresh
+		cacheTTL:        cacheTTLDuration,
 		latestKeyID:     "",
 		privateKeys:     map[string]string{},
-		lastUpdatedTime: time.Now(),
+		lastUpdatedTime: time.Time{},
 	}
-
-	keyID, err := provider.GetKeyID()
-	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get the keyID during initialization; privateKeyARN: %s", privateKeyARN)
-	}
-
-	provider.latestKeyID = keyID
-	provider.cacheTTL = cacheTTLDuration
 
 	return provider, nil
 }
 
 func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
-	currentTime := time.Now()
-	cacheRefreshTime := p.lastUpdatedTime.Add(p.cacheTTL)
-	isTimeToRefresh := currentTime.After(cacheRefreshTime)
+	if p.latestKeyID == "" {
+		return p.refreshCache()
+	}
 
-	if !isTimeToRefresh {
+	_, keyIDExists := p.privateKeys[p.latestKeyID]
+	isTimeToRefresh := shouldRefreshCache(p.lastUpdatedTime, p.cacheTTL)
+
+	if keyIDExists && !isTimeToRefresh {
 		return p.latestKeyID, nil
 	}
 
-	err := p.refreshCache()
-	if err != nil {
-		return "", errors.Wrap(err, "Failed to refresh the cache")
-	}
-
-	return p.latestKeyID, nil
+	return p.refreshCache()
 }
 
 func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error) {
@@ -96,27 +86,27 @@ func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error)
 	return privateKey, nil
 }
 
-func (p *SecretsManagerKeypairProvider) refreshCache() error {
+func (p *SecretsManagerKeypairProvider) refreshCache() (string, error) {
 	secretValue, err := p.getSecretValue()
 	if err != nil {
-		return errors.Wrapf(err, "Failed to get the secret value from Secrets Manager; privateKeyARN: %s", p.privateKeyARN)
+		return "", errors.Wrapf(err, "Failed to get the secret value from Secrets Manager; privateKeyARN: %s", p.privateKeyARN)
 	}
 
 	keyID, exists := secretValue["ASAP_KEY_ID"]
 	if !exists {
-		return errors.Errorf("Failed to get the keyID from the secret value; privateKeyARN: %s", p.privateKeyARN)
+		return "", errors.Errorf("Failed to get the keyID from the secret value; privateKeyARN: %s", p.privateKeyARN)
 	}
 
 	privateKey, exists := secretValue["ASAP_PRIVATE_KEY"]
 	if !exists {
-		return errors.Errorf("Failed to get the private key from the secret value; privateKeyARN: %s", p.privateKeyARN)
+		return "", errors.Errorf("Failed to get the private key from the secret value; privateKeyARN: %s", p.privateKeyARN)
 	}
 
 	p.latestKeyID = keyID
 	p.privateKeys[p.latestKeyID] = privateKey
 	p.lastUpdatedTime = time.Now()
 
-	return nil
+	return p.latestKeyID, nil
 }
 
 func (p *SecretsManagerKeypairProvider) getSecretValue() (map[string]string, error) {
@@ -206,4 +196,10 @@ func handleClientError(err error, msg string, input interface{}) error {
 	}
 
 	return errors.Wrapf(err, "%s; awsErrorCode: %s; errorMessage: %s; input: %v", msg, awsErrCode, errMessage, input)
+}
+
+func shouldRefreshCache(lastUpdatedTime time.Time, cacheTTL time.Duration) bool {
+	currentTime := time.Now()
+	cacheRefreshTime := lastUpdatedTime.Add(cacheTTL)
+	return currentTime.After(cacheRefreshTime)
 }
