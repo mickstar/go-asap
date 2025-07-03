@@ -6,9 +6,24 @@ import (
 )
 
 func GetKeyIDFromToken(token Token) (string, error) {
-	keyID, ok := token.(jws.JWS).Protected().Get(ClaimKeyID).(string)
+	jsonWebSignature, ok := token.(jws.JWS)
 	if !ok {
-		return "", errors.New("Failed to get the keyID from the token")
+		return "", errors.New("Token is not a JSON web signature")
+	}
+
+	header := jsonWebSignature.Protected()
+	if header == nil {
+		return "", errors.New("Protected header is nil")
+	}
+
+	rawKeyID := header.Get(ClaimKeyID)
+	if rawKeyID == nil {
+		return "", errors.New("Missing the kid header")
+	}
+
+	keyID, ok := rawKeyID.(string)
+	if !ok {
+		return "", errors.New("kid header value is not a string")
 	}
 
 	return keyID, nil
