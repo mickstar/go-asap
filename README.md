@@ -39,7 +39,7 @@ bearer := fmt.Sprintf("Bearer %s", string(headerValue))
 #### New method using a dynamic autorotating keypair
 ```go
 provider, _ := asap.NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL)
-provisioner := asap.NewDynamicKeyIDProvisioner(kid, ttl, issuer, audience, signingMethod, provider)
+provisioner := asap.NewDynamicKeyIDProvisioner(ttl, issuer, audience, signingMethod, provider)
 
 token, _ := provisioner.Provision()
 keyID, _ := asap.GetKeyIDFromToken(token)

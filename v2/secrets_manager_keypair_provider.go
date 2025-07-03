@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"regexp"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,6 +32,7 @@ type SecretsManagerAPI interface {
 
 type SecretsManagerKeypairProvider struct {
 	client          SecretsManagerAPI
+	lock            sync.RWMutex
 	privateKeyARN   string
 	cacheTTL        time.Duration
 	latestKeyID     string
@@ -63,22 +65,34 @@ func NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL stri
 }
 
 func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
-	if p.latestKeyID == "" {
+	p.lock.RLock()
+	latestKeyID := p.latestKeyID
+	privateKeys := p.privateKeys
+	lastUpdatedTime := p.lastUpdatedTime
+	p.lock.RUnlock()
+
+	if latestKeyID == "" {
 		return p.refreshCache()
 	}
 
-	_, keyIDExists := p.privateKeys[p.latestKeyID]
-	isTimeToRefresh := shouldRefreshCache(p.lastUpdatedTime, p.cacheTTL)
+	p.lock.RLock()
+	_, keyIDExists := privateKeys[latestKeyID]
+	p.lock.RUnlock()
+
+	isTimeToRefresh := shouldRefreshCache(lastUpdatedTime, p.cacheTTL)
 
 	if keyIDExists && !isTimeToRefresh {
-		return p.latestKeyID, nil
+		return latestKeyID, nil
 	}
 
 	return p.refreshCache()
 }
 
 func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error) {
+	p.lock.RLock()
 	privateKey, exists := p.privateKeys[keyID]
+	p.lock.RUnlock()
+
 	if !exists {
 		return nil, errors.Errorf("Failed to get the private key from the map; keyID: %s", keyID)
 	}
@@ -102,6 +116,8 @@ func (p *SecretsManagerKeypairProvider) refreshCache() (string, error) {
 		return "", errors.Errorf("Failed to get the private key from the secret value; privateKeyARN: %s", p.privateKeyARN)
 	}
 
+	p.lock.Lock()
+	defer p.lock.Unlock()
 	p.latestKeyID = keyID
 	p.privateKeys[p.latestKeyID] = privateKey
 	p.lastUpdatedTime = time.Now()
