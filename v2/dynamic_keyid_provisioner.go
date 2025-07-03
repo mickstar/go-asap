@@ -14,10 +14,10 @@ type DynamicKeyIDProvisioner struct {
 	issuer        string
 	audience      []string
 	signingMethod crypto.SigningMethod
-	provider      *SecretsManagerKeypairProvider
+	provider      AutorotatingKeypairProvider
 }
 
-func NewDynamicKeyIDProvisioner(ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod, provider *SecretsManagerKeypairProvider) Provisioner {
+func NewDynamicKeyIDProvisioner(ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod, provider AutorotatingKeypairProvider) Provisioner {
 	return &DynamicKeyIDProvisioner{func() string { return uuid.New().String() }, ttl, issuer, audience, signingMethod, provider}
 }
 
