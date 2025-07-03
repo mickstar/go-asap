@@ -20,7 +20,7 @@ func TestProvision(t *testing.T) {
 		ttl := time.Hour
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = time.Duration(0) // force a cache refresh
-		setUpMockWithValidSecretString(mockSecretsManager, testKeyID2, testPrivateKey2)
+		setUpMockWithValidSecretString(mockSecretsManager, keyIDTwo, privateKeyTwo)
 		provisioner := NewDynamicKeyIDProvisioner(ttl, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256, provider)
 
 		token, err := provisioner.Provision()
@@ -52,7 +52,7 @@ func TestProvision(t *testing.T) {
 
 		keyID, ok := token.(jws.JWS).Protected().Get(ClaimKeyID).(string)
 		require.True(t, ok)
-		assert.Equal(t, "testKeyID2", keyID)
+		assert.Equal(t, "keyIDTwo", keyID)
 	})
 
 	t.Run("Returns an error when failing to get the keyID", func(t *testing.T) {
@@ -62,7 +62,7 @@ func TestProvision(t *testing.T) {
 		provider.cacheTTL = time.Duration(0) // force a cache refresh
 
 		input := &secretsmanager.GetSecretValueInput{
-			SecretId: aws.String(testSecretARN),
+			SecretId: aws.String(secretARN),
 		}
 		mockErr := errors.New("Internal server error")
 		mockSecretsManager.On("GetSecretValue", input).Return(nil, mockErr)
