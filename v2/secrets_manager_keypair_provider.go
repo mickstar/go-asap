@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	minCacheTTL     = 10 * time.Minute
+	minCacheTTL     = 1 * time.Second // set this low to test a cache refresh after a keypair rotation
 	maxCacheTTL     = 2 * time.Hour
 	defaultCacheTTL = 1 * time.Hour
 )
