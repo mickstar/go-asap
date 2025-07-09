@@ -178,7 +178,7 @@ func parseCacheTTL(cacheTTL string) (time.Duration, error) {
 	}
 
 	if cacheTTLDuration < minCacheTTL || cacheTTLDuration > maxCacheTTL {
-		return 0, errors.Errorf("Invalid cacheTTL; it must be between 10 minutes and 2 hours (inclusive); cacheTTL: %s", cacheTTLDuration)
+		return 0, errors.Errorf("Invalid cacheTTL; it must be between 1 second and 2 hours (inclusive); cacheTTL: %s", cacheTTLDuration)
 	}
 
 	return cacheTTLDuration, nil
