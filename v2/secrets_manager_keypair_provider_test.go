@@ -1,6 +1,7 @@
 package asap
 
 import (
+	"crypto/rsa"
 	"fmt"
 	"testing"
 	"time"
@@ -18,8 +19,8 @@ const (
 	secretARN     = "arn:aws:secretsmanager:us-west-2:123456789012:secret:testPrefix" // nolint: gosec
 	keyIDOne      = "keyIDOne"
 	keyIDTwo      = "keyIDTwo"
-	privateKeyOne = "privateKeyOne"
-	privateKeyTwo = "privateKeyTwo"
+	privateKeyOne = "data:application/pkcs8;kid=keyIDOne;base64,MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDLUDAHZOHHOocBORGT6dm4nec69G9hsryM1Et/U71rRyrbg3pEQrO2UNmLi3RFIBMW7K/i/M7dDmJENRlsTBJU/d9NcTNAsMotvgMXnlpgQS/1/GTeG2hWPoKCXJmsDLpvrk3KJmBGtzt5IGJsErQ6JjrmV6R6KgtSSP4E+xbjhcCabTBJfbOKtiizcimSlMYkvuuZkA6FCt1/uRMGtvTpUxmchXdVn/LTKUiNaESpQbKp5Wez7+4opaGRyBxe4uPOLdu8D0bYDAmDt6h/Mryqme9fEzfZPv1wr+toj4SOzCgsreGtV2iKYdQNh4wnpS0uDNgVL8BqqAuEidfBClBDAgMBAAECggEAT6KbDWpgXS75jmsSDYO9eeivl5ICxpvB6s+EutzMBucbTFwVWgNebP0CGPyIkELd907CHgCz7jYiG2FJEfhB/fRqsOS0FJSqvHv+rhOihq1B4fH4eF734UAe0nz+3DsoE3KMma+qakh/DRS4OGijG1u6Glsd25P4V0Sr6ruG3Zrk1MVvCCQdGyrke2ogWcnapGIE9wa5U+C5r10mDZHgCNrH5qYPNkZMYHk4NMob3vSrmuweekKjo61K/F2CuhfF9L08bT3c8Fcwz1S114XWDMqlI65d4DGm05/6lqzy38OoeqvOfQULr+rqfFlgLpVAfHtTTGz1J2dASLU7evvUYQKBgQDRfpyVh+3OdLuATlDostXj1xCqkHsjzJx+MfBAgmFcJbAYIlVpNp8LglYTppnbmBeNACBMrEhnSDA45jWuDnlBZUYB7Y0CKxSGlum3pp+O/P85IOrTIn8AzhLfjC3ZdeUylf+ja5zojWqE25H3Th27LIryCUaLLTHUmWU74tzQywKBgQD4cku1ugLjUWBxZv+q56l1Ua7g/Naajbo1k7mR4u+4IZJdHMiUWcml7ULk+uNi7uSXed0bIDdQj+jYuirIjSQ+YNDcrI8NL3Lh8KOGaij5HZdXf6THGWeofhXVe6aQgLuipu7vSNBVS5XFo32BJN5lmjtQVp/F4YdzVW/ryYVnaQKBgHgwOmdzX5SF1hirVbHa/+lCNpaUY4FLXzDrN5na8z5phNijwfql0qNIuFd3ymd4n3JOczlp0fQnLztFn+Bm/1vsXTi376Eh1BnPNPEfEAV50ncVEoPlE5YDpEJKaveKst7NvaclExU8JLNqQRjv4RDEYkav2Z/5YtBE3RZ5dhP3AoGAZsS4hopUCX2u3BnT5fj/wrSwFwbfKn03qlPZ7fumV08jwPpYCe1+GPGkux0Ak/rnebUB/ed8mgl9MrEHY3/mnxrjKnUCk1yuM8Gbks00958C7EGzglwC4dKN64nDY4CsnOJacYZ4DuA+Ksuu7Y23pOWAZYH/gxYANnf/3NO2KAkCgYEAw3xB5L+Wzfl3NnX411iV2d9nK+R7fp5m9rA5wDNiUJTq1J3J8iidh98kHhYpib+IOOAdTTD25mod93637EoTQEyqEJ3B1a+h26Si0Qtbhe+WfQWWK4/tGsYA/wW3h5N2Ufr90f7IZKhFWqZZeKCxx0IIlvIxwoDPziR6n5r5JDo="
+	privateKeyTwo = "data:application/pkcs8;kid=keyIDTwo;base64,MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDLUDAHZOHHOocBORGT6dm4nec69G9hsryM1Et/U71rRyrbg3pEQrO2UNmLi3RFIBMW7K/i/M7dDmJENRlsTBJU/d9NcTNAsMotvgMXnlpgQS/1/GTeG2hWPoKCXJmsDLpvrk3KJmBGtzt5IGJsErQ6JjrmV6R6KgtSSP4E+xbjhcCabTBJfbOKtiizcimSlMYkvuuZkA6FCt1/uRMGtvTpUxmchXdVn/LTKUiNaESpQbKp5Wez7+4opaGRyBxe4uPOLdu8D0bYDAmDt6h/Mryqme9fEzfZPv1wr+toj4SOzCgsreGtV2iKYdQNh4wnpS0uDNgVL8BqqAuEidfBClBDAgMBAAECggEAT6KbDWpgXS75jmsSDYO9eeivl5ICxpvB6s+EutzMBucbTFwVWgNebP0CGPyIkELd907CHgCz7jYiG2FJEfhB/fRqsOS0FJSqvHv+rhOihq1B4fH4eF734UAe0nz+3DsoE3KMma+qakh/DRS4OGijG1u6Glsd25P4V0Sr6ruG3Zrk1MVvCCQdGyrke2ogWcnapGIE9wa5U+C5r10mDZHgCNrH5qYPNkZMYHk4NMob3vSrmuweekKjo61K/F2CuhfF9L08bT3c8Fcwz1S114XWDMqlI65d4DGm05/6lqzy38OoeqvOfQULr+rqfFlgLpVAfHtTTGz1J2dASLU7evvUYQKBgQDRfpyVh+3OdLuATlDostXj1xCqkHsjzJx+MfBAgmFcJbAYIlVpNp8LglYTppnbmBeNACBMrEhnSDA45jWuDnlBZUYB7Y0CKxSGlum3pp+O/P85IOrTIn8AzhLfjC3ZdeUylf+ja5zojWqE25H3Th27LIryCUaLLTHUmWU74tzQywKBgQD4cku1ugLjUWBxZv+q56l1Ua7g/Naajbo1k7mR4u+4IZJdHMiUWcml7ULk+uNi7uSXed0bIDdQj+jYuirIjSQ+YNDcrI8NL3Lh8KOGaij5HZdXf6THGWeofhXVe6aQgLuipu7vSNBVS5XFo32BJN5lmjtQVp/F4YdzVW/ryYVnaQKBgHgwOmdzX5SF1hirVbHa/+lCNpaUY4FLXzDrN5na8z5phNijwfql0qNIuFd3ymd4n3JOczlp0fQnLztFn+Bm/1vsXTi376Eh1BnPNPEfEAV50ncVEoPlE5YDpEJKaveKst7NvaclExU8JLNqQRjv4RDEYkav2Z/5YtBE3RZ5dhP3AoGAZsS4hopUCX2u3BnT5fj/wrSwFwbfKn03qlPZ7fumV08jwPpYCe1+GPGkux0Ak/rnebUB/ed8mgl9MrEHY3/mnxrjKnUCk1yuM8Gbks00958C7EGzglwC4dKN64nDY4CsnOJacYZ4DuA+Ksuu7Y23pOWAZYH/gxYANnf/3NO2KAkCgYEAw3xB5L+Wzfl3NnX411iV2d9nK+R7fp5m9rA5wDNiUJTq1J3J8iidh98kHhYpib+IOOAdTTD25mod93637EoTQEyqEJ3B1a+h26Si0Qtbhe+WfQWWK4/tGsYA/wW3h5N2Ufr90f7IZKhFWqZZeKCxx0IIlvIxwoDPziR6n5r5JDo="
 )
 
 func TestGetKeyID(t *testing.T) {
@@ -36,7 +37,7 @@ func TestGetKeyID(t *testing.T) {
 
 		privateKey, exists := provider.privateKeys[provider.latestKeyID]
 		assert.True(t, exists)
-		assert.Equal(t, "privateKeyOne", privateKey)
+		assert.IsType(t, &rsa.PrivateKey{}, privateKey)
 		assert.Equal(t, "keyIDOne", provider.latestKeyID)
 	})
 
@@ -61,7 +62,7 @@ func TestGetKeyID(t *testing.T) {
 
 		privateKey, exists := provider.privateKeys[provider.latestKeyID]
 		assert.True(t, exists)
-		assert.Equal(t, "privateKeyTwo", privateKey)
+		assert.IsType(t, &rsa.PrivateKey{}, privateKey)
 		assert.Equal(t, "keyIDTwo", provider.latestKeyID)
 	})
 
@@ -84,7 +85,7 @@ func TestGetKeyID(t *testing.T) {
 
 		privateKey, exists := provider.privateKeys[provider.latestKeyID]
 		assert.True(t, exists)
-		assert.Equal(t, "privateKeyOne", privateKey)
+		assert.IsType(t, &rsa.PrivateKey{}, privateKey)
 		assert.Equal(t, "keyIDOne", provider.latestKeyID)
 	})
 
@@ -155,7 +156,7 @@ func TestFetch(t *testing.T) {
 		privateKey, err := provider.Fetch(keyID)
 
 		assert.NoError(t, err)
-		assert.Equal(t, "privateKeyOne", privateKey)
+		assert.IsType(t, &rsa.PrivateKey{}, privateKey)
 	})
 
 	t.Run("Returns an error when failing to get the private key", func(t *testing.T) {
