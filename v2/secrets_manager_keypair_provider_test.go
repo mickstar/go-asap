@@ -189,7 +189,7 @@ func buildMockAndProvider(t *testing.T) (*mocks.SecretsManagerAPI, *SecretsManag
 		privateKeyARN:   secretARN,
 		cacheTTL:        defaultCacheTTL,
 		latestKeyID:     "",
-		privateKeys:     map[string]string{},
+		privateKeys:     map[string]interface{}{},
 		lastUpdatedTime: time.Time{},
 	}
 
