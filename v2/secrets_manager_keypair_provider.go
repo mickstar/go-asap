@@ -36,7 +36,7 @@ type SecretsManagerKeypairProvider struct {
 	privateKeyARN   string
 	cacheTTL        time.Duration
 	latestKeyID     string
-	privateKeys     map[string]string
+	privateKeys     map[string]interface{}
 	lastUpdatedTime time.Time
 }
 
@@ -57,7 +57,7 @@ func NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL stri
 		privateKeyARN:   privateKeyARN,
 		cacheTTL:        cacheTTLDuration,
 		latestKeyID:     "",
-		privateKeys:     map[string]string{},
+		privateKeys:     map[string]interface{}{},
 		lastUpdatedTime: time.Time{},
 	}
 
@@ -115,11 +115,15 @@ func (p *SecretsManagerKeypairProvider) refreshCache() (string, error) {
 	if !exists {
 		return "", errors.Errorf("Failed to get the private key from the secret value; privateKeyARN: %s", p.privateKeyARN)
 	}
+	privateKeyPem, err := NewPrivateKey([]byte(privateKey))
+	if err != nil {
+		return "", errors.Wrap(err, "Failed to convert the private key into PEM format")
+	}
 
 	p.lock.Lock()
 	defer p.lock.Unlock()
 	p.latestKeyID = keyID
-	p.privateKeys[p.latestKeyID] = privateKey
+	p.privateKeys[p.latestKeyID] = privateKeyPem
 	p.lastUpdatedTime = time.Now()
 
 	return p.latestKeyID, nil
