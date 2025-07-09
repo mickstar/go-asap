@@ -194,10 +194,16 @@ func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 		},
 	}))
 
-	conf := &aws.Config{}
-	conf.Credentials = stscreds.NewCredentials(sess, role)
-
-	client := secretsmanager.New(sess, conf)
+	var client SecretsManagerAPI
+	if role == "" {
+		// use the existing role
+		client = secretsmanager.New(sess)
+	} else {
+		// assume role into a different role
+		conf := &aws.Config{}
+		conf.Credentials = stscreds.NewCredentials(sess, role)
+		client = secretsmanager.New(sess, conf)
+	}
 
 	return client
 }
