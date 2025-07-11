@@ -157,7 +157,7 @@ func validateRegionAndRole(region string, role string) error {
 	}
 
 	if role == "" {
-		return errors.New("The role ARN is empty")
+		return nil
 	}
 
 	if !IAMRoleArnRegex.MatchString(role) {
@@ -199,7 +199,9 @@ func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 	}))
 
 	conf := &aws.Config{}
-	conf.Credentials = stscreds.NewCredentials(sess, role)
+	if role != "" {
+		conf.Credentials = stscreds.NewCredentials(sess, role)
+	}
 
 	client := secretsmanager.New(sess, conf)
 
