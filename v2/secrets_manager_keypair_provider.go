@@ -157,7 +157,7 @@ func validateRegionAndRole(region string, role string) error {
 	}
 
 	if role == "" {
-		return errors.New("The role ARN is empty")
+		return nil
 	}
 
 	if !IAMRoleArnRegex.MatchString(role) {
