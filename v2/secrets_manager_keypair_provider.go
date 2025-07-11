@@ -199,7 +199,9 @@ func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 	}))
 
 	conf := &aws.Config{}
-	conf.Credentials = stscreds.NewCredentials(sess, role)
+	if role != "" {
+		conf.Credentials = stscreds.NewCredentials(sess, role)
+	}
 
 	client := secretsmanager.New(sess, conf)
 
