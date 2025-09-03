@@ -37,6 +37,13 @@ bearer := fmt.Sprintf("Bearer %s", string(headerValue))
 ```
 
 #### New method using a dynamic autorotating keypair
+
+The cacheTTL must be between 1 second and 2 hours (inclusive).
+
+Also, there are two options for what to pass in for the role:
+* Role - your service will assume the role
+* Empty string - your service will continue using its existing role
+
 ```go
 provider, _ := asap.NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL)
 provisioner := asap.NewDynamicKeyIDProvisioner(ttl, issuer, audience, signingMethod, provider)
