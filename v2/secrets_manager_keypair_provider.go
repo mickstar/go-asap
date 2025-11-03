@@ -189,7 +189,7 @@ func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 	if os.Getenv("AWS_USE_FIPS_ENDPOINT") == "true" {
 		useFIPSEndpoint = endpoints.FIPSEndpointStateEnabled
 	}
-	customEndpoint := os.Getenv("AWS_ENDPOINT_URL_SECRETS_MANAGER")
+	customEndpoint := os.Getenv("AWS_SECRETS_MANAGER_ENDPOINT_URL")
 
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigDisable,
