@@ -523,14 +523,33 @@ func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
 }
 
 type mockStats struct {
+	mu    sync.Mutex
 	calls map[string]float64
 }
 
 func (s *mockStats) call(m string, i float64, tags ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.calls == nil {
 		s.calls = map[string]float64{}
 	}
 	s.calls[m] = s.calls[m] + i
+}
+
+func (s *mockStats) getCalls() map[string]float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := make(map[string]float64)
+	for k, v := range s.calls {
+		result[k] = v
+	}
+	return result
+}
+
+func (s *mockStats) getCall(key string) float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.calls[key]
 }
 
 func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
@@ -865,7 +884,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 		t.Fatalf("Cache didn't return cached value")
 	}
 
-	if stats.calls["asap.key.cache.lookup_miss"] != 1 {
+	if stats.getCall("asap.key.cache.lookup_miss") != 1 {
 		t.Fatalf("Stats not recorded correctly")
 	}
 }
@@ -1046,13 +1065,13 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 		t.Fatalf("Cache didn't return cached value")
 	}
 
-	if !reflect.DeepEqual(stats.calls, map[string]float64{
+	if !reflect.DeepEqual(stats.getCalls(), map[string]float64{
 		"asap.key.cache.expired":              1,
 		"asap.key.cache.hit":                  1,
 		"asap.key.cache.miss":                 1,
 		"asap.key.cache.refresh.force_reload": 2,
 	}) {
-		t.Fatalf("Unexpected stats response: %+v", stats.calls)
+		t.Fatalf("Unexpected stats response: %+v", stats.getCalls())
 	}
 }
 
