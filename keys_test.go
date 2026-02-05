@@ -39,7 +39,7 @@ T7+TCN9nKRjmPqftChTwZvVs9spSUNhP6R6368fOeR2jHB+pljWt7uTVVHvvUBLM
 -----END PUBLIC KEY-----
 `
 
-const privateKey = `-----BEGIN RSA PRIVATE KEY-----
+const privateKeyPKCS1RSA = `-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEAzIXNCB3YktXiCiXiN1yRW+Ox9IqN2aenMKG9NHdOBlwp/2BQ
 km+G4nRjkdfn+6XnmrLeLS6dA/gTj03tJ3YNJoqkjAcL2+x0SU3PtDYJO29TFOvI
 Wlq2iJyTukYdlSXLhY5U3hyv/BdgI9gd6D2Tc6sy9i3CnkKSBlPniRQC2bor5ZzC
@@ -108,7 +108,7 @@ YQE0xHDtZ71bCk+eNrmqGfMWUzs/lkwhFAy/QlwTHloeNm3RC264pGLw
 `
 
 // nolint deadcode
-const privateKey2 = `-----BEGIN RSA PRIVATE KEY-----
+const privateKey2PKCS1RSA = `-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAtYr4/AjZHsvizYDxFsUFS6kvLJS6rbFd7P/l7g8xzg1+T7/O
 WEGi/oI/RptrR6RP111BrcgpPvroShhcyfis6ATshf+I2bEVgFGcgWKHTjzO72Jd
 Q9z3VfwQx4THf6kTkXbWUM+9UOyn+yPi+4RvPpj4cC34x1ZKc7LyvP1YDfXlj+nm
@@ -159,7 +159,7 @@ func (f *fixtureFetcher) Fetch(string) (interface{}, error) {
 
 func TestPrivateKeyParser(t *testing.T) {
 	t.Parallel()
-	var _, e = NewPrivateKey([]byte(privateKey))
+	var _, e = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	if e != nil {
 		t.Fatalf("Could not parse private key %s", e)
 	}
@@ -167,7 +167,7 @@ func TestPrivateKeyParser(t *testing.T) {
 
 func TestPrivateKeyParserEncoded(t *testing.T) {
 	t.Parallel()
-	var data = dataurl.EncodeBytes([]byte(privateKey))
+	var data = dataurl.EncodeBytes([]byte(privateKeyPKCS1RSA))
 	var _, e = NewPrivateKey([]byte(data))
 	if e != nil {
 		t.Fatalf("Could not parse private key %s", e)
@@ -210,7 +210,7 @@ func TestPrivateKeyParserPKCS8ECEncoded(t *testing.T) {
 
 func TestMicrosPrivateKeyParserEncoded(t *testing.T) {
 	t.Parallel()
-	var data = dataurl.EncodeBytes([]byte(privateKey))
+	var data = dataurl.EncodeBytes([]byte(privateKeyPKCS1RSA))
 	os.Setenv("ASAP_PRIVATE_KEY", data)
 	defer os.Unsetenv("ASAP_PRIVATE_KEY")
 	var _, e = NewMicrosPrivateKey()

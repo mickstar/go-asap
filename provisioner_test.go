@@ -114,7 +114,7 @@ func TestCacheToken(t *testing.T) {
 	var cache = NewCachingProvisioner(wrapped)
 	var token, e = cache.Provision()
 	require.NoError(t, e)
-	var key, _ = NewPrivateKey([]byte(privateKey))
+	var key, _ = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	var b []byte
 	b, e = token.(*cacheToken).Serialize(key)
 	require.NoError(t, e)
