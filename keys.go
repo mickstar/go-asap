@@ -47,6 +47,11 @@ func NewPrivateKey(privateKeyData []byte) (interface{}, error) {
 		return nil, fmt.Errorf("No valid PEM data found")
 	}
 
+	privateKey, e = x509.ParsePKCS8PrivateKey(block.Bytes)
+	if e == nil {
+		return privateKey, nil
+	}
+
 	privateKey, e = x509.ParsePKCS1PrivateKey(block.Bytes)
 	if e == nil {
 		return privateKey, nil

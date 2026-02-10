@@ -65,7 +65,7 @@ func TestMiddlewareHandlesValidationFailure(t *testing.T) {
 	var wrapped = &fixtureHandler{}
 	var m = NewMiddleware(validator, callback)(wrapped)
 	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
-	var pk, _ = NewPrivateKey([]byte(privateKey))
+	var pk, _ = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	var headerValue, _ = token.Serialize(pk)
 
 	var w = httptest.NewRecorder()
@@ -86,7 +86,7 @@ func TestMiddlewareHandlesAcceptsValidTokens(t *testing.T) {
 	var wrapped = &fixtureHandler{}
 	var m = NewMiddleware(DefaultValidator, callback)(wrapped)
 	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
-	var pk, _ = NewPrivateKey([]byte(privateKey))
+	var pk, _ = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	var headerValue, _ = token.Serialize(pk)
 
 	var w = httptest.NewRecorder()

@@ -258,7 +258,7 @@ func TestExpirationValidatorLongLived(t *testing.T) {
 
 func TestSignatureValidator(t *testing.T) {
 	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
-	var privKey, _ = NewPrivateKey([]byte(privateKey))
+	var privKey, _ = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	var pubKey, _ = NewPublicKey([]byte(publicKey))
 	var b, _ = token.Serialize(privKey)
 	var v = NewSignatureValidator(&fixtureFetcher{value: pubKey})

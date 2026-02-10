@@ -68,6 +68,45 @@ DKt9oGANzzAbRMfur9rydmujGR/TNkbkAWXI4g/toIiLlxlDQX8=
 -----END RSA PRIVATE KEY-----
 `
 
+// PKCS#8 encoded RSA private key (BEGIN PRIVATE KEY instead of BEGIN RSA PRIVATE KEY)
+const privateKeyPKCS8RSA = `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDO0rpBdLfkLI5T
+Oh1HpFLcZsRDTiVyY6HatvclBGO4GvdSHnjaiavTfJxkTjtMhfUZHLC28T35ifIg
+xOSzosNZX8KLdfUxmHJL4SDjr3EZ0Trn1X1X/X3re/HUZzVtW9SqvL3uxGHElM3C
+ag1NrplVYwcIIAAHpz1uv5T0/A3bVFJU67JhGW0lJzb+GPXVU+AhnwHvWoZdGeg0
+veefUliBmQjl2MxhlkbehHrzqG83lDbJIned0h/CBxJYGghc+joazpwXDzAK7Xm3
+6UMFInqkZtoqFzJoF06VwQelC2RYgUGLP6j1F2wwHj3dsb3TFwB4gYtUbbbI2XY+
+pOH7OfrXAgMBAAECggEABkdMYy9NY85cdbdWazXYVBuEiryFE39lyvNx9jw3YL/k
+0SfeqFe0kSN/xeXAFBce9SezT6JsLLac1JTVkoR25LAtAjnO+zXzBk2rx22sg8mf
+vajz+KdX2r20/isx6oN2pcY8B9MLWsHfqy63/6s0uWxbqsn55kGT8lg7h+Jc81MC
+fysF+QhMR0epJQFPOux8iyQoiGKbNeYxs5fjfRkt7hclcT52PlHRsBGgJbQ7di5o
+zIFJIjhdywznH82AI0OyCqjT3zaKVj8oPMhB6BxhJJTSh+WhJX2Nlo+GEzssSuay
+aIbYANvj7283Irt6Y4wbIo9QvTLifXqIz6gmEFzO7QKBgQDwC1T2jdwYrimjQotv
+s2EL4DoU7hc2JI42ikDx2RF81xpzgaAohyzrLwZyAnEN2CopJsxCQbq/ypKq1RBS
+W4LZ9V/3yw2AmzRgqAq8whNUr0ZFNgJP3yz6ORg8CO3e7ZWLRCe0slwD2utCq+AV
+tqsSoJESQNkn/KjggZZxVTziOwKBgQDckhhKtlErma0qIgx/Fvu2QfKCxxVtn16l
+BM6HoTzNF0eih8/20AuNf1PNMcM6t4JgIEyasONz25I8DrL9xchF6kIdsnGP8DTS
+TFjvV6y+QAVaP8lYxbBZ4V+wrxAixz8uwOq4h3VexN7BCjySCjb0pFjKVVFM7u3U
+UIYUc2+EFQKBgQCxrdGgBnVKF3Belh0b+0z0O28CmxG3U+uoV0GnQqN9IsNDiEmC
+djw7gT1mGoSQWNcsSrmauYh/+nQB22APdgkvSD9W7Yf7D+b/PKNmAMnKP0rmZAnm
+ES37sVNM7NcV0gqFYVd6myMc/2hwm0RtDh8m1I9NUY7r2EswkvtGvG8qjQKBgQCl
+KNv5rbTv8d2BTAeRbnNCkPT3Sf1YnVowNH41ft1ZMNJZ+FoXlMbhx/LHFjj6kYiV
+U/ooZsWZ7lL8l4EdluiUuYmSVRjFz/atda+uYDcgKi4X2uV4jGa1lpWhZiSt9gXw
+i1H2pK+VK9MkNvcN34ow+5Lkxqfe9JWvQjBzxdA91QKBgB8VyZIq1vmm1r9zMY4t
+ogX7rpenmQf3k4fS2aVy2JsJ7Zq4annIo14fzCsiFlqOITzhNvIddI3GNq7LDB2u
+HORptB1aIp3cpdsLBSFL/kbF1d5evcwM1gFseanocSJcq6RM89+5dn/07ckRq3NT
+upEuw+ESrSeScNHS3BshGUU/
+-----END PRIVATE KEY-----
+`
+
+// PKCS#8 encoded EC private key
+const privateKeyPKCS8EC = `-----BEGIN PRIVATE KEY-----
+MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgjmwWTIEKtF+SsGhc
+N4coleNAmvY5UzZjO/B4Q/hXibqhRANCAASoGH4fwv/N1rTu+8TkOKHJzGybIwqH
+YQE0xHDtZ71bCk+eNrmqGfMWUzs/lkwhFAy/QlwTHloeNm3RC264pGLw
+-----END PRIVATE KEY-----
+`
+
 // nolint deadcode
 const privateKey2 = `-----BEGIN RSA PRIVATE KEY-----
 MIIEowIBAAKCAQEAtYr4/AjZHsvizYDxFsUFS6kvLJS6rbFd7P/l7g8xzg1+T7/O
@@ -132,6 +171,40 @@ func TestPrivateKeyParserEncoded(t *testing.T) {
 	var _, e = NewPrivateKey([]byte(data))
 	if e != nil {
 		t.Fatalf("Could not parse private key %s", e)
+	}
+}
+
+func TestPrivateKeyParserPKCS8RSA(t *testing.T) {
+	t.Parallel()
+	var _, e = NewPrivateKey([]byte(privateKeyPKCS8RSA))
+	if e != nil {
+		t.Fatalf("Could not parse PKCS#8 RSA private key %s", e)
+	}
+}
+
+func TestPrivateKeyParserPKCS8EC(t *testing.T) {
+	t.Parallel()
+	var _, e = NewPrivateKey([]byte(privateKeyPKCS8EC))
+	if e != nil {
+		t.Fatalf("Could not parse PKCS#8 EC private key %s", e)
+	}
+}
+
+func TestPrivateKeyParserPKCS8RSAEncoded(t *testing.T) {
+	t.Parallel()
+	var data = dataurl.EncodeBytes([]byte(privateKeyPKCS8RSA))
+	var _, e = NewPrivateKey([]byte(data))
+	if e != nil {
+		t.Fatalf("Could not parse encoded PKCS#8 RSA private key %s", e)
+	}
+}
+
+func TestPrivateKeyParserPKCS8ECEncoded(t *testing.T) {
+	t.Parallel()
+	var data = dataurl.EncodeBytes([]byte(privateKeyPKCS8EC))
+	var _, e = NewPrivateKey([]byte(data))
+	if e != nil {
+		t.Fatalf("Could not parse encoded PKCS#8 EC private key %s", e)
 	}
 }
 
@@ -450,14 +523,33 @@ func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
 }
 
 type mockStats struct {
+	mu    sync.Mutex
 	calls map[string]float64
 }
 
 func (s *mockStats) call(m string, i float64, tags ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.calls == nil {
 		s.calls = map[string]float64{}
 	}
 	s.calls[m] = s.calls[m] + i
+}
+
+func (s *mockStats) getCalls() map[string]float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := make(map[string]float64)
+	for k, v := range s.calls {
+		result[k] = v
+	}
+	return result
+}
+
+func (s *mockStats) getCall(key string) float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.calls[key]
 }
 
 func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
@@ -792,7 +884,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 		t.Fatalf("Cache didn't return cached value")
 	}
 
-	if stats.calls["asap.key.cache.lookup_miss"] != 1 {
+	if stats.getCall("asap.key.cache.lookup_miss") != 1 {
 		t.Fatalf("Stats not recorded correctly")
 	}
 }
@@ -973,13 +1065,13 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 		t.Fatalf("Cache didn't return cached value")
 	}
 
-	if !reflect.DeepEqual(stats.calls, map[string]float64{
+	if !reflect.DeepEqual(stats.getCalls(), map[string]float64{
 		"asap.key.cache.expired":              1,
 		"asap.key.cache.hit":                  1,
 		"asap.key.cache.miss":                 1,
 		"asap.key.cache.refresh.force_reload": 2,
 	}) {
-		t.Fatalf("Unexpected stats response: %+v", stats.calls)
+		t.Fatalf("Unexpected stats response: %+v", stats.getCalls())
 	}
 }
 

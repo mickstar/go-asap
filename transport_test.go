@@ -26,7 +26,7 @@ func (rt *asapDecoratorRoundTripper) RoundTrip(r *http.Request) (*http.Response,
 func TestTransportDecoratorHeaders(t *testing.T) {
 	t.Parallel()
 	var provisioner = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
-	var pk, _ = NewPrivateKey([]byte(privateKey))
+	var pk, _ = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)
 	_, _ = client.RoundTrip(r) //nolint bodyclose
@@ -35,7 +35,7 @@ func TestTransportDecoratorHeaders(t *testing.T) {
 func TestTransportDecoratorHeadersDontDuplicate(t *testing.T) {
 	t.Parallel()
 	var provisioner = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
-	var pk, _ = NewPrivateKey([]byte(privateKey))
+	var pk, _ = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)
 	_, _ = client.RoundTrip(r) //nolint bodyclose
@@ -61,7 +61,7 @@ func (p *failingProvisioner) Provision() (Token, error) {
 func TestTransportDecoratorFailedTokenProvision(t *testing.T) {
 	t.Parallel()
 	var provisioner = &failingProvisioner{}
-	var pk, _ = NewPrivateKey([]byte(privateKey))
+	var pk, _ = NewPrivateKey([]byte(privateKeyPKCS1RSA))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)
 	_, err := client.RoundTrip(r) //nolint bodyclose
