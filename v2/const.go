@@ -31,6 +31,10 @@ const (
 	methodRS256 = "RS256"
 	methodRS384 = "RS384"
 	methodRS512 = "RS512"
+
+	methodPS256 = "PS256"
+	methodPS384 = "PS384"
+	methodPS512 = "PS512"
 )
 
 var signingMethodMap = map[string]crypto.SigningMethod{
@@ -39,8 +43,13 @@ var signingMethodMap = map[string]crypto.SigningMethod{
 	methodES384: crypto.SigningMethodES384,
 	methodES512: crypto.SigningMethodES512,
 
-	// RSA
+	// RSA PKCS#1 v1.5
 	methodRS256: crypto.SigningMethodRS256,
 	methodRS384: crypto.SigningMethodRS384,
 	methodRS512: crypto.SigningMethodRS512,
+
+	// RSA-PSS
+	methodPS256: crypto.SigningMethodPS256,
+	methodPS384: crypto.SigningMethodPS384,
+	methodPS512: crypto.SigningMethodPS512,
 }
