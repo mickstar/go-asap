@@ -1,17 +1,43 @@
+version: "2"
 linters:
-  disable-all: true
+  default: none
   enable:
     - bodyclose
-    - deadcode
     - errcheck
-    - gofmt
-    - goimports
     - gosec
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - structcheck
-    - typecheck
     - unused
-    - varcheck
+  settings:
+    staticcheck:
+      checks:
+        - "all"
+        - "-SA1019"
+        - "-SA1029"
+        - "-ST1005"
+        - "-ST1016"
+    gosec:
+      excludes:
+        - G101
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

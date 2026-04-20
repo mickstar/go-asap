@@ -1,4 +1,4 @@
-image: golang:1.14
+image: golang:1.26
 
 definitions:
   steps:
@@ -8,7 +8,7 @@ definitions:
           - go build
 
           # Style checks
-          - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.43.0
+          - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.11.4
           - ./bin/golangci-lint run
 
           # Build and test
@@ -20,7 +20,7 @@ definitions:
           - go build
 
           # Style checks
-          - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.43.0
+          - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.11.4
           - ./bin/golangci-lint run
 
           # Build and test
