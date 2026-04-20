@@ -568,7 +568,7 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	// Test initial re-fetch
@@ -628,7 +628,7 @@ func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	// Test initial re-fetch
@@ -679,7 +679,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshSlowResponse(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	// Test initial re-fetch
@@ -741,7 +741,7 @@ func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	response = &http.Response{
@@ -787,7 +787,7 @@ func TestExpiringHTTPFetcherCacheStalePurgeSlowResponse(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	response = &http.Response{
@@ -905,7 +905,7 @@ func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	response = &http.Response{
@@ -944,7 +944,7 @@ func TestExpiringHTTPFetcherKeepOnTimeoutError(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	response = &http.Response{
@@ -992,7 +992,7 @@ func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
 	f := fetcher.(*expiringCacheFetcher)
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	response = &http.Response{
@@ -1005,7 +1005,7 @@ func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
 
 	_, err = f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error when revalidating: " + err.Error())
+		t.Fatalf("Fetch returned error when revalidating: %s", err.Error())
 	}
 
 	time.Sleep(time.Second)
@@ -1031,7 +1031,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 	}
 	_, err := f.Fetch("KEY")
 	if err != nil {
-		t.Fatalf("Fetch returned error: " + err.Error())
+		t.Fatalf("Fetch returned error: %s", err.Error())
 	}
 
 	// Test initial re-fetch
