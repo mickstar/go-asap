@@ -9,7 +9,7 @@ import (
 	"github.com/SermoDigital/jose/jws"
 )
 
-const minValidBits = 768
+const minValidBits = 2048
 
 func TestParseToken(t *testing.T) {
 	var e error
