@@ -81,7 +81,7 @@ func TestValidatorCacheValidatePurge(t *testing.T) {
 	cacheImpl, ok = cache.(*cachingChainedASAPValidator)
 	require.True(t, ok)
 
-	t1 := makeToken("t1", time.Now().Add(time.Second))
+	t1 := makeToken("t1", time.Now().Add(3*time.Second))
 	require.NotNil(t, t1)
 
 	e := cache.Validate(t1)
@@ -89,7 +89,7 @@ func TestValidatorCacheValidatePurge(t *testing.T) {
 	require.Equal(t, int64(1), cacheImpl.tokenCacheSize)
 
 	// Ensure the entry in cache has expired
-	time.Sleep(time.Second * 2)
+	time.Sleep(4 * time.Second)
 
 	// Initiate a purge and ensure the expired entry is purged
 	var trigger struct{}
