@@ -125,7 +125,7 @@ func NewAllowedClaimValuesValidator(name string, values ...string) Validator {
 func (v *allowedClaimValuesValidator) Validate(t Token) error {
 	raw := t.Claims().Get(v.claimName)
 	if raw == nil {
-		return fmt.Errorf("claim %s is missing", v.claimName)
+		return fmt.Errorf("Claim %s is missing", v.claimName)
 	}
 
 	switch val := raw.(type) {
@@ -133,7 +133,7 @@ func (v *allowedClaimValuesValidator) Validate(t Token) error {
 		if _, ok := v.allowed[val]; ok {
 			return nil
 		}
-		return fmt.Errorf("claim %s:%s did not match an approved value", v.claimName, val)
+		return fmt.Errorf("Claim %s:%s did not match an approved value", v.claimName, val)
 
 	case []interface{}:
 		for _, elem := range val {
@@ -145,10 +145,10 @@ func (v *allowedClaimValuesValidator) Validate(t Token) error {
 				return nil
 			}
 		}
-		return fmt.Errorf("claim %s did not contain an approved value", v.claimName)
+		return fmt.Errorf("Claim %s did not contain an approved value", v.claimName)
 
 	default:
-		return fmt.Errorf("claim %s has unsupported type %T, expected string or []interface{}", v.claimName, raw)
+		return fmt.Errorf("Claim %s has unsupported type %T, expected string or []interface{}", v.claimName, raw)
 	}
 }
 
