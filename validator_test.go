@@ -393,3 +393,85 @@ func TestSubNotRequired(t *testing.T) {
 		t.Fatalf("JWT should not require sub and should infer it from iss: %s", e)
 	}
 }
+
+// --- NewAllowedClaimValuesValidator tests ---
+
+func TestAllowedClaimValuesValidator_ScalarMatch(t *testing.T) {
+	claims := jws.Claims{}
+	claims.Set("iss", "micros/foo")
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("iss", "micros/foo", "micros/bar")
+	if err := v.Validate(token); err != nil {
+		t.Fatalf("expected scalar match to pass, got: %s", err)
+	}
+}
+
+func TestAllowedClaimValuesValidator_ScalarNoMatch(t *testing.T) {
+	claims := jws.Claims{}
+	claims.Set("iss", "micros/other")
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("iss", "micros/foo", "micros/bar")
+	if err := v.Validate(token); err == nil {
+		t.Fatal("expected scalar no-match to fail, but it passed")
+	}
+}
+
+func TestAllowedClaimValuesValidator_ArrayMatch(t *testing.T) {
+	claims := jws.Claims{}
+	claims.Set("roles", []interface{}{"reader", "writer"})
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("roles", "writer", "admin")
+	if err := v.Validate(token); err != nil {
+		t.Fatalf("expected array match to pass, got: %s", err)
+	}
+}
+
+func TestAllowedClaimValuesValidator_ArrayNoMatch(t *testing.T) {
+	claims := jws.Claims{}
+	claims.Set("roles", []interface{}{"reader"})
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("roles", "writer", "admin")
+	if err := v.Validate(token); err == nil {
+		t.Fatal("expected array no-match to fail, but it passed")
+	}
+}
+
+func TestAllowedClaimValuesValidator_ArrayEmpty(t *testing.T) {
+	claims := jws.Claims{}
+	claims.Set("roles", []interface{}{})
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("roles", "writer")
+	if err := v.Validate(token); err == nil {
+		t.Fatal("expected empty array to fail, but it passed")
+	}
+}
+
+func TestAllowedClaimValuesValidator_MissingClaim(t *testing.T) {
+	claims := jws.Claims{}
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("roles", "writer")
+	if err := v.Validate(token); err == nil {
+		t.Fatal("expected missing claim to fail, but it passed")
+	}
+}
+
+func TestAllowedClaimValuesValidator_UnsupportedType(t *testing.T) {
+	claims := jws.Claims{}
+	claims.Set("roles", 12345) // integer, not string or []interface{}
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("roles", "writer")
+	if err := v.Validate(token); err == nil {
+		t.Fatal("expected unsupported type to fail, but it passed")
+	}
+}
+
+func TestAllowedClaimValuesValidator_ArrayWithNonStringElements(t *testing.T) {
+	claims := jws.Claims{}
+	// Mix of non-string elements and a matching string — non-strings should be skipped
+	claims.Set("roles", []interface{}{42, true, "writer"})
+	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	v := NewAllowedClaimValuesValidator("roles", "writer")
+	if err := v.Validate(token); err != nil {
+		t.Fatalf("expected match despite non-string elements, got: %s", err)
+	}
+}

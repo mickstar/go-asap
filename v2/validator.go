@@ -100,6 +100,58 @@ func (v *allowedStringsValidator) Validate(t Token) error {
 	return fmt.Errorf("Claim %s:%s did not match an approved value", v.claimName, claimValue)
 }
 
+type allowedClaimValuesValidator struct {
+	claimName string
+	allowed   map[string]struct{}
+}
+
+// NewAllowedClaimValuesValidator takes a claim name and a set of allowed string values,
+// and returns a Validator that works for both scalar string claims and array claims
+// (JSON arrays deserialised as []interface{}).
+//
+// For scalar claims (e.g. "iss"): the claim value must be one of the allowed values.
+// For array claims (e.g. "roles"): at least one element must be in the allowed set.
+//
+// This is useful for validating custom array-typed JWT claims where membership
+// of at least one permitted value is required.
+func NewAllowedClaimValuesValidator(name string, values ...string) Validator {
+	allowed := make(map[string]struct{}, len(values))
+	for _, v := range values {
+		allowed[v] = struct{}{}
+	}
+	return &allowedClaimValuesValidator{claimName: name, allowed: allowed}
+}
+
+func (v *allowedClaimValuesValidator) Validate(t Token) error {
+	raw := t.Claims().Get(v.claimName)
+	if raw == nil {
+		return fmt.Errorf("Claim %s is missing", v.claimName)
+	}
+
+	switch val := raw.(type) {
+	case string:
+		if _, ok := v.allowed[val]; ok {
+			return nil
+		}
+		return fmt.Errorf("Claim %s:%s did not match an approved value", v.claimName, val)
+
+	case []interface{}:
+		for _, elem := range val {
+			s, ok := elem.(string)
+			if !ok {
+				continue
+			}
+			if _, ok := v.allowed[s]; ok {
+				return nil
+			}
+		}
+		return fmt.Errorf("Claim %s did not contain an approved value", v.claimName)
+
+	default:
+		return fmt.Errorf("Claim %s has unsupported type %T, expected string or []interface{}", v.claimName, raw)
+	}
+}
+
 type allowedAudienceValidator struct {
 	allowedStrings []string
 }
