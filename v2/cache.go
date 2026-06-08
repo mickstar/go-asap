@@ -2,8 +2,7 @@ package asap
 
 import (
 	"context"
-	"sync"
-	"sync/atomic"
+	"log"
 	"time"
 )
 
@@ -19,9 +18,6 @@ const (
 
 	// CachingTokenEventMiss denotes a cache miss
 	CachingTokenEventMiss
-
-	// CachingTokenEventPurge denotes a cache purge
-	CachingTokenEventPurge
 )
 
 // TokenCache is a higher level ASAP token cache
@@ -37,104 +33,75 @@ type CachingTokenCallBack func(CachingTokenEvent)
 // CachingToken caches parsed tokens in memory
 // Can be used on ingress to avoid parsing tokens & validating them if reused
 // Can be used on egress to reuse tokens
+type tokenCacheEntry struct {
+	token     Token
+	expiresAt time.Time
+}
+
 type cachingToken struct {
-	purge             chan struct{}
 	callbackFunc      CachingTokenCallBack
-	tokenCache        sync.Map
-	tokenCacheSize    int64
+	tokenCache        *boundedCache[tokenCacheEntry]
 	maxTokenCacheSize int64
 }
 
 // NewTokenCache returns a token cache
 func NewTokenCache(ctx context.Context, maxTokenCacheSize int64,
 	callbackFunc CachingTokenCallBack) TokenCache {
+	if maxTokenCacheSize == 0 {
+		maxTokenCacheSize = defaultMaxTokenCacheSize
+	}
+
+	tokenCache, err := newBoundedCacheWrapper[tokenCacheEntry](maxTokenCacheSize)
+	if err != nil {
+		tokenCache = nil
+	}
+
 	c := &cachingToken{
-		purge:             make(chan struct{}, 1),
 		callbackFunc:      callbackFunc,
+		tokenCache:        tokenCache,
 		maxTokenCacheSize: maxTokenCacheSize,
 	}
-
-	if c.maxTokenCacheSize == 0 {
-		c.maxTokenCacheSize = defaultMaxTokenCacheSize
-	}
-
-	// Initiate a background cleanup of expired cached entries
-	go c.purgeStaleEntries(ctx)
 
 	return c
 }
 
 // invokeCallBack is a helper function to relay cache events
 func (v *cachingToken) invokeCallBack(e CachingTokenEvent) {
-	if v.callbackFunc != nil {
-		v.callbackFunc(e)
+	if v.callbackFunc == nil {
+		return
 	}
-}
-
-// purgeStaleEntries clears up expired tokens using a 5 minute timer
-func (v *cachingToken) purgeStaleEntries(ctx context.Context) {
-	ticker := time.NewTicker(5 * time.Minute)
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			break
-		case <-v.purge:
-			break
-		case <-ctx.Done():
-			return
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Printf("asap: token cache callback failed for event %d: %v", e, recovered)
 		}
-
-		// Visit all entries in the cache and check for expired tokens & delete
-		v.tokenCache.Range(func(key, value interface{}) bool {
-			if expiration, ok := value.(time.Time); !ok || expiration.Before(time.Now()) {
-				v.tokenCache.Delete(key)
-				atomic.AddInt64(&v.tokenCacheSize, -1)
-			}
-
-			return true
-		})
-
-		// If a callback is registered, invoke it
-		go v.invokeCallBack(CachingTokenEventPurge)
-	}
+	}()
+	v.callbackFunc(e)
 }
 
 func (v *cachingToken) Get(token string) Token {
-	if val, ok := v.tokenCache.Load(token); ok {
-		// Fetch the token expiration from cache for the token
-		if tok, ok := val.(Token); ok {
-			// Check if token in cache is still valid
-			if exp, ok := tok.Claims().Expiration(); ok {
-				if exp.After(time.Now()) {
-					go v.invokeCallBack(CachingTokenEventHit)
-					return tok
-				}
+	if v.tokenCache != nil {
+		if entry, ok := v.tokenCache.Get(token); ok {
+			if entry.expiresAt.After(time.Now()) {
+				v.invokeCallBack(CachingTokenEventHit)
+				return entry.token
 			}
-
-			// If the token has expired, evict it from cache
-			v.tokenCache.Delete(token)
-			atomic.AddInt64(&v.tokenCacheSize, -1)
+			v.tokenCache.Del(token)
 		}
 	}
 
-	go v.invokeCallBack(CachingTokenEventMiss)
+	v.invokeCallBack(CachingTokenEventMiss)
 	return nil
 }
 
 func (v *cachingToken) Store(jwt string, token Token) {
-	// Do we have a token that has not yet expired
-	expiration, _ := token.Claims().Expiration()
-	if expiration.After(time.Now()) {
-		// Check if we have enough room to cache the token
-		if atomic.LoadInt64(&v.tokenCacheSize) < v.maxTokenCacheSize {
-			v.tokenCache.Store(jwt, token)
-			atomic.AddInt64(&v.tokenCacheSize, 1)
-		} else if len(v.purge) < cap(v.purge) {
-			// Initiate a purge of stale entries to make room in the background
-			var trigger struct{}
-			v.purge <- trigger
-		}
+	if v.tokenCache == nil {
+		return
 	}
+
+	expiration, ok := token.Claims().Expiration()
+	if !ok {
+		return
+	}
+
+	v.tokenCache.SetWithTTL(jwt, tokenCacheEntry{token: token, expiresAt: expiration}, time.Until(expiration))
 }
