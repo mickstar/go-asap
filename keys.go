@@ -12,7 +12,6 @@ import (
 	"path"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/pquerna/cachecontrol/cacheobject"
@@ -203,6 +202,31 @@ type keyLookupBadResponseError struct {
 	error
 }
 
+type keyCacheEntry struct {
+	key        interface{}
+	lookupMiss keyLookupMissError
+	freshUntil time.Time
+	staleUntil time.Time
+	isMiss     bool
+}
+
+func newKeyCacheEntry(pair keyExpirationPair) keyCacheEntry {
+	return keyCacheEntry{
+		key:        pair.key,
+		freshUntil: pair.expiration,
+		staleUntil: pair.expiration.Add(pair.staleWhileRevalidate),
+	}
+}
+
+func newKeyLookupMissCacheEntry(miss keyLookupMissError) keyCacheEntry {
+	return keyCacheEntry{
+		lookupMiss: miss,
+		freshUntil: miss.expiration,
+		staleUntil: miss.expiration,
+		isMiss:     true,
+	}
+}
+
 var (
 	cachedKey           = "asap.key.cache.hit"
 	expiredKey          = "asap.key.cache.expired"
@@ -215,13 +239,11 @@ var (
 const defaultMaxKeyCacheSize = 10000
 
 type expiringCacheFetcher struct {
-	purge        chan struct{}
 	keyLocks     sync.Map
 	baseURL      string
 	client       *http.Client
-	cache        sync.Map
+	cache        *boundedCache[keyCacheEntry]
 	timeNow      func() time.Time
-	cacheSize    int64
 	maxCacheSize int64
 	cacheStats   func(stat string, count float64, tags ...string)
 }
@@ -238,15 +260,17 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duratio
 		baseURL = baseURL + "/"
 	}
 
-	ec := &expiringCacheFetcher{
-		purge:   make(chan struct{}, 1),
-		baseURL: baseURL,
-		client:  client,
-		timeNow: time.Now,
+	cache, err := newBoundedCacheWrapper[keyCacheEntry](defaultMaxKeyCacheSize)
+	if err != nil {
+		return nil, err
 	}
 
-	if ec.maxCacheSize == 0 {
-		ec.maxCacheSize = defaultMaxKeyCacheSize
+	ec := &expiringCacheFetcher{
+		baseURL:      baseURL,
+		client:       client,
+		cache:        cache,
+		timeNow:      time.Now,
+		maxCacheSize: defaultMaxKeyCacheSize,
 	}
 
 	return ec, nil
@@ -268,6 +292,19 @@ func (c *expiringCacheFetcher) WithCacheStats(count func(stat string, count floa
 }
 
 func (c *expiringCacheFetcher) WithMaxCacheSize(maxCacheSize int64) *expiringCacheFetcher {
+	if maxCacheSize <= 0 {
+		return c
+	}
+
+	cache, err := newBoundedCacheWrapper[keyCacheEntry](maxCacheSize)
+	if err != nil {
+		return c
+	}
+
+	if c.cache != nil {
+		c.cache.Close()
+	}
+	c.cache = cache
 	c.maxCacheSize = maxCacheSize
 	return c
 }
@@ -352,21 +389,24 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, er
 }
 
 func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
-	var value, ok = f.cache.Load(keyID)
+	value, ok := f.cache.Get(keyID)
 	if ok {
-		var cached, convertCheck = value.(keyExpirationPair)
-		if convertCheck && cached.expiration.After(f.timeNow()) {
-			f.incr(cachedKey)
-			return cached.key, nil
-		} else if convertCheck && cached.expiration.Add(cached.staleWhileRevalidate).After(f.timeNow()) {
-			go f.reloadOrPurge(keyID)
-			f.incr(expiredKey)
-			return cached.key, nil
-		}
-
-		if failed, ok := value.(keyLookupMissError); ok && failed.expiration.After(f.timeNow()) {
-			f.incr(cachedLookupMiss)
-			return nil, failed
+		now := f.timeNow()
+		if value.isMiss {
+			if value.freshUntil.After(now) {
+				f.incr(cachedLookupMiss)
+				return nil, value.lookupMiss
+			}
+		} else {
+			if value.freshUntil.After(now) {
+				f.incr(cachedKey)
+				return value.key, nil
+			}
+			if value.staleUntil.After(now) {
+				go f.reloadOrPurge(keyID)
+				f.incr(expiredKey)
+				return value.key, nil
+			}
 		}
 	}
 
@@ -377,32 +417,27 @@ func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
 func (f *expiringCacheFetcher) reloadOrPurge(keyID string) {
 	_, err := f.reload(keyID)
 	if _, ok := err.(keyLookupBadResponseError); ok {
-		f.cache.Delete(keyID)
-		atomic.AddInt64(&f.cacheSize, -1)
+		f.cache.Del(keyID)
 	}
 }
 
 func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
 	// Cache miss identified. Wait for (potentially) another cache refresh
-	lock, loaded := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
-
-	if !loaded {
-		atomic.AddInt64(&f.cacheSize, 1)
-	}
+	lock, _ := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
 
 	lock.(*sync.Mutex).Lock()
 	defer lock.(*sync.Mutex).Unlock()
 
 	// Check if cache has been repopulated
-	if value, ok := f.cache.Load(keyID); ok {
-		var cached, ok = value.(keyExpirationPair)
-		if ok && cached.expiration.After(f.timeNow()) {
+	if value, ok := f.cache.Get(keyID); ok {
+		now := f.timeNow()
+		if value.isMiss {
+			if value.freshUntil.After(now) {
+				return nil, value.lookupMiss
+			}
+		} else if value.freshUntil.After(now) {
 			f.incr(cacheRefreshSuccess)
-			return cached.key, nil
-		}
-
-		if failed, ok := value.(keyLookupMissError); ok && failed.expiration.After(f.timeNow()) {
-			return nil, failed
+			return value.key, nil
 		}
 	}
 
@@ -410,25 +445,32 @@ func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
 	result, err := f.fetchHTTPKey(keyID)
 	if err != nil {
 		if v, ok := err.(keyLookupMissError); ok {
-			f.Store(keyID, v)
+			f.storeLookupMiss(keyID, v)
 		}
 		return nil, err
 	}
 	f.incr(cacheForceReload)
-	f.Store(keyID, result)
+	f.storeKey(keyID, result)
 	return result.key, nil
 }
 
 func (f *expiringCacheFetcher) Close() error {
+	if f.cache != nil {
+		f.cache.Close()
+	}
 	return nil
 }
 
-func (f *expiringCacheFetcher) Store(k string, v interface{}) {
-	if atomic.LoadInt64(&f.cacheSize) < f.maxCacheSize {
-		f.cache.Store(k, v)
-		atomic.AddInt64(&f.cacheSize, 1)
-	} else if len(f.purge) < cap(f.purge) {
-		var trigger struct{}
-		f.purge <- trigger
-	}
+func (f *expiringCacheFetcher) storeKey(keyID string, pair keyExpirationPair) {
+	entry := newKeyCacheEntry(pair)
+	f.storeEntry(keyID, entry)
+}
+
+func (f *expiringCacheFetcher) storeLookupMiss(keyID string, miss keyLookupMissError) {
+	entry := newKeyLookupMissCacheEntry(miss)
+	f.storeEntry(keyID, entry)
+}
+
+func (f *expiringCacheFetcher) storeEntry(keyID string, entry keyCacheEntry) {
+	f.cache.SetWithTTL(keyID, entry, entry.staleUntil.Sub(f.timeNow()))
 }

@@ -8,7 +8,6 @@ import (
 	"os"
 	"reflect"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -361,26 +360,28 @@ func TestExpiringHTTPFetcherFetch(t *testing.T) {
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
 	}
-	value, ok := f.cache.Load("TEST")
+	f.cache.Wait()
+	value, ok := f.cache.Get("TEST")
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
 	}
-	expiringKeyPair, _ := value.(keyExpirationPair)
-	if expiringKeyPair.expiration.UTC().Format(http.TimeFormat) != expirationTime.UTC().Format(http.TimeFormat) {
+	expiringKeyPair := value
+	if expiringKeyPair.freshUntil.UTC().Format(http.TimeFormat) != expirationTime.UTC().Format(http.TimeFormat) {
 		t.Fatalf("Expiring Cache Fetcher cached %s as expiry date, but expecting %s",
-			expiringKeyPair.expiration.UTC().Format(http.TimeFormat), expirationTime.UTC().Format(http.TimeFormat))
+			expiringKeyPair.freshUntil.UTC().Format(http.TimeFormat), expirationTime.UTC().Format(http.TimeFormat))
 	}
 
-	f.cache.Store("NEWKEY", keyExpirationPair{"newkey", expirationTime, 0})
+	f.storeKey("NEWKEY", keyExpirationPair{"newkey", expirationTime, 0})
+	f.cache.Wait()
 	key, e := f.Fetch("NEWKEY")
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
 	}
-	value, ok = f.cache.Load("NEWKEY")
+	value, ok = f.cache.Get("NEWKEY")
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher did not contain key NEWKEY")
 	}
-	expiringKeyPair, _ = value.(keyExpirationPair)
+	expiringKeyPair = value
 	if key != expiringKeyPair.key {
 		t.Fatalf("Expiring Cache fetcher did not use cached value")
 	}
@@ -471,13 +472,14 @@ func TestExpiringHTTPFetcherCache(t *testing.T) {
 	if e != nil {
 		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
 	}
+	f.cache.Wait()
 
-	value, ok := f.cache.Load("TEST")
+	value, ok := f.cache.Get("TEST")
 	if !ok {
 		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
 	}
-	expiringKeyPair, _ := value.(keyExpirationPair)
-	if expiringKeyPair.expiration != timeNow().Add(1200*time.Second) {
+	expiringKeyPair := value
+	if expiringKeyPair.freshUntil != timeNow().Add(1200*time.Second) {
 		t.Fatalf("Expiring Cache Fetcher does not return correct expiry time from Cache-Control header")
 	}
 }
@@ -582,12 +584,12 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 
 	time.Sleep(time.Millisecond)
 
-	value, ok := f.cache.Load("KEY")
+	value, ok := f.cache.Get("KEY")
 	if !ok {
 		t.Fatalf("Cache did not contain key KEY")
 	}
-	pair, _ := value.(keyExpirationPair)
-	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
+	pair := value
+	if pair.freshUntil.Format(http.TimeFormat) != newExpiryTime {
 		t.Fatalf("Cache refresh goroutine did not run correctly")
 	}
 
@@ -602,12 +604,12 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 
 	time.Sleep(time.Millisecond)
 
-	value, _ = f.cache.Load("KEY")
-	pair, _ = value.(keyExpirationPair)
-	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
+	value, _ = f.cache.Get("KEY")
+	pair = value
+	if pair.freshUntil.Format(http.TimeFormat) != newExpiryTime {
 		t.Fatalf("Cache refresh goroutine did not run correctly")
 	}
-	if pair.expiration.Format(http.TimeFormat) != newExpiryTime {
+	if pair.freshUntil.Format(http.TimeFormat) != newExpiryTime {
 		t.Fatalf("Cache refresh goroutine did not run correctly")
 	}
 }
@@ -763,10 +765,10 @@ func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
 
 	time.Sleep(time.Millisecond)
 
-	val, ok := f.cache.Load("KEY")
+	val, ok := f.cache.Get("KEY")
 	if !ok {
 		t.Fatalf("Cache missing error")
-	} else if _, ok := val.(keyLookupMissError); !ok {
+	} else if !val.isMiss {
 		t.Fatalf("Cache missing key lookup error")
 	}
 }
@@ -860,6 +862,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 	if err == nil {
 		t.Fatalf("Fetch returned non error")
 	}
+	f.cache.Wait()
 
 	response = &http.Response{
 		StatusCode: http.StatusOK,
@@ -1087,16 +1090,19 @@ func TestKeyCacheSizeLimit(t *testing.T) {
 	var client = &http.Client{Transport: transport}
 
 	fetcher, _ := NewExpiringCacheFetcher("http://localhost", client, time.Duration(2*time.Minute))
-
 	cacheImpl := fetcher.(*expiringCacheFetcher).WithMaxCacheSize(2)
 
-	token := makeToken("key", time.Now().Add(time.Minute))
-	cacheImpl.Store("key", token)
-	require.Equal(t, int64(1), atomic.LoadInt64(&cacheImpl.cacheSize))
+	expiration := time.Now().Add(time.Minute)
+	cacheImpl.storeKey("key", keyExpirationPair{"key", expiration, time.Minute})
+	cacheImpl.storeKey("key2", keyExpirationPair{"key2", expiration, time.Minute})
+	cacheImpl.storeKey("key3", keyExpirationPair{"key3", expiration, time.Minute})
+	cacheImpl.cache.Wait()
 
-	cacheImpl.Store("key2", token)
-	require.Equal(t, int64(2), atomic.LoadInt64(&cacheImpl.cacheSize))
-
-	cacheImpl.Store("key3", token)
-	require.Equal(t, int64(2), atomic.LoadInt64(&cacheImpl.cacheSize))
+	var cached int
+	for _, key := range []string{"key", "key2", "key3"} {
+		if _, ok := cacheImpl.cache.Get(key); ok {
+			cached++
+		}
+	}
+	require.LessOrEqual(t, cached, 2)
 }
