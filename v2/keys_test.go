@@ -554,6 +554,68 @@ func (s *mockStats) getCall(key string) float64 {
 	return s.calls[key]
 }
 
+type countingKeyResponse struct {
+	statusCode int
+	header     http.Header
+	body       string
+}
+
+type countingKeyRoundTripper struct {
+	lock      sync.Mutex
+	requests  int
+	responses []countingKeyResponse
+}
+
+func (r *countingKeyRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.requests++
+	response := r.responses[len(r.responses)-1]
+	if r.requests <= len(r.responses) {
+		response = r.responses[r.requests-1]
+	}
+	return &http.Response{
+		StatusCode: response.statusCode,
+		Header:     response.header,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(response.body)),
+	}, nil
+}
+
+func (r *countingKeyRoundTripper) requestCount() int {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.requests
+}
+
+func TestExpiringHTTPFetcherUsesQueuedRefreshWhenEnabled(t *testing.T) {
+	t.Setenv(keyRefreshQueueFlag, "true")
+	transport := &countingKeyRoundTripper{
+		responses: []countingKeyResponse{
+			{
+				statusCode: http.StatusOK,
+				header:     map[string][]string{"Cache-Control": {"max-age=60", "stale-while-revalidate=60"}},
+				body:       publicKey,
+			},
+		},
+	}
+	client := &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	require.NoError(t, e)
+	if closer, ok := fetcher.(interface{ Close() error }); ok {
+		defer closer.Close()
+	}
+
+	initialKey, e := NewPublicKey([]byte(publicKey))
+	require.NoError(t, e)
+
+	value, err := fetcher.Fetch("KEY")
+	require.NoError(t, err)
+	require.True(t, reflect.DeepEqual(value, initialKey))
+	require.Equal(t, 1, transport.requestCount())
+	_, legacy := fetcher.(*expiringCacheFetcher)
+	require.False(t, legacy)
+}
+
 func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	t.Parallel()
 	var response = &http.Response{

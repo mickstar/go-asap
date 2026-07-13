@@ -528,14 +528,95 @@ func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
 }
 
 type mockStats struct {
+	mu    sync.Mutex
 	calls map[string]float64
 }
 
 func (s *mockStats) call(m string, i float64, tags ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	if s.calls == nil {
 		s.calls = map[string]float64{}
 	}
 	s.calls[m] = s.calls[m] + i
+}
+
+func (s *mockStats) getCalls() map[string]float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := make(map[string]float64)
+	for k, v := range s.calls {
+		result[k] = v
+	}
+	return result
+}
+
+func (s *mockStats) getCall(key string) float64 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.calls[key]
+}
+
+type countingKeyResponse struct {
+	statusCode int
+	header     http.Header
+	body       string
+}
+
+type countingKeyRoundTripper struct {
+	lock      sync.Mutex
+	requests  int
+	responses []countingKeyResponse
+}
+
+func (r *countingKeyRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.requests++
+	response := r.responses[len(r.responses)-1]
+	if r.requests <= len(r.responses) {
+		response = r.responses[r.requests-1]
+	}
+	return &http.Response{
+		StatusCode: response.statusCode,
+		Header:     response.header,
+		Body:       ioutil.NopCloser(bytes.NewBufferString(response.body)),
+	}, nil
+}
+
+func (r *countingKeyRoundTripper) requestCount() int {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return r.requests
+}
+
+func TestExpiringHTTPFetcherUsesQueuedRefreshWhenEnabled(t *testing.T) {
+	t.Setenv(keyRefreshQueueFlag, "true")
+	transport := &countingKeyRoundTripper{
+		responses: []countingKeyResponse{
+			{
+				statusCode: http.StatusOK,
+				header:     map[string][]string{"Cache-Control": {"max-age=60", "stale-while-revalidate=60"}},
+				body:       publicKey,
+			},
+		},
+	}
+	client := &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	require.NoError(t, e)
+	if closer, ok := fetcher.(interface{ Close() error }); ok {
+		defer closer.Close()
+	}
+
+	initialKey, e := NewPublicKey([]byte(publicKey))
+	require.NoError(t, e)
+
+	value, err := fetcher.Fetch("KEY")
+	require.NoError(t, err)
+	require.True(t, reflect.DeepEqual(value, initialKey))
+	require.Equal(t, 1, transport.requestCount())
+	_, legacy := fetcher.(*expiringCacheFetcher)
+	require.False(t, legacy)
 }
 
 func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
@@ -871,7 +952,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 		t.Fatalf("Cache didn't return cached value")
 	}
 
-	if stats.calls["asap.key.cache.lookup_miss"] != 1 {
+	if stats.getCall("asap.key.cache.lookup_miss") != 1 {
 		t.Fatalf("Stats not recorded correctly")
 	}
 }
@@ -1052,13 +1133,13 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 		t.Fatalf("Cache didn't return cached value")
 	}
 
-	if !reflect.DeepEqual(stats.calls, map[string]float64{
+	if !reflect.DeepEqual(stats.getCalls(), map[string]float64{
 		"asap.key.cache.expired":              1,
 		"asap.key.cache.hit":                  1,
 		"asap.key.cache.miss":                 1,
 		"asap.key.cache.refresh.force_reload": 2,
 	}) {
-		t.Fatalf("Unexpected stats response: %+v", stats.calls)
+		t.Fatalf("Unexpected stats response: %+v", stats.getCalls())
 	}
 }
 

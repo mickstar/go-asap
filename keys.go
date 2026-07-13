@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"bitbucket.org/atlassian/go-asap/internal/keyrefresh"
 	"github.com/pquerna/cachecontrol/cacheobject"
 	"github.com/vincent-petithory/dataurl"
 )
@@ -237,6 +238,7 @@ var (
 )
 
 const defaultMaxKeyCacheSize = 10000
+const keyRefreshQueueFlag = "ASAP_KEY_REFRESH_QUEUE_ENABLED"
 
 type expiringCacheFetcher struct {
 	keyLocks     sync.Map
@@ -248,9 +250,34 @@ type expiringCacheFetcher struct {
 	cacheStats   func(stat string, count float64, tags ...string)
 }
 
+func useKeyRefreshQueue() bool {
+	return os.Getenv(keyRefreshQueueFlag) == "true"
+}
+
+func newQueuedRefreshFetcher(baseURL string, httpClient *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
+	return keyrefresh.NewFetcher(keyrefresh.Config{
+		BaseURL:        baseURL,
+		HTTPClient:     httpClient,
+		ParsePublicKey: NewPublicKey,
+		Stats:          stats,
+	})
+}
+
 // NewExpiringCacheFetcher wraps a given KeyFetcher implementation that returns a keyExpirationPair with an in-memory
 // cache for returned keys.
 func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duration) (KeyFetcher, error) {
+	if useKeyRefreshQueue() {
+		return newQueuedRefreshFetcher(baseURL, client, nil)
+	}
+
+	legacy, err := newExpiringCacheFetcher(baseURL, client)
+	if err != nil {
+		return nil, err
+	}
+	return legacy, nil
+}
+
+func newExpiringCacheFetcher(baseURL string, client *http.Client) (*expiringCacheFetcher, error) {
 	var _, e = url.Parse(baseURL)
 	if e != nil {
 		return nil, fmt.Errorf("cannot parse baseURL: %s", e)
@@ -277,11 +304,16 @@ func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duratio
 }
 
 func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
-	f, e := NewExpiringCacheFetcher(baseURL, client, 0)
+	if useKeyRefreshQueue() {
+		return newQueuedRefreshFetcher(baseURL, client, stats)
+	}
+
+	legacy, e := newExpiringCacheFetcher(baseURL, client)
 	if e != nil {
 		return nil, e
 	}
-	return f.(*expiringCacheFetcher).WithCacheStats(stats), nil
+	legacy.WithCacheStats(stats)
+	return legacy, nil
 }
 
 // WithCacheStats adds a "count" statsd function which can increment
