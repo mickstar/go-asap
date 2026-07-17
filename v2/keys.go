@@ -238,7 +238,7 @@ var (
 )
 
 const defaultMaxKeyCacheSize = 10000
-const keyRefreshQueueFlag = "ASAP_KEY_REFRESH_QUEUE_ENABLED"
+const keyRefreshQueueDisableFlag = "ASAP_KEY_REFRESH_QUEUE_DISABLED"
 
 type expiringCacheFetcher struct {
 	keyLocks     sync.Map
@@ -251,7 +251,7 @@ type expiringCacheFetcher struct {
 }
 
 func useKeyRefreshQueue() bool {
-	return os.Getenv(keyRefreshQueueFlag) == "true"
+	return os.Getenv(keyRefreshQueueDisableFlag) != "true"
 }
 
 func newQueuedRefreshFetcher(baseURL string, httpClient *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {

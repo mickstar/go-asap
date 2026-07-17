@@ -340,7 +340,7 @@ func TestExpiringHTTPFetcherJoinsKidToPath(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherFetch(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var expirationTime = time.Now().AddDate(0, 0, 2)
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
@@ -449,7 +449,7 @@ func TestGetExpiryDate(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherCache(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	timeNow := func() time.Time {
 		return time.Time{}.Add(time.Hour * 3)
 	}
@@ -587,8 +587,7 @@ func (r *countingKeyRoundTripper) requestCount() int {
 	return r.requests
 }
 
-func TestExpiringHTTPFetcherUsesQueuedRefreshWhenEnabled(t *testing.T) {
-	t.Setenv(keyRefreshQueueFlag, "true")
+func TestExpiringHTTPFetcherUsesQueuedRefreshByDefault(t *testing.T) {
 	transport := &countingKeyRoundTripper{
 		responses: []countingKeyResponse{
 			{
@@ -616,8 +615,37 @@ func TestExpiringHTTPFetcherUsesQueuedRefreshWhenEnabled(t *testing.T) {
 	require.False(t, legacy)
 }
 
+func TestExpiringHTTPFetcherUsesLegacyRefreshWhenDisabled(t *testing.T) {
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
+	transport := &countingKeyRoundTripper{
+		responses: []countingKeyResponse{
+			{
+				statusCode: http.StatusOK,
+				header:     map[string][]string{"Cache-Control": {"max-age=60", "stale-while-revalidate=60"}},
+				body:       publicKey,
+			},
+		},
+	}
+	client := &http.Client{Transport: transport}
+	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
+	require.NoError(t, e)
+	if closer, ok := fetcher.(interface{ Close() error }); ok {
+		defer closer.Close()
+	}
+
+	initialKey, e := NewPublicKey([]byte(publicKey))
+	require.NoError(t, e)
+
+	value, err := fetcher.Fetch("KEY")
+	require.NoError(t, err)
+	require.True(t, reflect.DeepEqual(value, initialKey))
+	require.Equal(t, 1, transport.requestCount())
+	_, legacy := fetcher.(*expiringCacheFetcher)
+	require.True(t, legacy)
+}
+
 func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Expires": {time.Now().UTC().Add(time.Second).Format(http.TimeFormat)}},
@@ -677,7 +705,7 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
@@ -728,7 +756,7 @@ func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherCacheStaleRefreshSlowResponse(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
@@ -790,7 +818,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshSlowResponse(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
@@ -836,7 +864,7 @@ func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherCacheStalePurgeSlowResponse(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
@@ -907,7 +935,7 @@ func TestExpiringHTTPFetcherCacheStalePurgeSlowResponse(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusForbidden,
 		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
@@ -955,7 +983,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
@@ -994,7 +1022,7 @@ func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherKeepOnTimeoutError(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
@@ -1042,7 +1070,7 @@ func TestExpiringHTTPFetcherKeepOnTimeoutError(t *testing.T) {
 }
 
 func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
@@ -1141,7 +1169,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 }
 
 func TestKeyCacheSizeLimit(t *testing.T) {
-	t.Parallel()
+	t.Setenv(keyRefreshQueueDisableFlag, "true")
 
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
