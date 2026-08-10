@@ -11,7 +11,7 @@ import (
 const (
 	defaultMaxKeyCacheSize = 10000
 	ristrettoBufferItems   = 64
-	lookupMissTTL          = time.Second
+	lookupMissTTL          = 20 * time.Second
 )
 
 type keyExpirationPair struct {
