@@ -120,9 +120,14 @@ func TestKeyCacheReloadFetchesAndStoresResults(t *testing.T) {
 func TestKeyCacheReloadStoresLookupMiss(t *testing.T) {
 	now := time.Unix(1000, 0)
 	transport := &recordingTransport{
-		responses: []roundTripResponse{{statusCode: http.StatusNotFound, body: "missing"}},
+		responses: []roundTripResponse{
+			{statusCode: http.StatusNotFound, body: "missing"},
+			{header: http.Header{"Cache-Control": {"max-age=60"}}, body: "remote"},
+		},
 	}
 	cache := newTestKeyCache(t, now, transport, nil)
+	currentTime := now
+	cache.timeNow = func() time.Time { return currentTime }
 
 	value, err := cache.reload("kid")
 	require.Nil(t, value)
@@ -131,14 +136,21 @@ func TestKeyCacheReloadStoresLookupMiss(t *testing.T) {
 	entry, ok := cache.cache.Get("kid")
 	require.True(t, ok)
 	require.Equal(t, cacheEntryLookupMiss, entry.kind)
-	require.Equal(t, now.Add(lookupMissTTL), entry.freshUntil)
-	require.Equal(t, now.Add(lookupMissTTL), entry.staleUntil)
+	require.Equal(t, now.Add(20*time.Second), entry.freshUntil)
+	require.Equal(t, now.Add(20*time.Second), entry.staleUntil)
 
+	currentTime = now.Add(19 * time.Second)
 	value, err = cache.reload("kid")
 	require.Nil(t, value)
 	_, ok = err.(lookupMissError)
 	require.True(t, ok)
 	require.Equal(t, 1, transport.requestCount())
+
+	currentTime = now.Add(20 * time.Second)
+	value, err = cache.reload("kid")
+	require.NoError(t, err)
+	require.Equal(t, "remote", value)
+	require.Equal(t, 2, transport.requestCount())
 }
 
 func TestKeyCacheReloadSuppressesDuplicateReloads(t *testing.T) {

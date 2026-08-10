@@ -237,7 +237,10 @@ var (
 	cacheForceReload    = "asap.key.cache.refresh.force_reload"
 )
 
-const defaultMaxKeyCacheSize = 10000
+const (
+	defaultMaxKeyCacheSize = 10000
+	lookupMissTTL          = 20 * time.Second
+)
 const keyRefreshQueueDisableFlag = "ASAP_KEY_REFRESH_QUEUE_DISABLED"
 
 type expiringCacheFetcher struct {
@@ -400,7 +403,7 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, er
 		var body, _ = ioutil.ReadAll(resp.Body)
 		err := fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", httpURL, resp.StatusCode, string(body))
 		if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {
-			return keyExpirationPair{}, keyLookupMissError{err, f.timeNow().Add(time.Second)}
+			return keyExpirationPair{}, keyLookupMissError{err, f.timeNow().Add(lookupMissTTL)}
 		}
 		return keyExpirationPair{}, keyLookupError{err}
 	}

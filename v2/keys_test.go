@@ -948,6 +948,8 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
 	}
 	f := fetcher.(*expiringCacheFetcher)
+	now := time.Unix(1000, 0)
+	f.timeNow = func() time.Time { return now }
 	_, err := f.Fetch("KEY")
 	if err == nil {
 		t.Fatalf("Fetch returned non error")
@@ -961,12 +963,13 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 	}
 	transport.SetResponse(response, nil)
 
+	now = now.Add(19 * time.Second)
 	_, err = f.Fetch("KEY")
 	if err == nil {
 		t.Fatalf("Fetch not negative caching")
 	}
 
-	time.Sleep(time.Second)
+	now = now.Add(time.Second)
 
 	value, err := f.Fetch("KEY")
 	if err != nil {
