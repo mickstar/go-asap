@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -94,7 +93,7 @@ func TestGetKeyID(t *testing.T) {
 		mockSecretsManager, provider := buildMockAndProvider(t)
 
 		input := &secretsmanager.GetSecretValueInput{
-			SecretId: aws.String(secretARN),
+			SecretId: new(secretARN),
 		}
 		mockErr := errors.New("Internal server error")
 		mockSecretsManager.On("GetSecretValue", input).Return(nil, mockErr)
@@ -110,11 +109,11 @@ func TestGetKeyID(t *testing.T) {
 		mockSecretsManager, provider := buildMockAndProvider(t)
 
 		input := &secretsmanager.GetSecretValueInput{
-			SecretId: aws.String(secretARN),
+			SecretId: new(secretARN),
 		}
 		secretString := fmt.Sprintf(`{"ASAP_PRIVATE_KEY":"%s"}`, privateKeyOne) // nolint: gosec
 		output := &secretsmanager.GetSecretValueOutput{
-			SecretString: aws.String(secretString),
+			SecretString: new(secretString),
 		}
 		mockSecretsManager.On("GetSecretValue", input).Return(output, nil)
 
@@ -129,11 +128,11 @@ func TestGetKeyID(t *testing.T) {
 		mockSecretsManager, provider := buildMockAndProvider(t)
 
 		input := &secretsmanager.GetSecretValueInput{
-			SecretId: aws.String(secretARN),
+			SecretId: new(secretARN),
 		}
 		secretString := fmt.Sprintf(`{"ASAP_KEY_ID":"%s"}`, keyIDOne) // nolint: gosec
 		output := &secretsmanager.GetSecretValueOutput{
-			SecretString: aws.String(secretString),
+			SecretString: new(secretString),
 		}
 		mockSecretsManager.On("GetSecretValue", input).Return(output, nil)
 
@@ -164,11 +163,11 @@ func TestFetch(t *testing.T) {
 		mockSecretsManager, provider := buildMockAndProvider(t)
 
 		input := &secretsmanager.GetSecretValueInput{
-			SecretId: aws.String(secretARN),
+			SecretId: new(secretARN),
 		}
 		secretString := fmt.Sprintf(`{"ASAP_KEY_ID":"%s"}`, keyIDTwo) // nolint: gosec
 		output := &secretsmanager.GetSecretValueOutput{
-			SecretString: aws.String(secretString),
+			SecretString: new(secretString),
 		}
 		mockSecretsManager.On("GetSecretValue", input).Return(output, nil)
 
@@ -190,7 +189,7 @@ func buildMockAndProvider(t *testing.T) (*mocks.SecretsManagerAPI, *SecretsManag
 		privateKeyARN:   secretARN,
 		cacheTTL:        defaultCacheTTL,
 		latestKeyID:     "",
-		privateKeys:     map[string]interface{}{},
+		privateKeys:     map[string]any{},
 		lastUpdatedTime: time.Time{},
 	}
 
@@ -199,11 +198,11 @@ func buildMockAndProvider(t *testing.T) (*mocks.SecretsManagerAPI, *SecretsManag
 
 func setUpMockWithValidSecretString(mockSecretsManager *mocks.SecretsManagerAPI, keyID, privateKey string) {
 	input := &secretsmanager.GetSecretValueInput{
-		SecretId: aws.String(secretARN),
+		SecretId: new(secretARN),
 	}
 	secretString := fmt.Sprintf(`{"ASAP_KEY_ID":"%s","ASAP_PRIVATE_KEY":"%s"}`, keyID, privateKey) // nolint: gosec
 	output := &secretsmanager.GetSecretValueOutput{
-		SecretString: aws.String(secretString),
+		SecretString: new(secretString),
 	}
 	mockSecretsManager.On("GetSecretValue", input).Return(output, nil).Once()
 }

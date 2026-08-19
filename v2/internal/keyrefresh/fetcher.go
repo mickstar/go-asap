@@ -22,7 +22,7 @@ type Stats func(stat string, count float64, tags ...string)
 type Config struct {
 	BaseURL        string
 	HTTPClient     *http.Client
-	ParsePublicKey func([]byte) (interface{}, error)
+	ParsePublicKey func([]byte) (any, error)
 	Stats          Stats
 	QueueSize      int
 }
@@ -61,7 +61,7 @@ func NewFetcher(config Config) (*Fetcher, error) {
 	return f, nil
 }
 
-func (f *Fetcher) Fetch(keyID string) (interface{}, error) {
+func (f *Fetcher) Fetch(keyID string) (any, error) {
 	value, ok := f.keys.cache.Get(keyID)
 	if ok {
 		now := f.keys.timeNow()

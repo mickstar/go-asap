@@ -5,7 +5,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -22,14 +22,14 @@ import (
 // KeyFetcher takes in an ASAP compliant kid and returns the public key
 // associated with it for use in verifying tokens.
 type KeyFetcher interface {
-	Fetch(keyID string) (interface{}, error)
+	Fetch(keyID string) (any, error)
 }
 
 // NewPrivateKey attempts to decode the given bytes into a valid private key
 // of some type and return something suitable for signing a token.
-func NewPrivateKey(privateKeyData []byte) (interface{}, error) {
+func NewPrivateKey(privateKeyData []byte) (any, error) {
 	var e error
-	var privateKey interface{}
+	var privateKey any
 	var dataURL *dataurl.DataURL
 	// PEM files are typically multi-line, which makes the raw form difficult to be stored in evnironment variables.
 	// We first attempt to decode the data. If we fail, then proceed with the original input.
@@ -62,13 +62,13 @@ func NewPrivateKey(privateKeyData []byte) (interface{}, error) {
 
 // NewMicrosPrivateKey plucks the key from the contracted ENV vars documented
 // here: https://extranet.atlassian.com/pages/viewpage.action?pageId=2763562051
-func NewMicrosPrivateKey() (interface{}, error) {
+func NewMicrosPrivateKey() (any, error) {
 	return NewPrivateKey([]byte(os.Getenv("ASAP_PRIVATE_KEY")))
 }
 
 // NewPublicKey attempts to decode the given bytes into a valid public key of
 // some type and return something suitable for verifying a token signature.
-func NewPublicKey(publicKeyData []byte) (interface{}, error) {
+func NewPublicKey(publicKeyData []byte) (any, error) {
 
 	var block, _ = pem.Decode(publicKeyData)
 	if block == nil {
@@ -109,7 +109,7 @@ func NewMicrosKeyFetcher(client *http.Client) KeyFetcher {
 	)
 }
 
-func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
+func (f *httpFetcher) Fetch(keyID string) (any, error) {
 	var pkURL, e = url.Parse(f.baseURL)
 	if e != nil {
 		return nil, e
@@ -123,12 +123,12 @@ func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		var body, _ = ioutil.ReadAll(resp.Body)
+		var body, _ = io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", pkURL.String(), resp.StatusCode, string(body))
 	}
 
 	var keyBytes []byte
-	keyBytes, e = ioutil.ReadAll(resp.Body)
+	keyBytes, e = io.ReadAll(resp.Body)
 	if e != nil {
 		return nil, e
 	}
@@ -139,16 +139,16 @@ func (f *httpFetcher) Fetch(keyID string) (interface{}, error) {
 type cacheFetcher struct {
 	lock    sync.RWMutex
 	wrapped KeyFetcher
-	cache   map[string]interface{}
+	cache   map[string]any
 }
 
 // NewCachingFetcher wraps a given KeyFetcher implementation with an in-memory
 // cache for returned keys.
 func NewCachingFetcher(wrapped KeyFetcher) KeyFetcher {
-	return &cacheFetcher{sync.RWMutex{}, wrapped, make(map[string]interface{})}
+	return &cacheFetcher{sync.RWMutex{}, wrapped, make(map[string]any)}
 }
 
-func (f *cacheFetcher) Fetch(keyID string) (interface{}, error) {
+func (f *cacheFetcher) Fetch(keyID string) (any, error) {
 	f.lock.RLock()
 	var cached, ok = f.cache[keyID]
 	f.lock.RUnlock()
@@ -169,8 +169,8 @@ type MultiKeyFetcher []KeyFetcher
 
 // Fetch iterates through the list of fetchers returning first fetch result that
 // succeeds
-func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
-	var pk interface{}
+func (f MultiKeyFetcher) Fetch(key string) (any, error) {
+	var pk any
 	var errs []string
 	var err error
 	for _, fetcher := range f {
@@ -185,7 +185,7 @@ func (f MultiKeyFetcher) Fetch(key string) (interface{}, error) {
 
 // keyExpirationPair contains a public key along with that key's cache expiration time
 type keyExpirationPair struct {
-	key                  interface{}
+	key                  any
 	expiration           time.Time
 	staleWhileRevalidate time.Duration
 }
@@ -204,7 +204,7 @@ type keyLookupBadResponseError struct {
 }
 
 type keyCacheEntry struct {
-	key        interface{}
+	key        any
 	lookupMiss keyLookupMissError
 	freshUntil time.Time
 	staleUntil time.Time
@@ -400,7 +400,7 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, er
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		var body, _ = ioutil.ReadAll(resp.Body)
+		var body, _ = io.ReadAll(resp.Body)
 		err := fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", httpURL, resp.StatusCode, string(body))
 		if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {
 			return keyExpirationPair{}, keyLookupMissError{err, f.timeNow().Add(lookupMissTTL)}
@@ -410,7 +410,7 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, er
 
 	expiry, staleOk := getExpiryAndStaleOk(resp.Header, f.timeNow)
 	var keyBytes []byte
-	keyBytes, err = ioutil.ReadAll(resp.Body)
+	keyBytes, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return keyExpirationPair{}, keyLookupBadResponseError{fmt.Errorf("failure reading response body: %s", err)}
 	}
@@ -423,7 +423,7 @@ func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, er
 	return keyExpirationPair{key, expiry, staleOk}, nil
 }
 
-func (f *expiringCacheFetcher) Fetch(keyID string) (interface{}, error) {
+func (f *expiringCacheFetcher) Fetch(keyID string) (any, error) {
 	value, ok := f.cache.Get(keyID)
 	if ok {
 		now := f.timeNow()
@@ -456,7 +456,7 @@ func (f *expiringCacheFetcher) reloadOrPurge(keyID string) {
 	}
 }
 
-func (f *expiringCacheFetcher) reload(keyID string) (interface{}, error) {
+func (f *expiringCacheFetcher) reload(keyID string) (any, error) {
 	// Cache miss identified. Wait for (potentially) another cache refresh
 	lock, _ := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
 

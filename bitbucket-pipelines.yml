@@ -2,29 +2,11 @@ image: golang:1.26
 
 definitions:
   steps:
-    - step: &test-definition-v1
-        name: Build and test (v1)
+    - step: &test-definition
+        name: Build and test
         script:
-          - go build
-
-          # Style checks
           - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.11.4
-          - ./bin/golangci-lint run
-
-          # Build and test
-          - go test -v -cover -race .
-    - step: &test-definition-v2
-        name: Build and test (v2)
-        script:
-          - cd v2
-          - go build
-
-          # Style checks
-          - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v2.11.4
-          - ./bin/golangci-lint run
-
-          # Build and test
-          - go test -v -cover -race .
+          - make test
 
     - step: &go-mod-tag
         name: Tag
@@ -36,20 +18,13 @@ definitions:
 
 pipelines:
   default:
-    - parallel:
-      - step:
-          <<: *test-definition-v1
-      - step:
-          <<: *test-definition-v2
+    - step:
+        <<: *test-definition
   branches:
     master:
-    - parallel:
-      - step:
-          <<: *test-definition-v1
-      - step:
-          <<: *test-definition-v2
+    - step:
+        <<: *test-definition
     - step:
         <<: *go-mod-tag
         name: Version
-
 

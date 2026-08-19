@@ -169,23 +169,19 @@ func TestKeyCacheReloadSuppressesDuplicateReloads(t *testing.T) {
 
 	var wg sync.WaitGroup
 	errs := make(chan error, 10)
-	values := make(chan interface{}, 10)
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	values := make(chan any, 10)
+	wg.Go(func() {
 		value, err := cache.reload("kid")
 		errs <- err
 		values <- value
-	}()
+	})
 	<-started
 	for i := 1; i < 10; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			value, err := cache.reload("kid")
 			errs <- err
 			values <- value
-		}()
+		})
 	}
 
 	time.Sleep(10 * time.Millisecond)

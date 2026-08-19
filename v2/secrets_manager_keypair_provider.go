@@ -36,7 +36,7 @@ type SecretsManagerKeypairProvider struct {
 	privateKeyARN   string
 	cacheTTL        time.Duration
 	latestKeyID     string
-	privateKeys     map[string]interface{}
+	privateKeys     map[string]any
 	lastUpdatedTime time.Time
 }
 
@@ -57,7 +57,7 @@ func NewSecretsManagerKeypairProvider(privateKeyARN, region, role, cacheTTL stri
 		privateKeyARN:   privateKeyARN,
 		cacheTTL:        cacheTTLDuration,
 		latestKeyID:     "",
-		privateKeys:     map[string]interface{}{},
+		privateKeys:     map[string]any{},
 		lastUpdatedTime: time.Time{},
 	}
 
@@ -88,7 +88,7 @@ func (p *SecretsManagerKeypairProvider) GetKeyID() (string, error) {
 	return p.refreshCache()
 }
 
-func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (interface{}, error) {
+func (p *SecretsManagerKeypairProvider) Fetch(keyID string) (any, error) {
 	p.lock.RLock()
 	privateKey, exists := p.privateKeys[keyID]
 	p.lock.RUnlock()
@@ -131,7 +131,7 @@ func (p *SecretsManagerKeypairProvider) refreshCache() (string, error) {
 
 func (p *SecretsManagerKeypairProvider) getSecretValue() (map[string]string, error) {
 	getSecretValueInput := &secretsmanager.GetSecretValueInput{
-		SecretId: aws.String(p.privateKeyARN),
+		SecretId: new(p.privateKeyARN),
 	}
 
 	result, err := p.client.GetSecretValue(getSecretValueInput)
@@ -195,7 +195,7 @@ func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 		SharedConfigState: session.SharedConfigDisable,
 		Config: aws.Config{
 			UseFIPSEndpoint: useFIPSEndpoint,
-			Region:          aws.String(region),
+			Region:          new(region),
 		},
 	}))
 
@@ -204,7 +204,7 @@ func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 		conf.Credentials = stscreds.NewCredentials(sess, role)
 	}
 	if customEndpoint != "" {
-		conf.Endpoint = aws.String(customEndpoint)
+		conf.Endpoint = new(customEndpoint)
 	}
 
 	client := secretsmanager.New(sess, conf)
@@ -212,7 +212,7 @@ func buildSecretsManagerClient(region string, role string) SecretsManagerAPI {
 	return client
 }
 
-func handleClientError(err error, msg string, input interface{}) error {
+func handleClientError(err error, msg string, input any) error {
 	awsErrCode := ""
 	errMessage := err.Error()
 

@@ -99,14 +99,14 @@ func (c *keyCache) incr(stat string) {
 	c.cacheStats(stat, 1)
 }
 
-func (c *keyCache) reload(keyID string) (interface{}, error) {
-	value, err, _ := c.reloads.Do(keyID, func() (interface{}, error) {
+func (c *keyCache) reload(keyID string) (any, error) {
+	value, err, _ := c.reloads.Do(keyID, func() (any, error) {
 		return c.reloadOnce(keyID)
 	})
 	return value, err
 }
 
-func (c *keyCache) reloadOnce(keyID string) (interface{}, error) {
+func (c *keyCache) reloadOnce(keyID string) (any, error) {
 	if value, ok := c.cache.Get(keyID); ok {
 		now := c.timeNow()
 		switch value.kind {

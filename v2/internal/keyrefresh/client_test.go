@@ -3,7 +3,8 @@ package keyrefresh
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"io"
+
 	"net/http"
 	"sync"
 	"testing"
@@ -53,7 +54,7 @@ func (t *recordingTransport) RoundTrip(req *http.Request) (*http.Response, error
 	if statusCode == 0 {
 		statusCode = http.StatusOK
 	}
-	body := ioutil.NopCloser(bytes.NewBufferString(response.body))
+	body := io.NopCloser(bytes.NewBufferString(response.body))
 	if response.bodyErr != nil {
 		body = errReadCloser{err: response.bodyErr}
 	}
@@ -88,11 +89,11 @@ func (r errReadCloser) Close() error {
 	return nil
 }
 
-func parseString(data []byte) (interface{}, error) {
+func parseString(data []byte) (any, error) {
 	return string(data), nil
 }
 
-func parseFailure(_ []byte) (interface{}, error) {
+func parseFailure(_ []byte) (any, error) {
 	return nil, errors.New("parse failed")
 }
 
@@ -130,7 +131,7 @@ func TestKeyStoreClientFetchErrors(t *testing.T) {
 	tests := []struct {
 		name      string
 		response  roundTripResponse
-		parse     func([]byte) (interface{}, error)
+		parse     func([]byte) (any, error)
 		assertErr func(*testing.T, error)
 	}{
 		{

@@ -95,7 +95,7 @@ func TestFetcherStaleRefreshSuppressesDuplicateQueuedWork(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "initial", value)
 
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		_, err := fetcher.Fetch("kid")
 		require.NoError(t, err)
 	}

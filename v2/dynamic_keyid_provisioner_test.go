@@ -6,7 +6,6 @@ import (
 
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
-	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -62,7 +61,7 @@ func TestProvision(t *testing.T) {
 		provider.cacheTTL = time.Duration(0) // force a cache refresh
 
 		input := &secretsmanager.GetSecretValueInput{
-			SecretId: aws.String(secretARN),
+			SecretId: new(secretARN),
 		}
 		mockErr := errors.New("Internal server error")
 		mockSecretsManager.On("GetSecretValue", input).Return(nil, mockErr)

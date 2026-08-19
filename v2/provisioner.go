@@ -62,7 +62,7 @@ type cacheToken struct {
 	lock  *sync.RWMutex
 }
 
-func (t *cacheToken) Serialize(k interface{}) ([]byte, error) {
+func (t *cacheToken) Serialize(k any) ([]byte, error) {
 	t.lock.RLock()
 	if t.cache != nil {
 		defer t.lock.RUnlock()

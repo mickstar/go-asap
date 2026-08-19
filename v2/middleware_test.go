@@ -3,7 +3,7 @@ package asap
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,7 +29,7 @@ func TestMiddlewareHandlesInvalidBearer(t *testing.T) {
 	var m = NewMiddleware(validator, callback)(wrapped)
 
 	var w = httptest.NewRecorder()
-	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
+	var r, _ = http.NewRequest(http.MethodGet, "/", io.NopCloser(bytes.NewBufferString(``)))
 	r.Header.Set("Authorization", "TEST")
 	m.ServeHTTP(w, r)
 	if !calledCallback {
@@ -45,7 +45,7 @@ func TestMiddlewareHandlesInvalidTokens(t *testing.T) {
 	var m = NewMiddleware(validator, callback)(wrapped)
 
 	var w = httptest.NewRecorder()
-	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
+	var r, _ = http.NewRequest(http.MethodGet, "/", io.NopCloser(bytes.NewBufferString(``)))
 	r.Header.Set("Authorization", "Bearer TEST")
 	m.ServeHTTP(w, r)
 	if !calledCallback {
@@ -69,7 +69,7 @@ func TestMiddlewareHandlesValidationFailure(t *testing.T) {
 	var headerValue, _ = token.Serialize(pk)
 
 	var w = httptest.NewRecorder()
-	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
+	var r, _ = http.NewRequest(http.MethodGet, "/", io.NopCloser(bytes.NewBufferString(``)))
 	r.Header.Set("Authorization", "Bearer "+string(headerValue))
 	m.ServeHTTP(w, r)
 	if !calledCallback {
@@ -90,7 +90,7 @@ func TestMiddlewareHandlesAcceptsValidTokens(t *testing.T) {
 	var headerValue, _ = token.Serialize(pk)
 
 	var w = httptest.NewRecorder()
-	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
+	var r, _ = http.NewRequest(http.MethodGet, "/", io.NopCloser(bytes.NewBufferString(``)))
 	r.Header.Set("Authorization", "Bearer "+string(headerValue))
 	m.ServeHTTP(w, r)
 	if calledCallback {
@@ -104,7 +104,7 @@ func TestMiddlewareHandlesSends403ByDefault(t *testing.T) {
 	var m = NewMiddleware(validator, nil)(wrapped)
 
 	var w = httptest.NewRecorder()
-	var r, _ = http.NewRequest(http.MethodGet, "/", ioutil.NopCloser(bytes.NewBufferString(``)))
+	var r, _ = http.NewRequest(http.MethodGet, "/", io.NopCloser(bytes.NewBufferString(``)))
 	r.Header.Set("Authorization", "TEST")
 	m.ServeHTTP(w, r)
 	if w.Code != http.StatusUnauthorized {
