@@ -16,10 +16,10 @@ import (
 type NonJWS struct{}
 
 func (NonJWS) Claims() jwt.Claims { return nil }
-func (NonJWS) Validate(key interface{}, method crypto.SigningMethod, v ...*jwt.Validator) error {
+func (NonJWS) Validate(key any, method crypto.SigningMethod, v ...*jwt.Validator) error {
 	return nil
 }
-func (NonJWS) Serialize(key interface{}) ([]byte, error) { return nil, nil }
+func (NonJWS) Serialize(key any) ([]byte, error) { return nil, nil }
 
 // TestJWS is a mock implementation of the jws.JWS interface.
 type TestJWS struct {
@@ -32,27 +32,27 @@ func (t TestJWS) Protected() jose.Protected {
 	}
 	return jose.Protected(t.header)
 }
-func (TestJWS) Payload() interface{}                                                      { return nil }
-func (TestJWS) SetPayload(interface{})                                                    {}
-func (TestJWS) ProtectedAt(int) jose.Protected                                            { return nil }
-func (TestJWS) Header() jose.Header                                                       { return nil }
-func (TestJWS) HeaderAt(int) jose.Header                                                  { return nil }
-func (TestJWS) Verify(interface{}, crypto.SigningMethod) error                            { return nil }
-func (TestJWS) VerifyMulti([]interface{}, []crypto.SigningMethod, *jws.SigningOpts) error { return nil }
+func (TestJWS) Payload() any                                                      { return nil }
+func (TestJWS) SetPayload(any)                                                    {}
+func (TestJWS) ProtectedAt(int) jose.Protected                                    { return nil }
+func (TestJWS) Header() jose.Header                                               { return nil }
+func (TestJWS) HeaderAt(int) jose.Header                                          { return nil }
+func (TestJWS) Verify(any, crypto.SigningMethod) error                            { return nil }
+func (TestJWS) VerifyMulti([]any, []crypto.SigningMethod, *jws.SigningOpts) error { return nil }
 func (TestJWS) VerifyCallback(jws.VerifyCallback, []crypto.SigningMethod, *jws.SigningOpts) error {
 	return nil
 }
-func (TestJWS) General(...interface{}) ([]byte, error) { return nil, nil }
-func (TestJWS) Flat(interface{}) ([]byte, error)       { return nil, nil }
-func (TestJWS) Compact(interface{}) ([]byte, error)    { return nil, nil }
-func (TestJWS) IsJWT() bool                            { return false }
+func (TestJWS) General(...any) ([]byte, error) { return nil, nil }
+func (TestJWS) Flat(any) ([]byte, error)       { return nil, nil }
+func (TestJWS) Compact(any) ([]byte, error)    { return nil, nil }
+func (TestJWS) IsJWT() bool                    { return false }
 
 func (TestJWS) Claims() jwt.Claims { return nil }
 
-func (TestJWS) Validate(key interface{}, method crypto.SigningMethod, v ...*jwt.Validator) error {
+func (TestJWS) Validate(key any, method crypto.SigningMethod, v ...*jwt.Validator) error {
 	return nil
 }
-func (TestJWS) Serialize(key interface{}) ([]byte, error) { return nil, nil }
+func (TestJWS) Serialize(key any) ([]byte, error) { return nil, nil }
 
 func TestGetKeyIDFromToken(t *testing.T) {
 	t.Run("Gets the keyID", func(t *testing.T) {
@@ -94,7 +94,6 @@ func TestGetKeyIDFromToken(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		c := c
 		t.Run(c.name, func(t *testing.T) {
 			t.Parallel()
 			_, err := GetKeyIDFromToken(c.token)

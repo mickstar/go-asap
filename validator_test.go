@@ -418,7 +418,7 @@ func TestAllowedClaimValuesValidator_ScalarNoMatch(t *testing.T) {
 
 func TestAllowedClaimValuesValidator_ArrayMatch(t *testing.T) {
 	claims := jws.Claims{}
-	claims.Set("roles", []interface{}{"reader", "writer"})
+	claims.Set("roles", []any{"reader", "writer"})
 	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer", "admin")
 	if err := v.Validate(token); err != nil {
@@ -428,7 +428,7 @@ func TestAllowedClaimValuesValidator_ArrayMatch(t *testing.T) {
 
 func TestAllowedClaimValuesValidator_ArrayNoMatch(t *testing.T) {
 	claims := jws.Claims{}
-	claims.Set("roles", []interface{}{"reader"})
+	claims.Set("roles", []any{"reader"})
 	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer", "admin")
 	if err := v.Validate(token); err == nil {
@@ -438,7 +438,7 @@ func TestAllowedClaimValuesValidator_ArrayNoMatch(t *testing.T) {
 
 func TestAllowedClaimValuesValidator_ArrayEmpty(t *testing.T) {
 	claims := jws.Claims{}
-	claims.Set("roles", []interface{}{})
+	claims.Set("roles", []any{})
 	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer")
 	if err := v.Validate(token); err == nil {
@@ -468,7 +468,7 @@ func TestAllowedClaimValuesValidator_UnsupportedType(t *testing.T) {
 func TestAllowedClaimValuesValidator_ArrayWithNonStringElements(t *testing.T) {
 	claims := jws.Claims{}
 	// Mix of non-string elements and a matching string — non-strings should be skipped
-	claims.Set("roles", []interface{}{42, true, "writer"})
+	claims.Set("roles", []any{42, true, "writer"})
 	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer")
 	if err := v.Validate(token); err != nil {

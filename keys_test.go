@@ -3,7 +3,8 @@ package asap
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
+	"maps"
 	"net/http"
 	"os"
 	"reflect"
@@ -148,11 +149,11 @@ func (r *fixtureRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 }
 
 type fixtureFetcher struct {
-	value interface{}
+	value any
 	e     error
 }
 
-func (f *fixtureFetcher) Fetch(string) (interface{}, error) {
+func (f *fixtureFetcher) Fetch(string) (any, error) {
 	return f.value, f.e
 }
 
@@ -230,7 +231,7 @@ func TestHTTPFetcherJoinsKidToPath(t *testing.T) {
 	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusInternalServerError,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+		Body:       io.NopCloser(bytes.NewBufferString(``)),
 	}
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
@@ -246,7 +247,7 @@ func TestHTTPFetcher(t *testing.T) {
 	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
@@ -283,11 +284,11 @@ func TestMultiFetcherSuccess(t *testing.T) {
 	t.Parallel()
 	var failure = &http.Response{
 		StatusCode: http.StatusInternalServerError,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+		Body:       io.NopCloser(bytes.NewBufferString(``)),
 	}
 	var success = &http.Response{
 		StatusCode: http.StatusOK,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var successClient = &http.Client{Transport: &fixtureRoundTripper{success, nil, nil}}
 	var failureClient = &http.Client{Transport: &fixtureRoundTripper{failure, nil, nil}}
@@ -306,7 +307,7 @@ func TestMultiFetcherFailure(t *testing.T) {
 	t.Parallel()
 	var failure = &http.Response{
 		StatusCode: http.StatusInternalServerError,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+		Body:       io.NopCloser(bytes.NewBufferString(``)),
 	}
 	var failureClient = &http.Client{Transport: &fixtureRoundTripper{failure, nil, nil}}
 
@@ -324,7 +325,7 @@ func TestExpiringHTTPFetcherJoinsKidToPath(t *testing.T) {
 	t.Parallel()
 	var response = &http.Response{
 		StatusCode: http.StatusInternalServerError,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(``)),
+		Body:       io.NopCloser(bytes.NewBufferString(``)),
 	}
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
@@ -345,7 +346,7 @@ func TestExpiringHTTPFetcherFetch(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Expires": {expirationTime.UTC().Format(http.TimeFormat)}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
@@ -459,7 +460,7 @@ func TestExpiringHTTPFetcherCache(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1200"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
@@ -545,9 +546,7 @@ func (s *mockStats) getCalls() map[string]float64 {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	result := make(map[string]float64)
-	for k, v := range s.calls {
-		result[k] = v
-	}
+	maps.Copy(result, s.calls)
 	return result
 }
 
@@ -580,7 +579,7 @@ func (r *countingKeyRoundTripper) RoundTrip(_ *http.Request) (*http.Response, er
 	return &http.Response{
 		StatusCode: response.statusCode,
 		Header:     response.header,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(response.body)),
+		Body:       io.NopCloser(bytes.NewBufferString(response.body)),
 	}, nil
 }
 
@@ -652,7 +651,7 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Expires": {time.Now().UTC().Add(time.Second).Format(http.TimeFormat)}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
@@ -671,7 +670,7 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Expires": {newExpiryTime}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetResponse(response, nil)
 
@@ -691,7 +690,7 @@ func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
 	response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Expires": {newExpiryTime}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetResponse(response, nil)
 
@@ -712,7 +711,7 @@ func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
@@ -730,7 +729,7 @@ func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
 	response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey2)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey2)),
 	}
 	transport.SetResponse(response, nil)
 
@@ -763,7 +762,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshSlowResponse(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
@@ -781,7 +780,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshSlowResponse(t *testing.T) {
 	response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey2)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey2)),
 	}
 	transport.SetDelayedResponse(response, time.Second, nil)
 
@@ -825,7 +824,7 @@ func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
@@ -841,7 +840,7 @@ func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
 
 	response = &http.Response{
 		StatusCode: http.StatusForbidden,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetResponse(response, nil)
 
@@ -871,7 +870,7 @@ func TestExpiringHTTPFetcherCacheStalePurgeSlowResponse(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
@@ -887,7 +886,7 @@ func TestExpiringHTTPFetcherCacheStalePurgeSlowResponse(t *testing.T) {
 
 	response = &http.Response{
 		StatusCode: http.StatusForbidden,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetDelayedResponse(response, time.Second, nil)
 
@@ -941,7 +940,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 	t.Setenv(keyRefreshQueueDisableFlag, "true")
 	var response = &http.Response{
 		StatusCode: http.StatusForbidden,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var stats = &mockStats{}
@@ -962,7 +961,7 @@ func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
 	response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetResponse(response, nil)
 
@@ -993,7 +992,7 @@ func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
@@ -1009,7 +1008,7 @@ func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
 
 	response = &http.Response{
 		StatusCode: http.StatusBadGateway,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetResponse(response, nil)
 
@@ -1032,7 +1031,7 @@ func TestExpiringHTTPFetcherKeepOnTimeoutError(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport, Timeout: 1 * time.Second}
@@ -1048,7 +1047,7 @@ func TestExpiringHTTPFetcherKeepOnTimeoutError(t *testing.T) {
 
 	response = &http.Response{
 		StatusCode: http.StatusOK,
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	transport.SetDelayedResponse(response, 2*time.Second, nil)
 
@@ -1080,7 +1079,7 @@ func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}
@@ -1096,7 +1095,7 @@ func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
 
 	response = &http.Response{
 		StatusCode: http.StatusOK,
-		Body:       ioutil.NopCloser(bytes.NewBufferString("something rather unexpected")),
+		Body:       io.NopCloser(bytes.NewBufferString("something rather unexpected")),
 	}
 	transport.SetResponse(response, nil)
 
@@ -1119,7 +1118,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	stats := &mockStats{}
@@ -1137,7 +1136,7 @@ func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
 	response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey2)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey2)),
 	}
 	transport.SetResponse(response, nil)
 
@@ -1180,7 +1179,7 @@ func TestKeyCacheSizeLimit(t *testing.T) {
 	var response = &http.Response{
 		StatusCode: http.StatusOK,
 		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       ioutil.NopCloser(bytes.NewBufferString(publicKey)),
+		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
 	}
 	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
 	var client = &http.Client{Transport: transport}

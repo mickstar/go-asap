@@ -2,7 +2,7 @@ package keyrefresh
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -14,11 +14,11 @@ import (
 type keyStoreClient struct {
 	baseURL        string
 	httpClient     *http.Client
-	parsePublicKey func([]byte) (interface{}, error)
+	parsePublicKey func([]byte) (any, error)
 	timeNow        func() time.Time
 }
 
-func newKeyStoreClient(baseURL string, httpClient *http.Client, parsePublicKey func([]byte) (interface{}, error)) (*keyStoreClient, error) {
+func newKeyStoreClient(baseURL string, httpClient *http.Client, parsePublicKey func([]byte) (any, error)) (*keyStoreClient, error) {
 	var _, e = url.Parse(baseURL)
 	if e != nil {
 		return nil, fmt.Errorf("cannot parse baseURL: %s", e)
@@ -44,7 +44,7 @@ func (c *keyStoreClient) fetch(keyID string) (keyExpirationPair, error) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		var body, _ = ioutil.ReadAll(resp.Body)
+		var body, _ = io.ReadAll(resp.Body)
 		err := fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", httpURL, resp.StatusCode, string(body))
 		if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {
 			return keyExpirationPair{}, lookupMissError{err}
@@ -54,7 +54,7 @@ func (c *keyStoreClient) fetch(keyID string) (keyExpirationPair, error) {
 
 	expiry, staleOk := getExpiryAndStaleOk(resp.Header, c.timeNow)
 	var keyBytes []byte
-	keyBytes, err = ioutil.ReadAll(resp.Body)
+	keyBytes, err = io.ReadAll(resp.Body)
 	if err != nil {
 		return keyExpirationPair{}, badResponseError{fmt.Errorf("failure reading response body: %s", err)}
 	}

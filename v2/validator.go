@@ -3,6 +3,7 @@ package asap
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -135,7 +136,7 @@ func (v *allowedClaimValuesValidator) Validate(t Token) error {
 		}
 		return fmt.Errorf("Claim %s:%s did not match an approved value", v.claimName, val)
 
-	case []interface{}:
+	case []any:
 		for _, elem := range val {
 			s, ok := elem.(string)
 			if !ok {
@@ -166,10 +167,8 @@ func NewAllowedAudienceValidator(values ...string) Validator {
 func (v *allowedAudienceValidator) Validate(t Token) error {
 	var audienceValues, _ = t.Claims().Audience()
 	for _, allowed := range v.allowedStrings {
-		for _, given := range audienceValues {
-			if given == allowed {
-				return nil
-			}
+		if slices.Contains(audienceValues, allowed) {
+			return nil
 		}
 	}
 	return fmt.Errorf("No given audience values %s matched an approved value %s", audienceValues, v.allowedStrings)
@@ -187,7 +186,7 @@ func kidValidator(t Token) error {
 		return fmt.Errorf("the KeyID %s does not start with the issuer name %s", kid, issuer)
 	}
 
-	for _, s := range strings.Split(kid, "/") {
+	for s := range strings.SplitSeq(kid, "/") {
 		if s == "." || s == ".." {
 			return fmt.Errorf("the KeyID %s contains invalid segments (. or ..)", kid)
 		}

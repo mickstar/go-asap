@@ -8,7 +8,7 @@ import (
 type transportDecorator struct {
 	wrapped     http.RoundTripper
 	provisioner Provisioner
-	privatekey  interface{}
+	privatekey  any
 }
 
 // RoundTrip annotates the outgoing request and calls the wrapped Client.
@@ -28,7 +28,7 @@ func (c *transportDecorator) RoundTrip(r *http.Request) (*http.Response, error) 
 
 // NewTransportDecorator wraps a transport in order to include the asap token
 // header in outgoing requests.
-func NewTransportDecorator(provisioner Provisioner, pk interface{}) func(http.RoundTripper) http.RoundTripper {
+func NewTransportDecorator(provisioner Provisioner, pk any) func(http.RoundTripper) http.RoundTripper {
 	return func(c http.RoundTripper) http.RoundTripper {
 		return &transportDecorator{c, provisioner, pk}
 	}
