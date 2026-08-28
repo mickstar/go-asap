@@ -3,6 +3,7 @@ package keyrefresh
 import (
 	"errors"
 	"net/http"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -70,6 +71,21 @@ func TestKeyCacheStoreEntrySkipsExpiredEntry(t *testing.T) {
 
 	_, ok := cache.cache.Get("expired")
 	require.False(t, ok)
+}
+
+func TestKeyCacheCapacityCountsEntries(t *testing.T) {
+	now := time.Unix(1000, 0)
+	cache := newTestKeyCache(t, now, &recordingTransport{}, nil)
+
+	for i := range defaultMaxKeyCacheSize {
+		cache.storeKey(strconv.Itoa(i), keyExpirationPair{key: "key", expiration: now.Add(time.Hour)})
+	}
+	cache.cache.Wait()
+
+	for i := range defaultMaxKeyCacheSize {
+		_, ok := cache.cache.Get(strconv.Itoa(i))
+		require.True(t, ok)
+	}
 }
 
 func TestKeyCacheReloadUsesCachedValues(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	defaultMaxKeyCacheSize = 10000
+	defaultMaxKeyCacheSize = 1000
 	ristrettoBufferItems   = 64
 	lookupMissTTL          = 20 * time.Second
 )
@@ -75,9 +75,10 @@ type keyCache struct {
 
 func newKeyCache(keyStore *keyStoreClient, stats Stats) (*keyCache, error) {
 	cache, err := ristretto.NewCache(&ristretto.Config[string, keyCacheEntry]{
-		NumCounters: defaultMaxKeyCacheSize * 10,
-		MaxCost:     defaultMaxKeyCacheSize,
-		BufferItems: ristrettoBufferItems,
+		NumCounters:        defaultMaxKeyCacheSize * 10,
+		MaxCost:            defaultMaxKeyCacheSize,
+		BufferItems:        ristrettoBufferItems,
+		IgnoreInternalCost: true,
 	})
 	if err != nil {
 		return nil, err
