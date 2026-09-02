@@ -11,11 +11,8 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
-	"time"
 
 	"bitbucket.org/atlassian/go-asap/internal/keyrefresh"
-	"github.com/pquerna/cachecontrol/cacheobject"
 	"github.com/vincent-petithory/dataurl"
 )
 
@@ -136,34 +133,6 @@ func (f *httpFetcher) Fetch(keyID string) (any, error) {
 	return NewPublicKey(keyBytes)
 }
 
-type cacheFetcher struct {
-	lock    sync.RWMutex
-	wrapped KeyFetcher
-	cache   map[string]any
-}
-
-// NewCachingFetcher wraps a given KeyFetcher implementation with an in-memory
-// cache for returned keys.
-func NewCachingFetcher(wrapped KeyFetcher) KeyFetcher {
-	return &cacheFetcher{sync.RWMutex{}, wrapped, make(map[string]any)}
-}
-
-func (f *cacheFetcher) Fetch(keyID string) (any, error) {
-	f.lock.RLock()
-	var cached, ok = f.cache[keyID]
-	f.lock.RUnlock()
-	if ok {
-		return cached, nil
-	}
-	var result, e = f.wrapped.Fetch(keyID)
-	if e == nil {
-		f.lock.Lock()
-		defer f.lock.Unlock()
-		f.cache[keyID] = result
-	}
-	return result, e
-}
-
 // MultiKeyFetcher returns the first non error result from its list of fetchers
 type MultiKeyFetcher []KeyFetcher
 
@@ -183,329 +152,22 @@ func (f MultiKeyFetcher) Fetch(key string) (any, error) {
 	return nil, errors.New(strings.Join(errs, ", "))
 }
 
-// keyExpirationPair contains a public key along with that key's cache expiration time
-type keyExpirationPair struct {
-	key                  any
-	expiration           time.Time
-	staleWhileRevalidate time.Duration
+// NewExpiringCacheFetcher returns the bounded, expiring public-key fetcher.
+func NewExpiringCacheFetcher(baseURL string, client *http.Client) (KeyFetcher, error) {
+	return newKeyFetcher(baseURL, client, nil)
 }
 
-type keyLookupError struct {
-	error
+// NewExpiringCacheFetcherWithStats returns the bounded, expiring public-key
+// fetcher and reports its cache activity through stats.
+func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
+	return newKeyFetcher(baseURL, client, stats)
 }
 
-type keyLookupMissError struct {
-	error
-	expiration time.Time
-}
-
-type keyLookupBadResponseError struct {
-	error
-}
-
-type keyCacheEntry struct {
-	key        any
-	lookupMiss keyLookupMissError
-	freshUntil time.Time
-	staleUntil time.Time
-	isMiss     bool
-}
-
-func newKeyCacheEntry(pair keyExpirationPair) keyCacheEntry {
-	return keyCacheEntry{
-		key:        pair.key,
-		freshUntil: pair.expiration,
-		staleUntil: pair.expiration.Add(pair.staleWhileRevalidate),
-	}
-}
-
-func newKeyLookupMissCacheEntry(miss keyLookupMissError) keyCacheEntry {
-	return keyCacheEntry{
-		lookupMiss: miss,
-		freshUntil: miss.expiration,
-		staleUntil: miss.expiration,
-		isMiss:     true,
-	}
-}
-
-var (
-	cachedKey           = "asap.key.cache.hit"
-	expiredKey          = "asap.key.cache.expired"
-	cachedLookupMiss    = "asap.key.cache.lookup_miss"
-	cacheMiss           = "asap.key.cache.miss"
-	cacheRefreshSuccess = "asap.key.cache.refresh.success"
-	cacheForceReload    = "asap.key.cache.refresh.force_reload"
-)
-
-const (
-	defaultMaxKeyCacheSize = 10000
-	lookupMissTTL          = 20 * time.Second
-)
-const keyRefreshQueueDisableFlag = "ASAP_KEY_REFRESH_QUEUE_DISABLED"
-
-type expiringCacheFetcher struct {
-	keyLocks     sync.Map
-	baseURL      string
-	client       *http.Client
-	cache        *boundedCache[keyCacheEntry]
-	timeNow      func() time.Time
-	maxCacheSize int64
-	cacheStats   func(stat string, count float64, tags ...string)
-}
-
-func useKeyRefreshQueue() bool {
-	return os.Getenv(keyRefreshQueueDisableFlag) != "true"
-}
-
-func newQueuedRefreshFetcher(baseURL string, httpClient *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
+func newKeyFetcher(baseURL string, client *http.Client, stats keyrefresh.Stats) (KeyFetcher, error) {
 	return keyrefresh.NewFetcher(keyrefresh.Config{
 		BaseURL:        baseURL,
-		HTTPClient:     httpClient,
+		HTTPClient:     client,
 		ParsePublicKey: NewPublicKey,
 		Stats:          stats,
 	})
-}
-
-// NewExpiringCacheFetcher wraps a given KeyFetcher implementation that returns a keyExpirationPair with an in-memory
-// cache for returned keys.
-func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duration) (KeyFetcher, error) {
-	if useKeyRefreshQueue() {
-		return newQueuedRefreshFetcher(baseURL, client, nil)
-	}
-
-	legacy, err := newExpiringCacheFetcher(baseURL, client)
-	if err != nil {
-		return nil, err
-	}
-	return legacy, nil
-}
-
-func newExpiringCacheFetcher(baseURL string, client *http.Client) (*expiringCacheFetcher, error) {
-	var _, e = url.Parse(baseURL)
-	if e != nil {
-		return nil, fmt.Errorf("cannot parse baseURL: %s", e)
-	}
-
-	if !strings.HasSuffix(baseURL, "/") {
-		baseURL = baseURL + "/"
-	}
-
-	cache, err := newBoundedCacheWrapper[keyCacheEntry](defaultMaxKeyCacheSize)
-	if err != nil {
-		return nil, err
-	}
-
-	ec := &expiringCacheFetcher{
-		baseURL:      baseURL,
-		client:       client,
-		cache:        cache,
-		timeNow:      time.Now,
-		maxCacheSize: defaultMaxKeyCacheSize,
-	}
-
-	return ec, nil
-}
-
-func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
-	if useKeyRefreshQueue() {
-		return newQueuedRefreshFetcher(baseURL, client, stats)
-	}
-
-	legacy, e := newExpiringCacheFetcher(baseURL, client)
-	if e != nil {
-		return nil, e
-	}
-	legacy.WithCacheStats(stats)
-	return legacy, nil
-}
-
-// WithCacheStats adds a "count" statsd function which can increment
-// stats related to the expiring cache
-func (c *expiringCacheFetcher) WithCacheStats(count func(stat string, count float64, tags ...string)) *expiringCacheFetcher {
-	c.cacheStats = count
-	return c
-}
-
-func (c *expiringCacheFetcher) WithMaxCacheSize(maxCacheSize int64) *expiringCacheFetcher {
-	if maxCacheSize <= 0 {
-		return c
-	}
-
-	cache, err := newBoundedCacheWrapper[keyCacheEntry](maxCacheSize)
-	if err != nil {
-		return c
-	}
-
-	if c.cache != nil {
-		c.cache.Close()
-	}
-	c.cache = cache
-	c.maxCacheSize = maxCacheSize
-	return c
-}
-
-func (c *expiringCacheFetcher) incr(stat string) {
-	if c.cacheStats == nil {
-		return
-	}
-
-	c.cacheStats(stat, 1)
-}
-
-// getExpiryAndStaleOk parses the Cache Control header and returns the time when the key expires AND
-// its stale-while-revalidate duration, (i.e. how long after max-age, it's ok to use a cached key but
-// needs to be "revalidated")
-func getExpiryAndStaleOk(header http.Header, timeNow func() time.Time) (time.Time, time.Duration) {
-	cacheControl, ok := header["Cache-Control"]
-	if !ok {
-		return getExpiresTime(header, timeNow)
-	}
-	responseDirs, err := cacheobject.ParseResponseCacheControl(strings.Join(cacheControl, ","))
-	if err != nil {
-		// this implies malformed cache-control header (e.g. non-number values) => don't cache (i.e. expires now)
-		return getExpiresTime(header, timeNow)
-	}
-
-	if responseDirs.MaxAge != -1 {
-		if responseDirs.StaleWhileRevalidate != -1 {
-			// don't consider response expired until after max-age + stale-while-revalidate
-			// if after max-age but less than max-age + stale-while-revalidate, still good to use
-			// but need to "revalidate" async
-			return timeNow().Add(time.Duration(responseDirs.MaxAge) * time.Second),
-				time.Duration(responseDirs.StaleWhileRevalidate) * time.Second
-		}
-		return timeNow().Add(time.Duration(responseDirs.MaxAge) * time.Second), time.Duration(0)
-	}
-
-	return getExpiresTime(header, timeNow)
-}
-
-func getExpiresTime(header http.Header, timeNow func() time.Time) (time.Time, time.Duration) {
-	expires, e := http.ParseTime(header.Get("Expires"))
-	if e != nil {
-		// this implies malformed date in expires header => don't cache (i.e. expires now)
-		return timeNow().Add(time.Minute * 10), time.Duration(time.Minute * 20)
-	}
-
-	return expires, time.Duration(0)
-}
-
-func (f *expiringCacheFetcher) fetchHTTPKey(keyID string) (keyExpirationPair, error) {
-	// keyIDs cannot be prefixed with a leading slash, and baseURL includes a trailing /.
-	// using path.Join here turns the base url from http://example.com to http:/example.com, which is invalid.
-	httpURL := f.baseURL + keyID
-	resp, err := f.client.Get(httpURL)
-	if err != nil {
-		return keyExpirationPair{}, keyLookupError{fmt.Errorf("failed obtaining http response: %s", err)}
-	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		var body, _ = io.ReadAll(resp.Body)
-		err := fmt.Errorf("error fetching %s via HTTP. Code: %d Body: %s", httpURL, resp.StatusCode, string(body))
-		if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusNotFound {
-			return keyExpirationPair{}, keyLookupMissError{err, f.timeNow().Add(lookupMissTTL)}
-		}
-		return keyExpirationPair{}, keyLookupError{err}
-	}
-
-	expiry, staleOk := getExpiryAndStaleOk(resp.Header, f.timeNow)
-	var keyBytes []byte
-	keyBytes, err = io.ReadAll(resp.Body)
-	if err != nil {
-		return keyExpirationPair{}, keyLookupBadResponseError{fmt.Errorf("failure reading response body: %s", err)}
-	}
-
-	key, e := NewPublicKey(keyBytes)
-	if e != nil {
-		return keyExpirationPair{}, keyLookupBadResponseError{fmt.Errorf("failure parsing response body as public key: %s", e)}
-	}
-
-	return keyExpirationPair{key, expiry, staleOk}, nil
-}
-
-func (f *expiringCacheFetcher) Fetch(keyID string) (any, error) {
-	value, ok := f.cache.Get(keyID)
-	if ok {
-		now := f.timeNow()
-		if value.isMiss {
-			if value.freshUntil.After(now) {
-				f.incr(cachedLookupMiss)
-				return nil, value.lookupMiss
-			}
-		} else {
-			if value.freshUntil.After(now) {
-				f.incr(cachedKey)
-				return value.key, nil
-			}
-			if value.staleUntil.After(now) {
-				go f.reloadOrPurge(keyID)
-				f.incr(expiredKey)
-				return value.key, nil
-			}
-		}
-	}
-
-	f.incr(cacheMiss)
-	return f.reload(keyID)
-}
-
-func (f *expiringCacheFetcher) reloadOrPurge(keyID string) {
-	_, err := f.reload(keyID)
-	if _, ok := err.(keyLookupBadResponseError); ok {
-		f.cache.Del(keyID)
-	}
-}
-
-func (f *expiringCacheFetcher) reload(keyID string) (any, error) {
-	// Cache miss identified. Wait for (potentially) another cache refresh
-	lock, _ := f.keyLocks.LoadOrStore(keyID, &sync.Mutex{})
-
-	lock.(*sync.Mutex).Lock()
-	defer lock.(*sync.Mutex).Unlock()
-
-	// Check if cache has been repopulated
-	if value, ok := f.cache.Get(keyID); ok {
-		now := f.timeNow()
-		if value.isMiss {
-			if value.freshUntil.After(now) {
-				return nil, value.lookupMiss
-			}
-		} else if value.freshUntil.After(now) {
-			f.incr(cacheRefreshSuccess)
-			return value.key, nil
-		}
-	}
-
-	// Repopulate key
-	result, err := f.fetchHTTPKey(keyID)
-	if err != nil {
-		if v, ok := err.(keyLookupMissError); ok {
-			f.storeLookupMiss(keyID, v)
-		}
-		return nil, err
-	}
-	f.incr(cacheForceReload)
-	f.storeKey(keyID, result)
-	return result.key, nil
-}
-
-func (f *expiringCacheFetcher) Close() error {
-	if f.cache != nil {
-		f.cache.Close()
-	}
-	return nil
-}
-
-func (f *expiringCacheFetcher) storeKey(keyID string, pair keyExpirationPair) {
-	entry := newKeyCacheEntry(pair)
-	f.storeEntry(keyID, entry)
-}
-
-func (f *expiringCacheFetcher) storeLookupMiss(keyID string, miss keyLookupMissError) {
-	entry := newKeyLookupMissCacheEntry(miss)
-	f.storeEntry(keyID, entry)
-}
-
-func (f *expiringCacheFetcher) storeEntry(keyID string, entry keyCacheEntry) {
-	f.cache.SetWithTTL(keyID, entry, entry.staleUntil.Sub(f.timeNow()))
 }

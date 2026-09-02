@@ -1,8 +1,11 @@
 package keyrefresh
 
 import (
+	"io"
 	"net/http"
 	"reflect"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -162,4 +165,57 @@ func TestFetcherQueueDropAndClose(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, realFetcher.Close())
 	require.NoError(t, realFetcher.Close())
+}
+
+func BenchmarkFetcherFreshHit(b *testing.B) {
+	fetcher, err := NewFetcher(Config{
+		BaseURL:        "http://keys.example",
+		HTTPClient:     &http.Client{Transport: benchmarkTransport{}},
+		ParsePublicKey: parseString,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer fetcher.Close()
+
+	if _, err := fetcher.Fetch("kid"); err != nil {
+		b.Fatal(err)
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for b.Loop() {
+		if _, err := fetcher.Fetch("kid"); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFetcherHighCardinalityMiss(b *testing.B) {
+	fetcher, err := NewFetcher(Config{
+		BaseURL:        "http://keys.example",
+		HTTPClient:     &http.Client{Transport: benchmarkTransport{}},
+		ParsePublicKey: parseString,
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer fetcher.Close()
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; b.Loop(); i++ {
+		if _, err := fetcher.Fetch(strconv.Itoa(i)); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+type benchmarkTransport struct{}
+
+func (benchmarkTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Cache-Control": {"max-age=60"}},
+		Body:       io.NopCloser(strings.NewReader("key")),
+	}, nil
 }

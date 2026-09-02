@@ -9,6 +9,14 @@ import (
 	"github.com/SermoDigital/jose/jws"
 )
 
+type fixtureFetcher struct {
+	value any
+}
+
+func (f *fixtureFetcher) Fetch(string) (any, error) {
+	return f.value, nil
+}
+
 func TestValidatorChainRunsAll(t *testing.T) {
 	var counter = 0
 	var validator = func(Token) error {
