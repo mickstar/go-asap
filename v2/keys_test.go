@@ -330,6 +330,36 @@ func TestExpiringHTTPFetcherReportsStats(t *testing.T) {
 	}, stats)
 }
 
+func TestExpiringHTTPFetcherReturnsNilOnConstructionError(t *testing.T) {
+	tests := []struct {
+		name string
+		new  func() (KeyFetcher, error)
+	}{
+		{
+			name: "without stats",
+			new: func() (KeyFetcher, error) {
+				return NewExpiringCacheFetcher("%", http.DefaultClient)
+			},
+		},
+		{
+			name: "with stats",
+			new: func() (KeyFetcher, error) {
+				return NewExpiringCacheFetcherWithStats("%", http.DefaultClient, nil)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fetcher, err := test.new()
+			require.Error(t, err)
+			if fetcher != nil {
+				t.Fatalf("expected a nil fetcher, got %T", fetcher)
+			}
+		})
+	}
+}
+
 type countingRoundTripper struct {
 	requests int
 }

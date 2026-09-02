@@ -76,7 +76,7 @@ v := asap.NewValidatorChain(
   asap.NewAllowedAudienceValidator("myserviceid"),
 )
 token, _ := asap.ParseToken(valueFromAuthorizationHeader)
-err := v.Validate(token)
+err = v.Validate(token)
 if err != nil {
   // Invalid token
 }

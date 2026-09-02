@@ -164,10 +164,14 @@ func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats
 }
 
 func newKeyFetcher(baseURL string, client *http.Client, stats keyrefresh.Stats) (KeyFetcher, error) {
-	return keyrefresh.NewFetcher(keyrefresh.Config{
+	fetcher, err := keyrefresh.NewFetcher(keyrefresh.Config{
 		BaseURL:        baseURL,
 		HTTPClient:     client,
 		ParsePublicKey: NewPublicKey,
 		Stats:          stats,
 	})
+	if err != nil {
+		return nil, err
+	}
+	return fetcher, nil
 }
