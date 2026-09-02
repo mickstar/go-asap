@@ -57,26 +57,19 @@ bearer := fmt.Sprintf("Bearer %s", string(headerValue))
 
 ### Validate incoming requests
 
-Token validation needs a public-key fetcher for signature verification and a
-set of validation rules. Every service should define its own rules and combine
-them with `DefaultValidator`, which enforces the minimum ASAP requirements.
+To validate a token we need to two things: a way of fetching public keys for
+signature verification and a set of validation rules to apply. Every service
+should define its own custom validation rules and combine them with the
+`DefaultValidator` which enforces the minimum ASAP requirements.
 
 ```go
-keyFetcher, err := asap.NewExpiringCacheFetcher(
-  os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"),
-  http.DefaultClient,
-)
-if err != nil {
-  // Handle invalid key repository configuration.
-}
-
 v := asap.NewValidatorChain(
   asap.DefaultValidator,
-  asap.NewSignatureValidator(keyFetcher),
+  asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
   asap.NewAllowedAudienceValidator("myserviceid"),
 )
 token, _ := asap.ParseToken(valueFromAuthorizationHeader)
-err = v.Validate(token)
+err := v.Validate(token)
 if err != nil {
   // Invalid token
 }
@@ -88,15 +81,9 @@ to all incoming requests via:
 ```go
 v := asap.NewValidatorChain(
   asap.DefaultValidator,
-  asap.NewSignatureValidator(keyFetcher),
+  asap.NewSignatureValidator(asap.NewHTTPKeyFetcher(os.Getenv("ASAP_PUBLIC_KEY_REPOSITORY_URL"), http.DefaultClient)),
   asap.NewAllowedAudienceValidator("myserviceid"),
 )
 
 m := asap.NewMiddleware(v, nil) // func(http.Handler) http.Handler
 ```
-
-## Public key caching
-
-Use `NewExpiringCacheFetcher` for HTTP-backed public keys. It uses response
-cache headers, retains up to 1,000 entries, coalesces concurrent misses for the
-same key ID, and limits stale refresh work with a fixed-size queue.

@@ -131,6 +131,15 @@ func (r *fixtureRoundTripper) RoundTrip(req *http.Request) (*http.Response, erro
 	return r.response, r.e
 }
 
+type fixtureFetcher struct {
+	value any
+	e     error
+}
+
+func (f *fixtureFetcher) Fetch(string) (any, error) {
+	return f.value, f.e
+}
+
 func TestPrivateKeyParser(t *testing.T) {
 	t.Parallel()
 	var _, e = NewPrivateKey([]byte(privateKeyPKCS1RSA))
@@ -233,6 +242,27 @@ func TestHTTPFetcher(t *testing.T) {
 	}
 }
 
+func TestCacheFetcher(t *testing.T) {
+	t.Parallel()
+	var value = "TEST"
+	var kid = "keyID"
+	var wrapped = &fixtureFetcher{value, nil}
+	var f = NewCachingFetcher(wrapped).(*cacheFetcher)
+	var k, _ = f.Fetch(kid)
+	if k != value {
+		t.Fatalf("Expected to get TEST but instead got %s", k)
+	}
+	if f.cache[kid] != value {
+		t.Fatalf("Expected to find a cache entry but found %s", f.cache[kid])
+	}
+
+	wrapped.value = "TEST2"
+	k, _ = f.Fetch(kid)
+	if k != value {
+		t.Fatalf("Expected to get the cached value but instead got %s", k)
+	}
+}
+
 func TestMultiFetcherSuccess(t *testing.T) {
 	t.Parallel()
 	var failure = &http.Response{
@@ -283,7 +313,7 @@ func TestExpiringHTTPFetcherJoinsKidToPath(t *testing.T) {
 	var transport = &fixtureRoundTripper{response, nil, nil}
 	var client = &http.Client{Transport: transport}
 
-	f, err := NewExpiringCacheFetcher("http://localhost", client)
+	f, err := NewExpiringCacheFetcher("http://localhost", client, 0)
 	if err != nil {
 		t.Fatalf("Failed to initialize fetcher")
 	}
@@ -297,7 +327,7 @@ func TestExpiringHTTPFetcherCachesFreshKey(t *testing.T) {
 	transport := &countingRoundTripper{}
 	client := &http.Client{Transport: transport}
 
-	fetcher, err := NewExpiringCacheFetcher("http://localhost", client)
+	fetcher, err := NewExpiringCacheFetcher("http://localhost", client, 0)
 	require.NoError(t, err)
 	defer fetcher.(interface{ Close() error }).Close()
 
@@ -338,7 +368,7 @@ func TestExpiringHTTPFetcherReturnsNilOnConstructionError(t *testing.T) {
 		{
 			name: "without stats",
 			new: func() (KeyFetcher, error) {
-				return NewExpiringCacheFetcher("%", http.DefaultClient)
+				return NewExpiringCacheFetcher("%", http.DefaultClient, 0)
 			},
 		},
 		{

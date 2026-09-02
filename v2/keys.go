@@ -11,6 +11,8 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
+	"time"
 
 	"bitbucket.org/atlassian/go-asap/v2/internal/keyrefresh"
 	"github.com/vincent-petithory/dataurl"
@@ -133,6 +135,34 @@ func (f *httpFetcher) Fetch(keyID string) (any, error) {
 	return NewPublicKey(keyBytes)
 }
 
+type cacheFetcher struct {
+	lock    sync.RWMutex
+	wrapped KeyFetcher
+	cache   map[string]any
+}
+
+// NewCachingFetcher wraps a given KeyFetcher implementation with an in-memory
+// cache for returned keys.
+func NewCachingFetcher(wrapped KeyFetcher) KeyFetcher {
+	return &cacheFetcher{sync.RWMutex{}, wrapped, make(map[string]any)}
+}
+
+func (f *cacheFetcher) Fetch(keyID string) (any, error) {
+	f.lock.RLock()
+	var cached, ok = f.cache[keyID]
+	f.lock.RUnlock()
+	if ok {
+		return cached, nil
+	}
+	var result, e = f.wrapped.Fetch(keyID)
+	if e == nil {
+		f.lock.Lock()
+		defer f.lock.Unlock()
+		f.cache[keyID] = result
+	}
+	return result, e
+}
+
 // MultiKeyFetcher returns the first non error result from its list of fetchers
 type MultiKeyFetcher []KeyFetcher
 
@@ -153,17 +183,17 @@ func (f MultiKeyFetcher) Fetch(key string) (any, error) {
 }
 
 // NewExpiringCacheFetcher returns the bounded, expiring public-key fetcher.
-func NewExpiringCacheFetcher(baseURL string, client *http.Client) (KeyFetcher, error) {
-	return newKeyFetcher(baseURL, client, nil)
+func NewExpiringCacheFetcher(baseURL string, client *http.Client, _ time.Duration) (KeyFetcher, error) {
+	return newQueuedRefreshFetcher(baseURL, client, nil)
 }
 
 // NewExpiringCacheFetcherWithStats returns the bounded, expiring public-key
 // fetcher and reports its cache activity through stats.
 func NewExpiringCacheFetcherWithStats(baseURL string, client *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
-	return newKeyFetcher(baseURL, client, stats)
+	return newQueuedRefreshFetcher(baseURL, client, stats)
 }
 
-func newKeyFetcher(baseURL string, client *http.Client, stats keyrefresh.Stats) (KeyFetcher, error) {
+func newQueuedRefreshFetcher(baseURL string, client *http.Client, stats func(stat string, count float64, tags ...string)) (KeyFetcher, error) {
 	fetcher, err := keyrefresh.NewFetcher(keyrefresh.Config{
 		BaseURL:        baseURL,
 		HTTPClient:     client,

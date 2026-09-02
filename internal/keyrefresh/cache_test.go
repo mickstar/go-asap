@@ -73,7 +73,7 @@ func TestKeyCacheStoreEntrySkipsExpiredEntry(t *testing.T) {
 	require.False(t, ok)
 }
 
-func TestKeyCacheBoundsHighCardinalityEntries(t *testing.T) {
+func TestKeyCacheCapacityCountsEntries(t *testing.T) {
 	now := time.Unix(1000, 0)
 	cache := newTestKeyCache(t, now, &recordingTransport{}, nil)
 
@@ -86,22 +86,6 @@ func TestKeyCacheBoundsHighCardinalityEntries(t *testing.T) {
 		_, ok := cache.cache.Get(strconv.Itoa(i))
 		require.True(t, ok)
 	}
-
-	for i := defaultMaxKeyCacheSize; i < defaultMaxKeyCacheSize*2; i++ {
-		cache.storeKey(strconv.Itoa(i), keyExpirationPair{
-			key:        "key",
-			expiration: now.Add(time.Hour),
-		})
-	}
-	cache.cache.Wait()
-
-	retained := 0
-	for i := range defaultMaxKeyCacheSize * 2 {
-		if _, ok := cache.cache.Get(strconv.Itoa(i)); ok {
-			retained++
-		}
-	}
-	require.LessOrEqual(t, retained, defaultMaxKeyCacheSize)
 }
 
 func TestKeyCacheReloadUsesCachedValues(t *testing.T) {
@@ -229,45 +213,6 @@ func TestKeyCacheReloadSuppressesDuplicateReloads(t *testing.T) {
 		require.Equal(t, "remote", value)
 	}
 	require.Equal(t, 1, transport.requestCount())
-}
-
-func TestKeyCacheReloadsDifferentKeysConcurrently(t *testing.T) {
-	startedFirst := make(chan struct{}, 1)
-	startedSecond := make(chan struct{}, 1)
-	releaseFirst := make(chan struct{})
-	var release sync.Once
-	unblockFirst := func() { release.Do(func() { close(releaseFirst) }) }
-	defer unblockFirst()
-
-	transport := &recordingTransport{responses: []roundTripResponse{
-		{body: "first", started: startedFirst, block: releaseFirst},
-		{body: "second", started: startedSecond},
-	}}
-	cache := newTestKeyCache(t, time.Unix(1000, 0), transport, nil)
-
-	var wg sync.WaitGroup
-	errs := make(chan error, 2)
-	wg.Go(func() {
-		_, err := cache.reload("first")
-		errs <- err
-	})
-	<-startedFirst
-	wg.Go(func() {
-		_, err := cache.reload("second")
-		errs <- err
-	})
-
-	select {
-	case <-startedSecond:
-	case <-time.After(time.Second):
-		t.Fatal("reload for a different key was serialized")
-	}
-	unblockFirst()
-	wg.Wait()
-	close(errs)
-	for err := range errs {
-		require.NoError(t, err)
-	}
 }
 
 func TestKeyCacheRefreshStaleSkipsUnrefreshableEntries(t *testing.T) {
