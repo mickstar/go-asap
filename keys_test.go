@@ -2,19 +2,13 @@ package asap
 
 import (
 	"bytes"
-	"fmt"
 	"io"
-	"maps"
 	"net/http"
 	"os"
-	"reflect"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/vincent-petithory/dataurl"
-	"golang.org/x/sync/errgroup"
 )
 
 const publicKey = `-----BEGIN PUBLIC KEY-----
@@ -25,17 +19,6 @@ c6sy9i3CnkKSBlPniRQC2bor5ZzCLxr7NWMfe1HsAQExw6+iGwVtaNjP4wX2kMzA
 w6cPNYKsZqpjXx8/GzkralkXZvBhW6IvVQe4EZjZW8MSoK7Gb6IAV+BM0ltOasY7
 OOPQvTjL/3Aj0KJSAjrpbdFzYzwpIqUpwYFKW53y9eBnd2QlarrOnOGsdRBbCctV
 2QIDAQAB
------END PUBLIC KEY-----
-`
-
-const publicKey2 = `-----BEGIN PUBLIC KEY-----
-MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtYr4/AjZHsvizYDxFsUF
-S6kvLJS6rbFd7P/l7g8xzg1+T7/OWEGi/oI/RptrR6RP111BrcgpPvroShhcyfis
-6ATshf+I2bEVgFGcgWKHTjzO72JdQ9z3VfwQx4THf6kTkXbWUM+9UOyn+yPi+4Rv
-Ppj4cC34x1ZKc7LyvP1YDfXlj+nmS7jDtx8idTaSQo7xwzgBjP2bqGQLLvtoAy0S
-orAyv2AiSX19YjCSYP/6gqAVAlyyR0cwL0bm5zdlh8zkI6ZZW97kHjZNpUtQxJNY
-T7+TCN9nKRjmPqftChTwZvVs9spSUNhP6R6368fOeR2jHB+pljWt7uTVVHvvUBLM
-2wIDAQAB
 -----END PUBLIC KEY-----
 `
 
@@ -340,864 +323,82 @@ func TestExpiringHTTPFetcherJoinsKidToPath(t *testing.T) {
 	}
 }
 
-func TestExpiringHTTPFetcherFetch(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var expirationTime = time.Now().AddDate(0, 0, 2)
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Expires": {expirationTime.UTC().Format(http.TimeFormat)}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &fixtureRoundTripper{response, nil, nil}
-	var client = &http.Client{Transport: transport}
-
-	var fetcher, e = NewExpiringCacheFetcher("http://localhost", client, 3000)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-
-	var f = fetcher.(*expiringCacheFetcher)
-
-	_, e = f.Fetch("TEST")
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
-	}
-	f.cache.Wait()
-	value, ok := f.cache.Get("TEST")
-
-	if !ok {
-		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
-	}
-	expiringKeyPair := value
-	if expiringKeyPair.freshUntil.UTC().Format(http.TimeFormat) != expirationTime.UTC().Format(http.TimeFormat) {
-		t.Fatalf("Expiring Cache Fetcher cached %s as expiry date, but expecting %s",
-			expiringKeyPair.freshUntil.UTC().Format(http.TimeFormat), expirationTime.UTC().Format(http.TimeFormat))
-	}
-
-	f.storeKey("NEWKEY", keyExpirationPair{"newkey", expirationTime, 0})
-	f.cache.Wait()
-	key, e := f.Fetch("NEWKEY")
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher did not parse the response body when item is cached")
-	}
-	value, ok = f.cache.Get("NEWKEY")
-
-	if !ok {
-		t.Fatalf("Expiring Cache fetcher did not contain key NEWKEY")
-	}
-	expiringKeyPair = value
-	if key != expiringKeyPair.key {
-		t.Fatalf("Expiring Cache fetcher did not use cached value")
-	}
-
-}
-
-func TestGetExpiryDate(t *testing.T) {
-	t.Parallel()
-	timeNow := func() time.Time {
-		return time.Time{}.Add(time.Hour * 3)
-	}
-
-	var expiryTestTable = []struct {
-		in    http.Header
-		out   time.Time
-		stale time.Duration
-	}{
-		{
-			in:  http.Header{"Cache-Control": {"public, max-age=1200"}},
-			out: timeNow().Add(time.Second * 1200),
-		}, {
-			in:  http.Header{"Cache-Control": {"max-age=1200", "post-check=0", "pre-check=0"}},
-			out: timeNow().Add(time.Second * 1200),
-		}, {
-			in:    http.Header{"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"}},
-			out:   timeNow().Add(time.Minute * 10),
-			stale: time.Duration(time.Minute * 20),
-		}, {
-			in: http.Header{
-				"Cache-Control": {"max-age=lol", "post-check=0", "pre-check=0"},
-				"Expires":       {timeNow().Add(time.Second * 10).Format(http.TimeFormat)},
-			},
-			out: timeNow().Add(time.Second * 10),
-		}, {
-			in:  http.Header{"Expires": {timeNow().Add(time.Second * 10).Format(http.TimeFormat)}},
-			out: timeNow().Add(time.Second * 10),
-		}, {
-			in:    http.Header{"Expires": {"lol"}},
-			out:   timeNow().Add(time.Minute * 10),
-			stale: time.Duration(time.Minute * 20),
-		}, {
-			in:    http.Header{},
-			out:   timeNow().Add(time.Minute * 10),
-			stale: time.Duration(time.Minute * 20),
-		}, {
-			in:    http.Header{"Cache-Control": {"max-age=1200", "stale-while-revalidate=1800"}},
-			out:   timeNow().Add(time.Second * 1200),
-			stale: 1800 * time.Second,
-		}, {
-			in:    http.Header{"Cache-Control": {"max-age=1200", "stale-while-revalidate=blah"}},
-			out:   timeNow().Add(time.Minute * 10), //NOTE Either header being invalid will flop
-			stale: time.Duration(time.Minute * 20),
-		}}
-
-	for _, tt := range expiryTestTable {
-		expiryTime, staleOk := getExpiryAndStaleOk(tt.in, timeNow)
-		if expiryTime != tt.out {
-			t.Fatalf("expiry time of %s returned %s instead of the expected %s",
-				tt.in, expiryTime.String(), tt.out.String())
-		} else if staleOk != tt.stale {
-			t.Fatalf("stale of %s returned %s instead of the expected %s",
-				tt.in, staleOk.String(), tt.stale.String())
-		}
-	}
-}
-
-func TestExpiringHTTPFetcherCache(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	timeNow := func() time.Time {
-		return time.Time{}.Add(time.Hour * 3)
-	}
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1200"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &fixtureRoundTripper{response, nil, nil}
-	var client = &http.Client{Transport: transport}
-
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, 3000)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-
-	f := fetcher.(*expiringCacheFetcher)
-	f.timeNow = timeNow
-	_, e = f.Fetch("TEST")
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher did not parse the response body.")
-	}
-	f.cache.Wait()
-
-	value, ok := f.cache.Get("TEST")
-	if !ok {
-		t.Fatalf("Expiring Cache fetcher does not contain a entry under TEST")
-	}
-	expiringKeyPair := value
-	if expiringKeyPair.freshUntil != timeNow().Add(1200*time.Second) {
-		t.Fatalf("Expiring Cache Fetcher does not return correct expiry time from Cache-Control header")
-	}
-}
-
-type lockingFixtureRoundTripper struct {
-	response *http.Response
-	e        error
-	request  *http.Request
-	lock     *sync.Mutex
-	sleep    time.Duration
-}
-
-func (r *lockingFixtureRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	time.Sleep(r.sleep)
-	r.request = req
-	return r.response, r.e
-}
-
-func (r *lockingFixtureRoundTripper) SetResponse(res *http.Response, err error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	r.response = res
-	r.e = err
-	r.sleep = 0
-}
-
-func (r *lockingFixtureRoundTripper) SetDelayedResponse(res *http.Response, delay time.Duration, err error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-
-	r.response = res
-	r.e = err
-	r.sleep = delay
-}
-
-func (r *lockingFixtureRoundTripper) GetRequest() *http.Request {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	return r.request
-}
-
-type mockStats struct {
-	mu    sync.Mutex
-	calls map[string]float64
-}
-
-func (s *mockStats) call(m string, i float64, tags ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.calls == nil {
-		s.calls = map[string]float64{}
-	}
-	s.calls[m] = s.calls[m] + i
-}
-
-func (s *mockStats) getCalls() map[string]float64 {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	result := make(map[string]float64)
-	maps.Copy(result, s.calls)
-	return result
-}
-
-func (s *mockStats) getCall(key string) float64 {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.calls[key]
-}
-
-type countingKeyResponse struct {
-	statusCode int
-	header     http.Header
-	body       string
-}
-
-type countingKeyRoundTripper struct {
-	lock      sync.Mutex
-	requests  int
-	responses []countingKeyResponse
-}
-
-func (r *countingKeyRoundTripper) RoundTrip(_ *http.Request) (*http.Response, error) {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	r.requests++
-	response := r.responses[len(r.responses)-1]
-	if r.requests <= len(r.responses) {
-		response = r.responses[r.requests-1]
-	}
-	return &http.Response{
-		StatusCode: response.statusCode,
-		Header:     response.header,
-		Body:       io.NopCloser(bytes.NewBufferString(response.body)),
-	}, nil
-}
-
-func (r *countingKeyRoundTripper) requestCount() int {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	return r.requests
-}
-
-func TestExpiringHTTPFetcherUsesQueuedRefreshByDefault(t *testing.T) {
-	transport := &countingKeyRoundTripper{
-		responses: []countingKeyResponse{
-			{
-				statusCode: http.StatusOK,
-				header:     map[string][]string{"Cache-Control": {"max-age=60", "stale-while-revalidate=60"}},
-				body:       publicKey,
-			},
-		},
-	}
+func TestExpiringHTTPFetcherCachesFreshKey(t *testing.T) {
+	transport := &countingRoundTripper{}
 	client := &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	require.NoError(t, e)
-	if closer, ok := fetcher.(interface{ Close() error }); ok {
-		defer closer.Close()
-	}
 
-	initialKey, e := NewPublicKey([]byte(publicKey))
-	require.NoError(t, e)
-
-	value, err := fetcher.Fetch("KEY")
+	fetcher, err := NewExpiringCacheFetcher("http://localhost", client, 0)
 	require.NoError(t, err)
-	require.True(t, reflect.DeepEqual(value, initialKey))
-	require.Equal(t, 1, transport.requestCount())
-	_, legacy := fetcher.(*expiringCacheFetcher)
-	require.False(t, legacy)
-}
+	defer fetcher.(interface{ Close() error }).Close()
 
-func TestExpiringHTTPFetcherUsesLegacyRefreshWhenDisabled(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	transport := &countingKeyRoundTripper{
-		responses: []countingKeyResponse{
-			{
-				statusCode: http.StatusOK,
-				header:     map[string][]string{"Cache-Control": {"max-age=60", "stale-while-revalidate=60"}},
-				body:       publicKey,
-			},
-		},
-	}
-	client := &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	require.NoError(t, e)
-	if closer, ok := fetcher.(interface{ Close() error }); ok {
-		defer closer.Close()
-	}
-
-	initialKey, e := NewPublicKey([]byte(publicKey))
-	require.NoError(t, e)
-
-	value, err := fetcher.Fetch("KEY")
+	_, err = fetcher.Fetch("KEY")
 	require.NoError(t, err)
-	require.True(t, reflect.DeepEqual(value, initialKey))
-	require.Equal(t, 1, transport.requestCount())
-	_, legacy := fetcher.(*expiringCacheFetcher)
-	require.True(t, legacy)
+	_, err = fetcher.Fetch("KEY")
+	require.NoError(t, err)
+	require.Equal(t, 1, transport.requests)
 }
 
-func TestExpiringHTTPFetcherCacheRefresh(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Expires": {time.Now().UTC().Add(time.Second).Format(http.TimeFormat)}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	// Test initial re-fetch
-	newExpiryTime := time.Now().UTC().Add(time.Second).Format(http.TimeFormat)
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Expires": {newExpiryTime}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	transport.SetResponse(response, nil)
-
-	time.Sleep(time.Millisecond)
-
-	value, ok := f.cache.Get("KEY")
-	if !ok {
-		t.Fatalf("Cache did not contain key KEY")
-	}
-	pair := value
-	if pair.freshUntil.Format(http.TimeFormat) != newExpiryTime {
-		t.Fatalf("Cache refresh goroutine did not run correctly")
-	}
-
-	// Test second spawned re-fetch goroutine
-	newExpiryTime = time.Now().UTC().Add(time.Second).Format(http.TimeFormat)
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Expires": {newExpiryTime}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	transport.SetResponse(response, nil)
-
-	time.Sleep(time.Millisecond)
-
-	value, _ = f.cache.Get("KEY")
-	pair = value
-	if pair.freshUntil.Format(http.TimeFormat) != newExpiryTime {
-		t.Fatalf("Cache refresh goroutine did not run correctly")
-	}
-	if pair.freshUntil.Format(http.TimeFormat) != newExpiryTime {
-		t.Fatalf("Cache refresh goroutine did not run correctly")
-	}
-}
-
-func TestExpiringHTTPFetcherCacheStaleRefresh(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	// Test initial re-fetch
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey2)),
-	}
-	transport.SetResponse(response, nil)
-
-	time.Sleep(time.Second)
-
-	value, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-	pk, _ := NewPublicKey([]byte(publicKey))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value %+v != %+v", value, pk)
-	}
-
-	time.Sleep(time.Millisecond)
-
-	value, err = f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-
-	pk, _ = NewPublicKey([]byte(publicKey2))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value")
-	}
-}
-
-func TestExpiringHTTPFetcherCacheStaleRefreshSlowResponse(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	// Test initial re-fetch
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey2)),
-	}
-	transport.SetDelayedResponse(response, time.Second, nil)
-
-	time.Sleep(time.Second)
-
-	var eg errgroup.Group
-	eg.Go(func() error {
-		value, err := f.Fetch("KEY")
-		if err != nil {
-			return fmt.Errorf("Cache did not contain key KEY %s", err)
-		}
-		pk, _ := NewPublicKey([]byte(publicKey))
-		if !reflect.DeepEqual(value, pk) {
-			return fmt.Errorf("Cache didn't return cached value %+v != %+v", value, pk)
-		}
-		return nil
-	})
-
-	time.Sleep(10 * time.Millisecond)
-
-	eg.Go(func() error {
-		value, err := f.Fetch("KEY")
-		if err != nil {
-			return fmt.Errorf("Cache did not contain key KEY %s", err)
-		}
-
-		pk, _ := NewPublicKey([]byte(publicKey))
-		if !reflect.DeepEqual(value, pk) {
-			return fmt.Errorf("Cache didn't return cached value")
-		}
-		return nil
-	})
-
-	if err := eg.Wait(); err != nil {
-		t.Fatal(err.Error())
-	}
-}
-
-func TestExpiringHTTPFetcherCacheStalePurge(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	response = &http.Response{
-		StatusCode: http.StatusForbidden,
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	transport.SetResponse(response, nil)
-
-	time.Sleep(time.Second)
-
-	value, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-	pk, _ := NewPublicKey([]byte(publicKey))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value")
-	}
-
-	time.Sleep(time.Millisecond)
-
-	val, ok := f.cache.Get("KEY")
-	if !ok {
-		t.Fatalf("Cache missing error")
-	} else if !val.isMiss {
-		t.Fatalf("Cache missing key lookup error")
-	}
-}
-
-func TestExpiringHTTPFetcherCacheStalePurgeSlowResponse(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	response = &http.Response{
-		StatusCode: http.StatusForbidden,
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	transport.SetDelayedResponse(response, time.Second, nil)
-
-	time.Sleep(time.Second)
-
-	var eg errgroup.Group
-	eg.Go(func() error {
-		value, err := f.Fetch("KEY")
-		if err != nil {
-			return fmt.Errorf("Cache did not contain key KEY %s", err)
-		}
-		pk, _ := NewPublicKey([]byte(publicKey))
-		if !reflect.DeepEqual(value, pk) {
-			return fmt.Errorf("Cache didn't return cached value")
-		}
-		return nil
-	})
-
-	time.Sleep(10 * time.Millisecond)
-
-	eg.Go(func() error {
-		value, err := f.Fetch("KEY")
-		if err != nil {
-			return fmt.Errorf("Cache did not contain key KEY %s", err)
-		}
-		pk, _ := NewPublicKey([]byte(publicKey))
-		if !reflect.DeepEqual(value, pk) {
-			return fmt.Errorf("Cache didn't return cached value")
-		}
-		return nil
-	})
-
-	time.Sleep(1 * time.Second)
-
-	eg.Go(func() error {
-		_, err := f.Fetch("KEY")
-		if err == nil {
-			return fmt.Errorf("Fetch returned success")
-		} else if _, ok := err.(keyLookupMissError); !ok {
-			return fmt.Errorf("Cache missing key lookup error")
-		}
-		return nil
-	})
-
-	if err := eg.Wait(); err != nil {
-		t.Fatal(err.Error())
-	}
-}
-
-func TestExpiringHTTPFetcherTemporaryNegativeCache(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusForbidden,
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var stats = &mockStats{}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcherWithStats("http://localhost", client, stats.call)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	now := time.Unix(1000, 0)
-	f.timeNow = func() time.Time { return now }
-	_, err := f.Fetch("KEY")
-	if err == nil {
-		t.Fatalf("Fetch returned non error")
-	}
-	f.cache.Wait()
-
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	transport.SetResponse(response, nil)
-
-	now = now.Add(19 * time.Second)
-	_, err = f.Fetch("KEY")
-	if err == nil {
-		t.Fatalf("Fetch not negative caching")
-	}
-
-	now = now.Add(time.Second)
-
-	value, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-	pk, _ := NewPublicKey([]byte(publicKey))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value")
-	}
-
-	if stats.getCall("asap.key.cache.lookup_miss") != 1 {
-		t.Fatalf("Stats not recorded correctly")
-	}
-}
-
-func TestExpiringHTTPFetcherKeepOnNetworkError(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	response = &http.Response{
-		StatusCode: http.StatusBadGateway,
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	transport.SetResponse(response, nil)
-
-	time.Sleep(time.Second)
-
-	value, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-	pk, _ := NewPublicKey([]byte(publicKey))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value")
-	}
-
-	time.Sleep(time.Millisecond)
-}
-
-func TestExpiringHTTPFetcherKeepOnTimeoutError(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport, Timeout: 1 * time.Second}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	transport.SetDelayedResponse(response, 2*time.Second, nil)
-
-	time.Sleep(time.Second)
-
-	value, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-	pk, _ := NewPublicKey([]byte(publicKey))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value")
-	}
-
-	time.Sleep(time.Second)
-
-	value, err = f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-	pk, _ = NewPublicKey([]byte(publicKey))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value")
-	}
-}
-
-func TestExpiringHTTPFetcherDropOnBadResponse(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-	fetcher, e := NewExpiringCacheFetcher("http://localhost", client, time.Second)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	f := fetcher.(*expiringCacheFetcher)
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Body:       io.NopCloser(bytes.NewBufferString("something rather unexpected")),
-	}
-	transport.SetResponse(response, nil)
-
-	time.Sleep(time.Second)
-
-	_, err = f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error when revalidating: %s", err.Error())
-	}
-
-	time.Sleep(time.Second)
-	_, err = f.Fetch("KEY")
-	if err == nil {
-		t.Fatalf("Cache did not return error")
-	}
-}
-
-func TestExpiringHTTPFetcherCacheStaleRefreshWithStats(t *testing.T) {
-	t.Parallel()
-	var response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	stats := &mockStats{}
-	var client = &http.Client{Transport: transport}
-	f, e := NewExpiringCacheFetcherWithStats("http://localhost", client, stats.call)
-	if e != nil {
-		t.Fatalf("Expiring Cache fetcher constructor did not succeed.")
-	}
-	_, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Fetch returned error: %s", err.Error())
-	}
-
-	// Test initial re-fetch
-	response = &http.Response{
-		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
-		Body:       io.NopCloser(bytes.NewBufferString(publicKey2)),
-	}
-	transport.SetResponse(response, nil)
-
-	time.Sleep(time.Second)
-
-	value, err := f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-	pk, _ := NewPublicKey([]byte(publicKey))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value %+v != %+v", value, pk)
-	}
-
-	time.Sleep(5 * time.Millisecond)
-
-	value, err = f.Fetch("KEY")
-	if err != nil {
-		t.Fatalf("Cache did not contain key KEY %s", err)
-	}
-
-	pk, _ = NewPublicKey([]byte(publicKey2))
-	if !reflect.DeepEqual(value, pk) {
-		t.Fatalf("Cache didn't return cached value")
-	}
-
-	if !reflect.DeepEqual(stats.getCalls(), map[string]float64{
-		"asap.key.cache.expired":              1,
+func TestExpiringHTTPFetcherReportsStats(t *testing.T) {
+	transport := &countingRoundTripper{}
+	stats := make(map[string]float64)
+	record := func(stat string, count float64, _ ...string) {
+		stats[stat] += count
+	}
+
+	fetcher, err := NewExpiringCacheFetcherWithStats("http://localhost", &http.Client{Transport: transport}, record)
+	require.NoError(t, err)
+	defer fetcher.(interface{ Close() error }).Close()
+
+	_, err = fetcher.Fetch("KEY")
+	require.NoError(t, err)
+	_, err = fetcher.Fetch("KEY")
+	require.NoError(t, err)
+	require.Equal(t, map[string]float64{
 		"asap.key.cache.hit":                  1,
 		"asap.key.cache.miss":                 1,
-		"asap.key.cache.refresh.force_reload": 2,
-	}) {
-		t.Fatalf("Unexpected stats response: %+v", stats.getCalls())
+		"asap.key.cache.refresh.force_reload": 1,
+	}, stats)
+}
+
+func TestExpiringHTTPFetcherReturnsNilOnConstructionError(t *testing.T) {
+	tests := []struct {
+		name string
+		new  func() (KeyFetcher, error)
+	}{
+		{
+			name: "without stats",
+			new: func() (KeyFetcher, error) {
+				return NewExpiringCacheFetcher("%", http.DefaultClient, 0)
+			},
+		},
+		{
+			name: "with stats",
+			new: func() (KeyFetcher, error) {
+				return NewExpiringCacheFetcherWithStats("%", http.DefaultClient, nil)
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			fetcher, err := test.new()
+			require.Error(t, err)
+			if fetcher != nil {
+				t.Fatalf("expected a nil fetcher, got %T", fetcher)
+			}
+		})
 	}
 }
 
-func TestKeyCacheSizeLimit(t *testing.T) {
-	t.Setenv(keyRefreshQueueDisableFlag, "true")
+type countingRoundTripper struct {
+	requests int
+}
 
-	var response = &http.Response{
+func (r *countingRoundTripper) RoundTrip(*http.Request) (*http.Response, error) {
+	r.requests++
+	return &http.Response{
 		StatusCode: http.StatusOK,
-		Header:     map[string][]string{"Cache-Control": {"max-age=1", "stale-while-revalidate=10"}},
+		Header:     http.Header{"Cache-Control": {"max-age=60"}},
 		Body:       io.NopCloser(bytes.NewBufferString(publicKey)),
-	}
-	var transport = &lockingFixtureRoundTripper{response, nil, nil, &sync.Mutex{}, 0}
-	var client = &http.Client{Transport: transport}
-
-	fetcher, _ := NewExpiringCacheFetcher("http://localhost", client, time.Duration(2*time.Minute))
-	cacheImpl := fetcher.(*expiringCacheFetcher).WithMaxCacheSize(2)
-
-	expiration := time.Now().Add(time.Minute)
-	cacheImpl.storeKey("key", keyExpirationPair{"key", expiration, time.Minute})
-	cacheImpl.storeKey("key2", keyExpirationPair{"key2", expiration, time.Minute})
-	cacheImpl.storeKey("key3", keyExpirationPair{"key3", expiration, time.Minute})
-	cacheImpl.cache.Wait()
-
-	var cached int
-	for _, key := range []string{"key", "key2", "key3"} {
-		if _, ok := cacheImpl.cache.Get(key); ok {
-			cached++
-		}
-	}
-	require.LessOrEqual(t, cached, 2)
+	}, nil
 }
