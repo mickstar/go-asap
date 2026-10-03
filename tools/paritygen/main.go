@@ -48,7 +48,7 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	josejwt "github.com/SermoDigital/jose/jwt"
 
-	asap "github.com/mickstar/go-asap"
+	asap "bitbucket.org/atlassian/go-asap/v2"
 )
 
 const issuer = "svc-issuer"
@@ -127,13 +127,20 @@ func main() {
 	}
 
 	meta := map[string]any{
-		"version":     1,
-		"generator":   "github.com/mickstar/go-asap/tools/paritygen",
-		"joseVersion": "v0.9.2-0.20161205224733-f6df55f235c2",
-		"goToolchain": "go1.26.0",
-		"anchor":      anchor.Format(time.RFC3339),
-		"wireCases":   len(wire),
-		"validCases":  len(validation),
+		"version":   1,
+		"generator": "github.com/mickstar/go-asap/tools/paritygen",
+		// The asap* verdict fields are recorded from THIS library, which is the
+		// pre-migration implementation still linked against jose. It is extracted
+		// from commit 97f05bd by `make parity-oracle`; naming it here is what makes
+		// those fields evidence about the old behaviour instead of a self-portrait
+		// of the library under test.
+		"oracleLibrary": "bitbucket.org/atlassian/go-asap/v2 (pre-migration, jose-based)",
+		"oracleCommit":  "97f05bd",
+		"joseVersion":   "v0.9.2-0.20161205224733-f6df55f235c2",
+		"goToolchain":   "go1.26.0",
+		"anchor":        anchor.Format(time.RFC3339),
+		"wireCases":     len(wire),
+		"validCases":    len(validation),
 	}
 	for name, v := range map[string]any{"meta.json": meta, "wire.json": wire, "validation.json": validation} {
 		if err := writeJSON(filepath.Join(*out, name), v); err != nil {

@@ -32,3 +32,6 @@ _testmain.go
 # Tool binaries built in place (see tools/)
 /tools/difffuzz/difffuzz
 /tools/paritygen/paritygen
+
+# Derived: the pre-migration library, extracted by `make parity-oracle`
+/tools/paritygen/oracle/

@@ -66,23 +66,37 @@ module graph.
 ## 3. Method: freeze the old behaviour before touching it
 
 The difficult part of this migration is not the code, it is the *evidence*.
-jose cannot execute on Go 1.27, so after the migration it is impossible to
-compare new behaviour against old behaviour by running both. Any "parity" claim
-would degrade into a reading of the JWT spec.
+jose cannot execute on Go 1.27, so the old implementation cannot run on the
+shipping toolchain: parity either has to be captured as data in advance, or
+compared inside a Go 1.26 sandbox. This work does both — the frozen corpus
+described here, and the differential harness in `tools/difffuzz`.
 
 So the old behaviour was **materialised as data first**. `tools/paritygen` is a
-separate module, pinned to jose and run with `GOTOOLCHAIN=go1.26.0`, that records
-exactly what the shipped library does into `testdata/parity/`:
+separate module, run with `GOTOOLCHAIN=go1.26.0`, that links the **pre-migration**
+library — the jose-based tree extracted from commit `97f05bd` by
+`make parity-oracle`, *not* the port — and records what it does into
+`testdata/parity/`:
 
 | File | Contents |
 | --- | --- |
 | `keys.json` | fixed RSA-2048, EC P-256/P-384/P-521 key material in PEM |
 | `wire.json` | 54 tokens plus jose's exact parse verdict, decoded protected header and canonical claim map |
-| `validation.json` | 20 tokens plus the verdict of the **real** `DefaultValidator` and `SignatureValidator` as shipped, not a reimplementation |
-| `meta.json` | generator path, jose version, toolchain, and the `anchor` instant |
+| `validation.json` | 20 tokens plus the verdict of the **pre-migration** `DefaultValidator`, `SignatureValidator`, `AllowedAudienceValidator` and `AllowedClaimValuesValidator` |
+| `meta.json` | generator path, **which library and commit the verdicts came from**, jose version, toolchain, and the `anchor` instant |
 
-Two details make the corpus usable as a lasting oracle:
+Three details make the corpus usable as a lasting oracle:
 
+* **The generator must link the old library, not the port.** This is the point
+  that is easy to get wrong, and an earlier revision of this work got it wrong:
+  the generator was pointed at the migrated module, which made every `asap*`
+  verdict a recording of the library under test and left `TestParityValidation`
+  structurally unable to detect a mis-port. The evidence was embarrassingly
+  concrete — the committed fixture stored golang-jwt's
+  `"token signature is invalid: key is of invalid type: RSA verify expects *rsa.PublicKey"`
+  beside jose's `"key is invalid"` for the same token, i.e. post-migration text in
+  a field the report called jose-era. `meta.json` now names the oracle library and
+  commit, and the CI `parity fixtures` job re-extracts that tree, regenerates, and
+  asserts the committed verdicts reproduce from it.
 * **Validation is anchored to a fixed clock.** Time-dependent verdicts are only
   reproducible if "now" is fixed, so `validation.json` records the instant the
   fixtures were generated and the test replays them through an injectable clock
@@ -91,7 +105,8 @@ Two details make the corpus usable as a lasting oracle:
 * **The generator is not byte-for-byte reproducible, and says so.** jose
   randomises ECDSA and RSA-PSS signatures, so every `ES*`/`PS*` token changes on
   each run, and the validation fixtures move with the anchor. The committed
-  corpus is treated as frozen.
+  corpus is treated as frozen; the *verdicts* it records are stable and are what
+  CI reproduces.
 
 The corpus covers: `RS`/`PS`/`ES` 256/384/512, `HS256`, `none`, single/multiple/
 absent/`null` audiences, `kid` variants (missing, empty, non-string, traversal,
@@ -130,6 +145,12 @@ Notes on the shape of the layer:
 * Parsed tokens keep the serialized form as their cache key; freshly minted
   tokens do not implement `CacheableKeyer` at all, matching the old type
   behaviour (a jose `JWS` returned by `Provision()` never implemented it either).
+* `asap.Header` is a plain `map[string]any`. jose's `Protected` additionally
+  implemented `json.Marshaler`/`json.Unmarshaler` — marshalling to a base64
+  string and unmarshalling by decoding first — and `Claims` exposed `Base64()`.
+  Nothing in this package used either, so neither is reproduced. Code that
+  round-tripped a protected header through JSON has to stop doing so; the
+  accessors (`Get`/`Set`/`Has`/`Del`) are unchanged.
 
 ## 5. Parsing and validation semantics
 
@@ -272,6 +293,25 @@ accept/reject decision are unchanged. `TestExpirationMessageIgnoresHostZone`
 pins it by asserting that the same instant, expressed in two different zones,
 renders identically, and the suite is exercised under several `TZ` values.
 
+### 7.6 Two further differences, documented rather than fixed
+
+* **`Token.Validate` checks the signed bytes, not later in-memory mutations.**
+  Verification re-parses the token's own compact form, so a caller that mutates
+  `token.Claims()` after `ParseToken` and before `Validate` no longer influences
+  the lifetime check; jose validated the live payload, so it did. The new
+  behaviour is the safer one — it validates exactly what was signed — and no ASAP
+  code path mutates claims to decorate a token, but it is a divergence from
+  "preserve the old behaviour" and is recorded here rather than left implicit.
+* **`Claims.GetTime` range-checks the unsigned conversions.** The `uint` and
+  `uint64` arms report the claim as absent for values above `math.MaxInt64` where
+  jose wrapped them to a negative timestamp. For an in-memory `exp` this is the
+  *permissive* direction: jose's wrapped timestamp looked expired, while an absent
+  claim skips the check. It is unreachable from the wire — JSON numbers decode to
+  `float64` and `SetTime` stores `int64` — and it exists only to satisfy `gosec`'s
+  overflow check, but it is semantic drift and is listed here for completeness.
+  Restoring jose's exact wrapping would require a suppression in the lint gate
+  for a path nothing can reach; that trade was not taken.
+
 ## 8. Defects found during the migration
 
 | # | Defect | Impact | Guard |
@@ -282,15 +322,25 @@ renders identically, and the suite is exercised under several `TZ` values.
 | 4 | `Header` lost the `Has` accessor | Source-compatibility break for `token.Protected().Has(…)` | `TestHeaderHas` |
 | 5 | jose emitted DER ECDSA signatures (upstream defect, not introduced here) | Every `ES*` token the old stack minted was rejected by compliant peers | `TestParityECDSAEncoding` |
 | 6 | `ExpirationValidator` rendered claim timestamps in the host's time zone, so its message differed by machine | Log text is not comparable across hosts; the frozen corpus was not portable, and the first CI run failed on a UTC runner while passing locally | `TestExpirationMessageIgnoresHostZone`, plus running the suite under several `TZ` values |
+| 7 | The fixture generator was pointed at the **migrated** module, so every `asap*` verdict it recorded was a recording of the library under test | `TestParityValidation` could not detect a mis-port; the corpus was a self-portrait of the code it was supposed to check | Generator rewired to the pre-migration tree (`make parity-oracle`), `meta.json` records the oracle library and commit, and the CI `parity fixtures` job re-extracts it and asserts the committed verdicts reproduce |
+| 8 | `WithValidMethods` — the control that pins verification to the caller's algorithm — had no test | Deleting that one line left the whole suite green, and accepted an HS256 algorithm-confusion forgery when the key is passed as raw bytes | `TestValidateRejectsAlgorithmSubstitution`; verified by mutation — the test fails on the un-pinned build and the forgery succeeds there |
+| 9 | The inclusive `exp`/`nbf` leeway boundary that `validateTime` exists to preserve had no test | Shifting either comparison by one instant left the suite green; the nearest fixtures sit minutes from the boundary | `TestLeewayBoundaryIsInclusive`; verified by mutation |
 
 Defects 1–4 were found by independent review of the diff against the frozen
 behaviour, not by the implementation itself; defect 6 was found by the first CI
-run on a UTC runner. Defect 1 was additionally invisible to the first version of
-the corpus: the fixtures replayed `DefaultValidator` and `SignatureValidator`,
-neither of which reads `Claims.Audience()`. The corpus was extended to record
+run on a UTC runner; defects 7–9 were found by a second, adversarial review that
+began by trying to falsify the parity claim rather than restating it. Defect 1
+was additionally invisible to the first version of the corpus: the fixtures
+replayed `DefaultValidator` and `SignatureValidator`, neither of which reads
+`Claims.Audience()`. The corpus was extended to record
 `NewAllowedAudienceValidator` and `NewAllowedClaimValuesValidator` verdicts so
 that this class of bug is covered by the oracle and not only by a hand-written
 test.
+
+Defects 7–9 share a lesson worth stating: a test that passes is not evidence
+until you have seen it fail. Each of the three was confirmed by mutating the
+control out of the tree and watching the suite stay green — which is the only
+way to distinguish a guard from a coincidence.
 
 ## 9. Verification evidence
 
@@ -299,7 +349,7 @@ test.
 | Build | `go build ./...` | ok on 1.26 and 1.27 |
 | Race suite | `go test -race ./...` | green, 1.27 |
 | Go floor | `GOTOOLCHAIN=go1.26.0 go test ./...` | green |
-| Coverage | `go test -cover ./...` | 79.8% main, 97.9% `internal/keyrefresh` (baseline 79.6% / 97.8%) |
+| Coverage | `go test -cover ./...` | 80.0% main, 97.9% `internal/keyrefresh` (baseline 79.6% / 97.8%) |
 | Lint | `make lint` | `go fix -diff` clean, golangci-lint v2.14: 0 issues |
 | Dependencies | `go mod graph \| grep -i sermo` | empty; jose absent from `go.mod` and `go.sum` |
 | Oracle replay | `go test -run TestParity ./...` | 54 wire + 20 validation cases |
@@ -307,21 +357,32 @@ test.
 | Fresh clone | `git clone . /tmp/x && go test -race ./...` | green, no `replace` in `go.mod` |
 | README examples | compiled against the module in a scratch module | build and vet clean |
 | Time-zone portability | `TZ=<zone> go test -count=1 ./...` for UTC, Australia/Sydney, America/New_York, Asia/Kolkata | green in all four |
-| CI | `.github/workflows/ci.yml` on GitHub runners | `test` (Go 1.26.x and 1.27.x), `lint` (golangci-lint v2), `parity generator`, `differential fuzz` |
+| Oracle provenance | `make parity-oracle && make parity-fixtures`, then compare the recorded verdicts | the committed 20 verdict sets reproduce from the pre-migration library |
+| Algorithm pinning | `TestValidateRejectsAlgorithmSubstitution` | passes at HEAD, fails when `WithValidMethods` is deleted (the forgery then verifies) |
+| Leeway boundary | `TestLeewayBoundaryIsInclusive` | passes at HEAD, fails when either comparison is shifted by one instant |
+| CI | `.github/workflows/ci.yml` on GitHub runners | `test` (Go 1.26.x and 1.27.x), `lint` (golangci-lint v2), `parity fixtures`, `differential fuzz` |
 
-Test corpus: 89 test functions in the main package plus 20 in
+Test corpus: 92 test functions in the main package plus 20 in
 `internal/keyrefresh`.
 
 **Differential harness.** `tools/difffuzz` is a second jose-pinned module that
 mints the same claim specification with both stacks and feeds every token string
 to both, comparing parse verdicts, canonical protected headers, canonical claims,
-and the `DefaultValidator`, `SignatureValidator` and raw-signature verdicts —
-each against an independent predictor, not merely against the other stack. The
+and the `DefaultValidator`, `SignatureValidator` and raw-signature verdicts. The
 committed bounded test runs 3,000 iterations / 6,000 tokens; soak runs of 20,000
 iterations and roughly 96,000 further iterations across additional seeds all
 reported **0 unexpected cross-library verdict mismatches and 0 unexpected
 divergences**. Expected divergences (the ECDSA encoding, and `HS256`/`none`
 policy) are asserted and counted rather than tolerated.
+
+Its independence is uneven, and the report above should not imply otherwise: it
+is genuinely independent of this package where it compares against jose — wire
+behaviour (parse verdict, decoded header and claims) and crypto (raw signature
+verification) — but for ASAP-specific *policy* the "independent predictor" is a
+transcription of this package's own validators, so the two can agree while both
+are wrong. It catches transcription slips, not a shared misreading. Against that
+limit, the frozen corpus is the primary evidence and the harness is the
+corroborating sweep.
 
 **The corpus was mutation-tested.** Reintroducing defect 1 made
 `TestParityValidation/valid_multi_aud` fail against the jose-derived verdict, so
@@ -351,12 +412,19 @@ make parity-fixtures
 * **`ES*` interoperability is broken in both directions by design** (7.1). This
   is the one change that requires coordinated action by users of the old stack.
 * **Message parity is deliberately not preserved** for errors raised inside the
-  JWT library (7.2), and one package-owned message changed on purpose so that it
-  no longer depends on the host's time zone (7.5). If a caller matches on either,
+  JWT library (7.2), and two package-owned details changed on purpose: the
+  expiration message no longer depends on the host's time zone (7.5), and two
+  further differences are recorded in (7.6). If a caller matches on any of them,
   it must be updated.
-* **The oracle only covers what its generator enumerates.** It is a strong
-  regression net, not a proof. The differential harness widens it, but both are
-  limited by the claim, header and algorithm shapes they generate.
+* **The frozen corpus only knows what its generator recorded.** It cannot detect
+  a mis-port in behaviour it never exercised, which is precisely how defect 1
+  escaped it. `tools/difffuzz` widens the net, with the caveat in §9 that its
+  policy predictors are transcriptions rather than an independent oracle.
+* **A passing suite is not evidence until it has been seen to fail.** Three of
+  the defects listed in §8 were found by mutating a control out of the tree and
+  observing that nothing noticed.
+* **Both oracles share one blind spot:** they are limited by the claim, header and
+  algorithm shapes they generate. They are a strong regression net, not a proof.
 * **`tools/paritygen` and `tools/difffuzz` depend on jose and therefore on Go
   ≤ 1.26.** They are excluded from the shipped module, CI-gated separately, and
   exist only to reproduce and extend the evidence above.

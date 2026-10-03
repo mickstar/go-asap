@@ -8,7 +8,12 @@ TOOL_GO ?= go1.26.0
 PARITYGEN := tools/paritygen
 DIFFFUZZ := tools/difffuzz
 
-.PHONY: test lint go-fix-check golangci-lint unittest difffuzz parity-fixtures
+# The pre-migration library. The fixture generator must record the asap*
+# verdicts from THIS tree and not from the module under test, otherwise the
+# fixtures are a self-portrait and cannot detect a mis-port.
+ORACLE_COMMIT ?= 97f05bd
+
+.PHONY: test lint go-fix-check golangci-lint unittest difffuzz parity-oracle parity-fixtures
 
 test: lint unittest
 
@@ -36,8 +41,16 @@ unittest:
 difffuzz:
 	@cd $(DIFFFUZZ) && GOFLAGS='$(GOFLAGS)' GOTOOLCHAIN=$(TOOL_GO) go test ./...
 
+# Materialises the pre-migration library that the fixture generator links. It is
+# derived from git history, so it is gitignored. Requires the commit below to be
+# present: a shallow clone needs `git fetch --unshallow` first.
+parity-oracle:
+	@rm -rf $(PARITYGEN)/oracle && mkdir -p $(PARITYGEN)/oracle
+	@git archive $(ORACLE_COMMIT) v2 | tar -x -C $(PARITYGEN)/oracle --strip-components=1
+
 # Regenerates the frozen parity fixtures. Only needed when the oracle content
-# changes deliberately; jose randomises ECDSA and RSA-PSS signatures, so the
-# output is not byte-for-byte stable.
-parity-fixtures:
+# changes deliberately; jose randomises ECDSA and RSA-PSS signatures and the
+# validation fixtures are anchored at generation time, so the output is not
+# byte-for-byte stable (the recorded verdicts are).
+parity-fixtures: parity-oracle
 	@cd $(PARITYGEN) && GOFLAGS='$(GOFLAGS)' GOTOOLCHAIN=$(TOOL_GO) go run . -out ../../testdata/parity

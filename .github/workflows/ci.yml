@@ -49,22 +49,45 @@ jobs:
         run: make lint
 
   oracle:
-    # tools/paritygen is not part of the shipped module: it depends on the
-    # retired jose library, which only runs on Go <= 1.26, and exists to freeze
-    # the pre-migration behaviour into testdata/parity. This job keeps that
-    # generator building so the committed fixtures stay reproducible.
-    name: parity generator
+    # The fixture generator must link the PRE-migration library, not the module
+    # under test, or the recorded asap* verdicts become a self-portrait and
+    # cannot detect a mis-port. `make parity-oracle` extracts that tree from
+    # commit 97f05bd, which needs full history.
+    name: parity fixtures
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.x"
 
-      - name: build
-        working-directory: tools/paritygen
-        run: go build ./...
+      - name: generator builds against the jose-era library
+        run: |
+          make parity-oracle
+          cd tools/paritygen && go build ./...
+
+      - name: committed verdicts reproduce from the jose-era library
+        run: |
+          cp testdata/parity/validation.json /tmp/committed-validation.json
+          make parity-fixtures
+          python3 - <<'PY'
+          import json
+
+          fields = ("asapDefaultOK", "asapSigOK", "asapAudienceOK", "asapRolesOK")
+          def verdicts(path):
+              return [(c["name"],) + tuple(c[f] for f in fields)
+                      for c in json.load(open(path))]
+
+          committed = verdicts("/tmp/committed-validation.json")
+          fresh = verdicts("testdata/parity/validation.json")
+          drift = [(a, b) for a, b in zip(committed, fresh) if a != b]
+          assert not drift, f"verdicts are not reproducible: {drift}"
+          print(f"reproduced {len(fresh)} case verdict sets from the jose-era library")
+          PY
+          git checkout -- testdata/parity
 
   difffuzz:
     # Mints and verifies the same tokens with jose and with this module, then

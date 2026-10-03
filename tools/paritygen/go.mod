@@ -2,17 +2,14 @@ module github.com/mickstar/go-asap/tools/paritygen
 
 go 1.26.0
 
-require (
-	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2
-	github.com/mickstar/go-asap v0.0.0
-)
+require github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2
 
 require (
+	bitbucket.org/atlassian/go-asap/v2 v2.0.0
 	github.com/aws/aws-sdk-go v1.55.7 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -22,4 +19,4 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 )
 
-replace github.com/mickstar/go-asap => ../..
+replace bitbucket.org/atlassian/go-asap/v2 => ./oracle

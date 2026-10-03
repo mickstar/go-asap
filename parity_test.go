@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -313,6 +314,30 @@ var asapOwnedErrorPrefixes = []string{
 	"token is not yet valid",
 }
 
+// instantPattern matches a Go time.Time rendering inside an error message, e.g.
+// "2026-10-03 19:24:03 +1000 AEST".
+var instantPattern = regexp.MustCompile(`\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4} [A-Z]+`)
+
+// normaliseInstants rewrites every rendered instant in a message to UTC.
+//
+// It exists for exactly one message. The pre-migration ExpirationValidator
+// rendered the two claim instants in the host's time zone, so the frozen
+// expectation reads "+1000 AEST" on the machine that generated it, while the
+// port deliberately renders UTC (MIGRATION.md 7.5) and prints "+0000 UTC" for the
+// same instant. Normalising both sides keeps the comparison strong — the
+// instants and the wording must still be identical — while allowing the one
+// documented presentation difference. It cannot mask a real difference: the
+// instants themselves are still compared, in UTC.
+func normaliseInstants(s string) string {
+	return instantPattern.ReplaceAllStringFunc(s, func(match string) string {
+		parsed, err := time.Parse("2006-01-02 15:04:05 -0700 MST", match)
+		if err != nil {
+			return match
+		}
+		return parsed.UTC().Format("2006-01-02 15:04:05 -0700 MST")
+	})
+}
+
 func requireParityError(t *testing.T, want string, got error) {
 	t.Helper()
 	if want == "" {
@@ -325,7 +350,7 @@ func requireParityError(t *testing.T, want string, got error) {
 	}
 	for _, prefix := range asapOwnedErrorPrefixes {
 		if strings.HasPrefix(want, prefix) {
-			require.Equal(t, want, gotStr)
+			require.Equal(t, normaliseInstants(want), normaliseInstants(gotStr))
 			return
 		}
 	}

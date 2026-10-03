@@ -179,26 +179,35 @@ The suite runs on Go 1.26 and Go 1.27.
 `testdata/parity/` is the frozen behavioural oracle: 54 wire cases (parse
 verdict, protected header, canonical claims for every supported algorithm plus
 malformed and adversarial inputs) and 20 validation cases (the verdict of the
-real `DefaultValidator` and `SignatureValidator`, anchored at a fixed instant so
-the clock can be injected). `testdata/baseline/` keeps the pre-migration green
-run and the Go 1.27 init panic for contrast.
+**pre-migration** `DefaultValidator`, `SignatureValidator` and the audience and
+claim-value validators, anchored at a fixed instant so the clock can be
+injected). `testdata/baseline/` keeps the pre-migration green run and the Go 1.27
+init panic for contrast.
 
-Both trees are produced by `tools/paritygen`, a separate module pinned to jose:
+Both trees come from `tools/paritygen`, a separate module pinned to jose. It links
+the pre-migration library — extracted from git history, not the code under test —
+because a generator pointed at the port would only record the port's own
+behaviour and could not detect a mis-port:
 
 ```shell
-    cd tools/paritygen
-    GOTOOLCHAIN=go1.26.0 go run . -out ../../testdata/parity
+    make parity-oracle    # extract the pre-migration library from commit 97f05bd
+    make parity-fixtures  # regenerate testdata/parity from it
 ```
 
-jose cannot run on Go 1.27, so this must be run on Go 1.26 and its output
+jose cannot run on Go 1.27, so the generator runs on Go 1.26 and its output is
 committed. It is not byte-for-byte reproducible: jose randomises ECDSA and
 RSA-PSS signatures, and the validation fixtures are anchored at generation time.
+The *verdicts* it records are stable, and CI re-derives them from the
+pre-migration library to confirm they are not stale.
 
 `tools/difffuzz` complements the frozen corpus with a differential harness. It
 mints the same claim set with both stacks across the whole algorithm matrix and
 cross-verifies the resulting token strings, then compares parse verdicts,
-protected headers, canonical claims and every validator verdict against an
-independent predictor:
+protected headers, canonical claims and every validator verdict. Its independence
+is uneven and worth stating plainly: it is independent of this module wherever it
+compares against jose, but its ASAP-policy predictors are transcriptions of this
+module's own validators, so they catch transcription slips rather than a shared
+misreading.
 
 ```shell
     cd tools/difffuzz
