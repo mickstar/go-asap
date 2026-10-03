@@ -654,9 +654,9 @@ func buildValidation(ks *keySet, anchor time.Time) ([]validCase, error) {
 
 	// kid formatting rules.
 	for _, kidCase := range []struct {
-		name  string
-		mod   func(*mintOpts)
-		note  string
+		name string
+		mod  func(*mintOpts)
+		note string
 	}{
 		{"kid_without_issuer_prefix", func(o *mintOpts) { o.kid = "other/key" }, "kid must start with issuer/"},
 		{"kid_path_traversal", func(o *mintOpts) { o.kid = issuer + "/../key" }, "kid must not contain . or .. segments"},
