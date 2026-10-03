@@ -225,6 +225,7 @@ func randomSpecForAlg(rng *rand.Rand, now time.Time, alg string) spec {
 	}{
 		{"svc-issuer", true}, {"svc-issuer", true}, {"svc-issuer", true},
 		{"", true}, {"svc-issuer/extra", true}, {"iss-ü", true}, {"/", true}, {"a b", true},
+		{"svc/issuer", true}, {"svc-issuer/", true},
 		{"svc-issuer", false},
 	}
 	iv := issVariants[rng.IntN(len(issVariants))]
@@ -294,7 +295,7 @@ func randomJTI(rng *rand.Rand) string {
 }
 
 func randomKid(rng *rand.Rand, iss string) (any, bool) {
-	switch rng.IntN(15) {
+	switch rng.IntN(16) {
 	case 0, 1, 2, 3:
 		return iss + "/key1", true
 	case 4:
@@ -317,6 +318,8 @@ func randomKid(rng *rand.Rand, iss string) (any, bool) {
 		return float64(5), true // not a string
 	case 13:
 		return "/key", true // root child
+	case 14:
+		return iss + "/..key", true // a segment that only starts with dots
 	default:
 		return nil, false // absent
 	}
@@ -342,6 +345,21 @@ func addCustomClaims(rng *rand.Rand, claims map[string]any) {
 	}
 	if rng.IntN(4) == 0 {
 		claims["num"] = float64(rng.IntN(1000)) + 0.5
+	}
+	if rng.IntN(5) == 0 {
+		claims["html"] = "<b>&</b>\u2028emoji:\U0001F600"
+	}
+	if rng.IntN(6) == 0 {
+		claims["ünïcode"] = "ключ"
+	}
+	if rng.IntN(6) == 0 {
+		claims["mixedAud"] = []any{float64(1), "two"}
+	}
+	if rng.IntN(6) == 0 {
+		claims["flag"] = true
+	}
+	if rng.IntN(6) == 0 {
+		claims["neg"] = int64(-9223372036854775807)
 	}
 }
 

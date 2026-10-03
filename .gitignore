@@ -28,3 +28,7 @@ _testmain.go
 *.test
 *.prof
 /.idea/
+
+# Tool binaries built in place (see tools/)
+/tools/difffuzz/difffuzz
+/tools/paritygen/paritygen

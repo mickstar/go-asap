@@ -190,6 +190,23 @@ jose cannot run on Go 1.27, so this must be run on Go 1.26 and its output
 committed. It is not byte-for-byte reproducible: jose randomises ECDSA and
 RSA-PSS signatures, and the validation fixtures are anchored at generation time.
 
+`tools/difffuzz` complements the frozen corpus with a differential harness. It
+mints the same claim set with both stacks across the whole algorithm matrix and
+cross-verifies the resulting token strings, then compares parse verdicts,
+protected headers, canonical claims and every validator verdict against an
+independent predictor:
+
+```shell
+    cd tools/difffuzz
+    GOTOOLCHAIN=go1.26.0 go test ./...              # bounded and seeded
+    GOTOOLCHAIN=go1.26.0 go run . -n 20000 -seed 1  # soak
+```
+
+It also has to run on Go 1.26 because it imports jose to mint the comparison
+tokens. Its only expected divergences are the ECDSA encoding above and the
+`HS256`/`none` algorithm policy, which it asserts and counts rather than
+tolerates.
+
 ## License
 
 Apache License 2.0. Copyright 2015 Atlassian Pty Ltd; see `LICENSE.txt`. This
