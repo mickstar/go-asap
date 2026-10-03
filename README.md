@@ -41,6 +41,10 @@ the real `DefaultValidator` and `SignatureValidator`) into
 verified against the old behaviour rather than against a reading of the JWT
 spec. See [Testing](#testing).
 
+[`MIGRATION.md`](MIGRATION.md) is the full report: the root cause, the
+compatibility layer, every deliberate divergence, the defects found along the
+way, and the evidence behind each claim.
+
 ## Installing
 
 ```shell
