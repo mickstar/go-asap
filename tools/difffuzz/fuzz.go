@@ -43,13 +43,13 @@ import (
 	josejwt "github.com/SermoDigital/jose/jwt"
 	golangjwt "github.com/golang-jwt/jwt/v5"
 
-	asap "bitbucket.org/atlassian/go-asap/v2"
+	asap "github.com/mickstar/go-asap"
 )
 
 const (
 	// parityKeysPath is relative to this module's directory, so the harness
 	// must be run from tools/difffuzz.
-	parityKeysPath = "../../v2/testdata/parity/keys.json"
+	parityKeysPath = "../../testdata/parity/keys.json"
 
 	// DefaultSeed is the committed, reproducible seed for the bounded test.
 	DefaultSeed int64 = 1

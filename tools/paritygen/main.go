@@ -48,7 +48,7 @@ import (
 	"github.com/SermoDigital/jose/jws"
 	josejwt "github.com/SermoDigital/jose/jwt"
 
-	asap "bitbucket.org/atlassian/go-asap/v2"
+	asap "github.com/mickstar/go-asap"
 )
 
 const issuer = "svc-issuer"
@@ -128,7 +128,7 @@ func main() {
 
 	meta := map[string]any{
 		"version":     1,
-		"generator":   "bitbucket.org/atlassian/go-asap/tools/paritygen",
+		"generator":   "github.com/mickstar/go-asap/tools/paritygen",
 		"joseVersion": "v0.9.2-0.20161205224733-f6df55f235c2",
 		"goToolchain": "go1.26.0",
 		"anchor":      anchor.Format(time.RFC3339),

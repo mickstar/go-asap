@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"bitbucket.org/atlassian/go-asap/v2/mocks"
+	"github.com/mickstar/go-asap/mocks"
 )
 
 const (

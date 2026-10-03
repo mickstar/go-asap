@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"bitbucket.org/atlassian/go-asap/v2/internal/keyrefresh"
+	"github.com/mickstar/go-asap/internal/keyrefresh"
 	"github.com/vincent-petithory/dataurl"
 )
 

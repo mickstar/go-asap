@@ -1,10 +1,10 @@
-module bitbucket.org/atlassian/go-asap/tools/paritygen
+module github.com/mickstar/go-asap/tools/paritygen
 
 go 1.26.0
 
 require (
-	bitbucket.org/atlassian/go-asap/v2 v2.0.0
 	github.com/SermoDigital/jose v0.9.2-0.20161205224733-f6df55f235c2
+	github.com/mickstar/go-asap v0.0.0
 )
 
 require (
@@ -22,4 +22,4 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 )
 
-replace bitbucket.org/atlassian/go-asap/v2 => ../../v2
+replace github.com/mickstar/go-asap => ../..

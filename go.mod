@@ -1,4 +1,4 @@
-module bitbucket.org/atlassian/go-asap/v2
+module github.com/mickstar/go-asap
 
 go 1.26.0
 
