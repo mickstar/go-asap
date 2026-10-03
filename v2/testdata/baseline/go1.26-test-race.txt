@@ -1,0 +1,4 @@
+ok  	bitbucket.org/atlassian/go-asap/v2	2.579s	coverage: 79.6% of statements
+ok  	bitbucket.org/atlassian/go-asap/v2/internal/keyrefresh	1.865s	coverage: 97.8% of statements
+	bitbucket.org/atlassian/go-asap/v2/mocks		coverage: 0.0% of statements
+exit=0

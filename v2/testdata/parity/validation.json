@@ -1,0 +1,214 @@
+[
+  {
+    "name": "expired_five_minutes_ago",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE1MzQzLCJpYXQiOjE3OTEwMTUwNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.F_fkxjCMzuZn--OqRqLNz4moaK2u1zLrPYHlMXhUWiqlHXnDH_JSM3Yz378kl7nJkIdVqi9Ol6p7kajtNXzjbj-jB-aPeilAhWnfbN57JYnL1HMANudMqEwOydIxaXzXrIHc5JXbE-QkSjjBZdgJvOz-mg4qly2pbFwSjhjN5VfV0Tfz2ATAHi-NGhTR-a_oozBU50bGNwDPk6Nr5MXclqOELfyUUwROK4T6G8iHcRS1ZaQNFlg6vl7IpmrQ3rIWQVCluolrap-KQYm2-I3h6QfTj-h6JXdGliRmAeN1KIAw489wghhJ4JC2h14txfqs4c1mAYm73BVtuZBkFIMu7w",
+    "method": "RS256",
+    "key": "rsa2048",
+    "asapDefaultOK": true,
+    "asapSigOK": false,
+    "asapSigErr": "token is expired",
+    "joseValidateOK": false,
+    "joseValidateErr": "token is expired",
+    "expectValid": false,
+    "note": "exp in the past beyond leeway"
+  },
+  {
+    "name": "kid_invalid_chars",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5ISIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.oXLJJSap076u0sew_M081UXtefPGl8molWQWDLlte0fSjZOzKYIrVrgIx1EjEd0nbZhc5vKXfGWuunFd7L0xGyxeMNVCtikz3XBoPlXhaA_FuCd3vw_IekCtVwdkydFZxUqjNUMtNlha-b0chpcOkUAFXvQxiwu7g9Or4Qulz94d2b7tDY75jYmIs11XvPG7mHKJL0wow5fvqwpYcYzePcG8VQJGD9ygq4dwLWx0asxOfHSFFkJPkvpeSmmbvw5BOoxv2k92qQEMswqbMLr9RFyyOKTD5lCNcdC8H114PARyyLDMyZ3JEvqwtoUt4TQzsG2uopN0SPza-CtNrvCQ1Q",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "the KeyID svc-issuer/key! does not match the approved regexp",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "kid must match ^[\\w.\\-+/]*$"
+  },
+  {
+    "name": "kid_missing",
+    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.Lz01i4eTnj9I3ikMejwXFN5ZK-SPHtXT4BqvtYvZIPd1L9myq0iFAxq3ER5HTkKTQuFaiD0qQoSH94dLfr0eKAxsJyR4TV10Jn75EzKc9iPs-y66tyumL8QHUerDJjpg_3gJZ6rqwdb_lDtnNi9LtRlMdz1TzMo30U7gPdEbEXSFY6_T-MFLTOml003ZUrrgk0KHATofmUraI309bmJsO8JRvymVUkwVBa0Ut84T98RGlqDshv6B0NRu365CVbPmJMKfZVzNqwtWavn1DC34i4wff3t9L1Cy2WQOqShIZsEl1H28R4FePcFAjDorkaI7fIcvMB4hVf-scLapVbfoRg",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "missing or invalid kid",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "kid header absent"
+  },
+  {
+    "name": "kid_path_traversal",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIvLi4va2V5IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.GZ9OGR02wy5tDiz_yIeiK69MV_dYgRpOpjCPjT9uy22lpKRo2sncFbnuiv-C3v_q_7aRyJ-wwRAmsRfdYWeGx0a82JKUvpnM85ahePlNvxa7M0ibI0DLS4LBVfuKO898c9KnxGT610jvwGnniU0OG0VseJ_iQnyHOeZo98Vl6MKltSToP5va0jpfx-1d6h7yJNfgMWvxeoUXTasHp2QQkrRz4z9ZY4WwTZvlbZVVwGIEXie6HpejIm8prFTHZwOoURfZL5_t0PoXNOXOXuggXUThDmmNqaXTL7myeH2KWWk0Kw9xF-mnD3IvNZydZNdLhEPFe-Hbwq6T_jWb-c2gPw",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "the KeyID svc-issuer/../key contains invalid segments (. or ..)",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "kid must not contain . or .. segments"
+  },
+  {
+    "name": "kid_without_issuer_prefix",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Im90aGVyL2tleSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.GC5v78sNokxSiHT_zgJ3FqE6cYwn71OlderC3_WjLTBNLn0yvjGS-c4C6Jc8aHf2MQzDQUJ3MBQRMpTN-4Q-4-HOT9EXkWRx8-q4e-oTJRIVsryp0M2dd2kHE83B_fGbEiVKtzpYUAXWKugeYwZIkLv-YUcjvxF_j4q5YnnydDKU5k2jixRLDfhOPpaIn2a3WGzO2le5dA_u7OmBDt4cna2rgUfvyUjnkKlY6NejFWZi_UkEdJ4BhHTjG61t9Jy7MGd8iN4wsKeyEzFSxtnrKILKW7YlQ3Q2fvnSxrTyt6HIGg1jILcZczU_2wzuQyW6zid7Wfd6KD1RFgSLJRsKmw",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "the KeyID other/key does not start with the issuer name svc-issuer",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "kid must start with issuer/"
+  },
+  {
+    "name": "lifetime_exactly_one_hour",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE4NjQzLCJpYXQiOjE3OTEwMTUwNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.aqdNN7W9T-zJoYo3yCPhqFxNtAirbxUAbn6J1JLMGb-kdb7lbZi6reAnrFhVzPcUK1TP3uJZDyZBcx02DbbwU7gOMYMAF-_C1v2F5Dclh7O8r1cVo26z1d6lFQ2J-t3PwJZ6ZIgBTbRkEZXSFurx8VVvLlaQqfTRa0_tMKLV3ZNBakHzoJ5rT9P4U5brJR72l-ONgrZwURAPDhIE_Got8xBSGV-xyM3csSX9ejCHytJ7DhgLC9Pqg9FRFf7TH5F5rIWFjt9CqfL9ayMIarCKJTnsBZUXaclKwqAlsHc0pqFiyJ7_3MzGySPqG5IBQMnZjtCEHcbpq7TOYqd4Cy1HIQ",
+    "asapDefaultOK": true,
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": true,
+    "note": "ExpirationValidator boundary"
+  },
+  {
+    "name": "lifetime_one_second_over",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE4NjQ0LCJpYXQiOjE3OTEwMTUwNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.p3dWepcovCH0My3tiyaG3Y2A8SIzpZQkM7KrAJ9kdR5BbiQQ7rsV-ClhDHUnfOQHC-0Xc5qrUpbgauu3TmDnL1etpRJfwcYGf7gXxnVqZScwgBmjL4Nj0aTv6VnewP3hYKLa7TirTus-L-MadRsrkUD1pPwuruh9VJaXiR_de84k2R2LUjlHX-BUCxK8Gbv_zK8n9jgTuFzxwZ1E8GmPA8LzD61w7UZLvxxFn1yxbeaV_AicZTVhoYf30XLtCrdGL5bMOxCXJR-oxk5-bZ6A_uKBT9Eg1C78NTQPog_NMUyBWgqC6Wa1rBCO2zuaXtMROUEEh1_wC7MdIY50zx5Xww",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "IssuedAt time 2026-10-03 18:10:43 +1000 AEST is more than an hour before Expiration time 2026-10-03 19:10:44 +1000 AEST",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "ExpirationValidator boundary"
+  },
+  {
+    "name": "lifetime_one_second_under",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE4NjQyLCJpYXQiOjE3OTEwMTUwNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.s1wTyPw2RWX02caDMVLGNkiQ8SB-2-U48JzpeNJC9AJh0s4eRu9gT8-wnQVm4e4AircGtw_vrqqR_L6-Dw0lsv1Xdo_doWpUMUKO24dgGzU9vhQucF33NURi8Rxw0GgMtpZUlNxjkii0b7BfPOUwfIBzn-_PhIrRqw5tXOiiLFbRuBMi2JAJebXzj5lRB_GOfq8yALWXXouwtHdttF9idfobI3KyXoskTA6O9mtrEUlo0A30Ny2CIpre7u_j1kWtQRUhRQAUsD-dYL0dt03Akvnew_TD6IcrWvphZwJpeyfr37rHyIBxkj0dmKvZN3Fx5bG6isDMiukWqs3ImPXugg",
+    "asapDefaultOK": true,
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": true,
+    "note": "ExpirationValidator boundary"
+  },
+  {
+    "name": "missing_aud",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTEwMTc0NDMsImlhdCI6MTc5MTAxNTM0MywiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.nbZZb_x8f0SfB1FJ1Jf-_4Rx-joohU60nYTMiCc4TzNG-V3a7HHkpKKJqUShsn04zKgJy6lJ3ZY9xHXYk0_IjKpYGzEyIZQh4k7AKT86FB9fZ-OHd6mJs2ODQbB-0n7ZpRzTl7KVNg9lKgiLt5VsDaYtLLiTDE3HSPlsJSnzysAgGFF4OlAynDLPkX69Xp1r2K5T-lWWwVZDVNFqTAosaE_ZctEhn9MDrudVBDhsrl4u5l2OIEMWRc3Mnmet4_YFvwHyd11HKKqoe8tVzSQQYQ1OdhnqZnr7xoFwxiWG5KrO4D3ICohe4_4nznehOR-1Gqjr9Tus6F4J42gR43YJFg",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "Missing claim aud",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "required ASAP claim absent"
+  },
+  {
+    "name": "missing_exp",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiaWF0IjoxNzkxMDE1MzQzLCJpc3MiOiJzdmMtaXNzdWVyIiwianRpIjoiMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1NTU1In0.HAMNWWSDgBYWECXAmE9-9ALyhMAJ9L6NErjUoYYaFHOEEgq7NComFIXkkeI7-p1CUE9Sm4Pqm61kYkMYZvr6512wxVG0UqUmafqOvxsE1JOSo3-qFlVxD2Ey_ug-Xqrkcnyazc9YxYNES6EBk4Mu8n-xUqksD3khCf9dGWHhThxOexvcFWDg1tJ56QKA0nMaC8EhI-_PtoILmJ6m1ERIwgC6Dj_1_wqyesGXZQLVcMiaRTyCZONPwzdj5GSxzOPppEe1wEHyxJVHf5HAvVqk_NiAcBcXiHfJx29p1NM_E-YDmJExxjSnYF2GXZbDT5ALr8BU_7fnUtIVJ_g0paNy7w",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "Missing claim exp",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "required ASAP claim absent"
+  },
+  {
+    "name": "missing_iat",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpc3MiOiJzdmMtaXNzdWVyIiwianRpIjoiMTExMTExMTEtMjIyMi0zMzMzLTQ0NDQtNTU1NTU1NTU1NTU1In0.WRB1in14bUhK-7rgzbN_6f9LWpm0WfbsNXvAvCMyepRjP_QtlMCbvKqC_4trMnCiZNpd_3C2yccZAktuNIPYStGdZSQloXVv2YbE-G8bFHNA4hj8C4OEhe03kGkkQ1A4p82SawXnlBV4zRKWmKvVxi8pq-19V0jX1A30zdzvk_CekaX8WWbL9eYqJG_t9EyHZPoNzMWjLpqSE8-Xkrd__7xmmyAxOtJIzAy8ItD3R8UcHsm4zYLyz7RsYAXrfSmuO3nt-wK3ktujU5SS7vlm3U686FZv05r62SqWu6apSmlWAwJVVAHvSSI2_g3eJNRESb7hKlT6SRscL2OO--lVpQ",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "Missing or invalid issued at time",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "required ASAP claim absent"
+  },
+  {
+    "name": "missing_iss",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.iiQ4mH5NkF-bRYLBFx-6Nw1J7YWTfRV3HEAQxyTLpVhNu1S56Ww0OUYK-qI0B6LLWrUMB9RJqwyCrXfv3j_6y8oXkHVPQ5iF-V7FaTobRps7HL0PjwLmEfvH6gNID3IWDW0ydnDU4zbE0q1I69KQKMtL8BjV9mKkGRiq_3Vn_ViSDlQNZwc6I7pmxTv747PyLz1MLwH92dYz10sGjwrysuWzX37GTjtzUHSBkPFqHysNVUaXpwAYnuj5bWO_cB_yrUDGjS73RujoKN1XJj71aVOXDdm_zX9O5wX88RM6QlJQOm1QndlZ14UZRcYdglRsoZEX2iPhEQYLCGWk0U-deg",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "the KeyID svc-issuer/key1 does not start with the issuer name ",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "required ASAP claim absent"
+  },
+  {
+    "name": "missing_jti",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIifQ.tEVyceFFoB4g-Rx5osQrwUJ3ScjF4Vp9q6R8ofzUhHP7QxfvL7r5kk8-64n1I_RaLnqF7Z2-LW_OtVNcPq32D5iRu9-46U9VouPDSS9H6r92RTiYy7tBsnsqXCcBlGT8tIC576uhVu89eGdoHZfTQ4QqMXAtweGYDYtiB2sp2jTx0QKI292ZJ2riHHU0evXo0hVhu0yslMWqFPUBdt3vTLa7ZlgNDMjcRw3FKxG3wrjH07eB00QaKVxYD3MTugxB1sBLDJOZFA7ObeRtjGbyDoN1-3uSR7p334Vs2_pENm223w0QqmbBVWv4MdCk51bWZmTmlKPGeSWbUoEZEuYLZw",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "Missing claim jti",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "required ASAP claim absent"
+  },
+  {
+    "name": "not_before_five_minutes_ahead",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUwNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUiLCJuYmYiOjE3OTEwMTU5NDN9.DHIrN_SKVix5PQ2pB--pYnF8SgG6DhNCReS8zvuu26AzjwK8X3hprJfH8Wg64fYfuloIWVWZxPpqJE2URMJegitxuQPYUCyUAK6mc_zqs7Z_K9XJSZfKIZZ6PPWvdHIvjSYyfhRsqH8EFjDjoSuWoxHihKwcZdJ5ECl1K32-fFiwVuIDcwzabgdTkTVHDmE4zKE7lh1oq8ZdCqhRwGMWnc72OZRMm97QFwaZnZxxoATC8nF2RYrTYf7fP8eYy0yCJQXIH6eBAexX4ftnamrdUDPFewkjce4aTPowmj1nuduPD5Uz1U5e1VbWqQ3IZZeGJcqCvAkhYV2FCgR37yBLwg",
+    "method": "RS256",
+    "key": "rsa2048",
+    "asapDefaultOK": true,
+    "asapSigOK": false,
+    "asapSigErr": "token is not yet valid",
+    "joseValidateOK": false,
+    "joseValidateErr": "token is not yet valid",
+    "expectValid": false,
+    "note": "nbf in the future beyond leeway"
+  },
+  {
+    "name": "payload_tampered",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJ0YW1wZXJlZC1qdGkifQ.TaND6gD_mQ89eJ6MLOdaMGxdaqeALtjJCV2jt0DYew64qOQoTnMCtqWCvw4lwZzeTU9KkQO3581iUXEQWbBTyAHRfYY6wk6bZSB_TzNhpG5EIY2uN6N15rYb9cnTzS9_QZ9x_uFUkOkFO1bmm929rWNP4FNWjGsaWs3Vu18oZl8xMFYyMPzVZg3KjGOO8AJOm-A3fcAxN4tRXYNVLioOKGHJ6gr7YMb-fkbjUqS6d1Y1w_mO-CPPRz0fWDJlRyAWTP3gInBfFHa1ozJk2868oif0RchLWEys4wDowXeqneTfDDGN0Ap8rMZna71Dyniu19QjF_JkpTZV5B8b8kv2eg",
+    "method": "RS256",
+    "key": "rsa2048",
+    "asapDefaultOK": true,
+    "asapSigOK": false,
+    "asapSigErr": "crypto/rsa: verification error",
+    "joseValidateOK": false,
+    "joseValidateErr": "crypto/rsa: verification error",
+    "expectValid": false,
+    "note": "payload replaced after signing"
+  },
+  {
+    "name": "signed_by_wrong_key",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.TaND6gD_mQ89eJ6MLOdaMGxdaqeALtjJCV2jt0DYew64qOQoTnMCtqWCvw4lwZzeTU9KkQO3581iUXEQWbBTyAHRfYY6wk6bZSB_TzNhpG5EIY2uN6N15rYb9cnTzS9_QZ9x_uFUkOkFO1bmm929rWNP4FNWjGsaWs3Vu18oZl8xMFYyMPzVZg3KjGOO8AJOm-A3fcAxN4tRXYNVLioOKGHJ6gr7YMb-fkbjUqS6d1Y1w_mO-CPPRz0fWDJlRyAWTP3gInBfFHa1ozJk2868oif0RchLWEys4wDowXeqneTfDDGN0Ap8rMZna71Dyniu19QjF_JkpTZV5B8b8kv2eg",
+    "method": "RS256",
+    "key": "ec256",
+    "asapDefaultOK": true,
+    "asapSigOK": false,
+    "asapSigErr": "key is invalid",
+    "joseValidateOK": false,
+    "joseValidateErr": "key is invalid",
+    "expectValid": false,
+    "note": "signature verified against an unrelated key"
+  },
+  {
+    "name": "unsupported_algorithm_hs256",
+    "token": "eyJhbGciOiJIUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.Mh6ZL5k9bjwLeW_c8FxyzvwG6fXoKXfgM2hk51CL2LA",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "Unsupported algorithm: HS256",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "alg HS256 is not in the RS/ES/PS allowlist"
+  },
+  {
+    "name": "unsupported_algorithm_none",
+    "token": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIiwia2lkIjoic3ZjLWlzc3Vlci9rZXkxIn0.eyJpc3MiOiJzdmMtaXNzdWVyIiwianRpIjoiaiIsImF1ZCI6ImF1ZC1vbmUiLCJpYXQiOjEsImV4cCI6Mn0.AAAA",
+    "asapDefaultOK": false,
+    "asapDefaultErr": "Unsupported algorithm: none",
+    "asapSigOK": false,
+    "joseValidateOK": false,
+    "expectValid": false,
+    "note": "alg none is not in the RS/ES/PS allowlist"
+  },
+  {
+    "name": "valid_multi_aud",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.mjv2y5ABM3zzr2mB8OUwCQU2F_9xWa8Sj7rrJsjVync0P1XWjE-XUQyCsIbz2M-XV3nY9Oym7Vc-5kisK1yB-saUQDQ0jXOzSelonzZ7Pe0fW4q97BN7lFLSik2NAfzrC3zYW0b5vZmdOHyYpoJ4N8K2deMEcAODOByb8BuZfTAbM2KnWh0uVJyrDUsgcnLK6A-N2c0Fnh2JM9YCxujn7B1jyKWjaRS-iYJnoFykYNe2iTgI3EojMGY1HsZ_oNvaafjzqNBQ4RPVsFHcskHWYVSIsrfvGJSSjf40GcoUQE1oD7G3wkFrF100L3IXTpwVEI3XEMl2KEhKqyfW-ZAhlg",
+    "method": "RS256",
+    "key": "rsa2048",
+    "asapDefaultOK": true,
+    "asapSigOK": true,
+    "joseValidateOK": true,
+    "expectValid": true,
+    "note": "audience array"
+  },
+  {
+    "name": "valid_single_aud",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzkxMDE3NDQzLCJpYXQiOjE3OTEwMTUzNDMsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.TaND6gD_mQ89eJ6MLOdaMGxdaqeALtjJCV2jt0DYew64qOQoTnMCtqWCvw4lwZzeTU9KkQO3581iUXEQWbBTyAHRfYY6wk6bZSB_TzNhpG5EIY2uN6N15rYb9cnTzS9_QZ9x_uFUkOkFO1bmm929rWNP4FNWjGsaWs3Vu18oZl8xMFYyMPzVZg3KjGOO8AJOm-A3fcAxN4tRXYNVLioOKGHJ6gr7YMb-fkbjUqS6d1Y1w_mO-CPPRz0fWDJlRyAWTP3gInBfFHa1ozJk2868oif0RchLWEys4wDowXeqneTfDDGN0Ap8rMZna71Dyniu19QjF_JkpTZV5B8b8kv2eg",
+    "method": "RS256",
+    "key": "rsa2048",
+    "asapDefaultOK": true,
+    "asapSigOK": true,
+    "joseValidateOK": true,
+    "expectValid": true,
+    "note": "all required claims; exp in future, iat in past, lifetime under an hour"
+  }
+]

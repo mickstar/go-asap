@@ -1,0 +1,849 @@
+[
+  {
+    "name": "ES256_multi_aud",
+    "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.MEYCIQCQuIM2VLTAmAhJTW9MKGe4HaDX5Y3COsN8KG1sEj0xTAIhANphiJoOaZRyx5C_tWX8EHOdywEP1MLbmAjWzjilQUEy",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES256_no_aud",
+    "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.MEUCIB3BFY0efKQjK1CZuQ-5tFWwMtx7q95VTOpDZKD3lh0OAiEAhTHejYC-01sqYxnMaAAidNOozYc1U42VKrC1GOrvddE",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES256_single_aud",
+    "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.MEUCIQDJGQqMBkjW6ZKl9H6sO6uzi3M4xnxa4aWTNxippWjFhgIge2u_UlZmf1ap328yHquWTDGkB8AMpBdDAVrAqlX-6N4",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES384_multi_aud",
+    "token": "eyJhbGciOiJFUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.MGUCMQDp4seWrlXgkoMmEUWTaKQ2cbOfYOs22vM7YPTs1bHVyDpwBJ4xpRZquvW5RmFtiYgCMHlXeAxRB_HwFpCgMGwnzXOLd7Q7DD4NuoCZdBZWqKwGFYQwat8laF6JSrRNjuWymQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES384_no_aud",
+    "token": "eyJhbGciOiJFUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.MGUCMQC7RWwZqPM8szsY-Sdl0FNEBhm0InhefZZkjNN6UXvoeDMTx2FYTM-hRvgDIm6aBr8CMFwFtaiKKMITifHitxICtMmbxJeREPbb8ZXClMebeT70OXM8yaQDMuUi-2bg_XOhiA",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES384_single_aud",
+    "token": "eyJhbGciOiJFUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.MGUCMQDA1VsoyDRF385O837JSS7a3EDFE0cLPvRwSYGaQe3WEaZe-g0yN5Zdc3EuI6h9nfkCMCeXHTJu130uuAx608fOJ56WpWt8JTX6EY-3txI5gCxkD8Mv1ItB4FJajhEi6NuoPw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES512_multi_aud",
+    "token": "eyJhbGciOiJFUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.MIGIAkIBYWJnG236uAJdquSdOho4UWtIImVwFRiAtlszNTI7LvP6YSQcjcWWnd98HLbOwCwbaT1Ovtt8EOBF-nAbDobcRD0CQgCjOy1EpYZTaE0Qa5X5SBEMTv9SVnm6FvOxRUVis1JoC8ujj0pk_NpoJX_C624ZYoICpXER4e2206QsQI5OTjUwLQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES512_no_aud",
+    "token": "eyJhbGciOiJFUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.MIGIAkIAxo0NR5xW7xz1zGm8YjYMyedcFSb-7YrbYJbF7yEP_QnQA85Tq4153mt5T-WHI1rAPtj6Va7lFZpA8WBWN3MPRE0CQgHuTlH_B5IPwLrHS8FoFUnFFnphXyHWeKAPWzUTtXkX17ztiDXer7KhhUupqYtu4CynYzqIDxSkBoRk7VyYwJTmnQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "ES512_single_aud",
+    "token": "eyJhbGciOiJFUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.MIGHAkIAn28tWx283CG6gmsJCLAViAyfww95y0W9QcNYlBm4DGqoDYIjub8ANL_hHiyETkF-Hi8b4qHTIb3OZmSOlJSnZYgCQVX5yAMMscknecKme9InS4MoFVnrKDpXy86OMRWV-UsIrAWJvH_D-8G8bdcZJOy2soN6c4IaW04Y0_6VTPl1k0Es",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "ES512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS256_multi_aud",
+    "token": "eyJhbGciOiJQUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.BbrI8FNRD3T-MAmKmBqvCOkasjtm-KRfpNDUYyQbktlqIt0K7GfOaR6241jH4DzWhXUkU9n4hUb1EHk-trImjYspOd6EpB0y1GZD7f2rXq2OhpsAxIIZjrwbG3ZX3U3C4WqUuXSBL6jr9n414iM31lpNLcZnL3uYRFI-CezVLrGkMbA0MAPZTxFhSa8HF6lBSQEuq8x3NeQA0duwr-uBw355r3SDwop0jWLCDzN_O8gEHjLj1RhOt3h_WWLP79qZGlu1y374JYs-C5WJHM88GBRRSBQLyvCHYjBH9bw71Ar_zO7Dl-aqric2aO83GZNglJap3O9sRE0de-3eWjfDCg",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS256_no_aud",
+    "token": "eyJhbGciOiJQUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.ei0SORx_NGcj9QSrGmJ6smWK7QzeBu8uRRwFfrPhpJtU3LDT6eHByM_P1AfqpHCymFkpum4XD6UtAxgJ6QhEP4ND5-UElyqfYUI91NMzgXwDdLDTXvbtqhujvBLrWfFJM0pcNCEA5pDlpc2-lH10g1Vq-2HfEfYv7nOURM3YAJqSHNktiCfkoczeE77OgmV-5WWROU2KPtx3ppv9Clz6BHCuY4wllfpONwMbxI2YCF2_j6kxPpwXW6a25iyOQP7KhtqGB4DE3cXIOn2LmhHgV-IhndgXXiBXDCB5Pnhr_VAgnQ2C5_rFVuiH9HNv4ALq3Yt9vrAUvif3QpWqaWzSQQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS256_single_aud",
+    "token": "eyJhbGciOiJQUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.RlTcSPQj5QHgBMLQhFPLwiQoft1ffMIxtpc-sB-exQGPeodQ4NocB9p1Ioveba7HoNXD1uMYq6fg0UNgvDvN1-p3tSMMe5kqJ6YfxxBZNrdiJfBLoIJZdcKabXUAU8MLwDt0q1US1WaqSHqXU_zv-ogAbDeAd7Ukfa70N20gKDxrIAYR3m4O7XoLwE2EHfg9CxTgCsPNHWsxM_0d0YGsjIFOq0VzgRdckF3viC55Tnsd0s6wpV_6hNY0P9bZEVF2Gfq3QBXDAJpF1JFh_En4kkZ65g3CELlnUui7XDyMyY89DNDjtHPfBAXJxZ8O5aMFNy3e1k9OiusGXqtB2pRfRw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS384_multi_aud",
+    "token": "eyJhbGciOiJQUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.YbrVuhGGVXVYdTWBp59tfMN4CqCGXk2reFZsDItNPao5pwyVtJF48hDIqNmJ3Dqk8RM6hrKwslP54oDP5ReiLgi2YfFq_0369tWnngFNRAzwCVG8qYGkXGqexysQKCpd8YvkkvBuDn_kCkyzvsdURdISmVnh9oYJE5-CywQvZ39r6y0miM6LE2ghVwrtt5WgATwpUbwtle6nnDHl5-0sv6hBCYbX7NbAgHnKZmx8wPVtAIEQvljRMVLKTrxiThKQbszVPTwdFo20Mj-eDoaMTcXZ4n7l38AG0VYRBtpQ1H6wCJfa4lVDrPeheV36IUksznBCyA9kSUm5hJq3MJ7BBg",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS384_no_aud",
+    "token": "eyJhbGciOiJQUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.YqiYqKy507ARSeYJc1vFERygevCVw26NX_JOXB6DHd1Nz1x5gtMJQV355deS2a_1qwvTq2_bTBrbnrzjHed1HauyCAg2Mz0VhJLr3BoA-cD4NJRRDXD3YC0R6qkVsAsvmZj0DD0Ww1U_eoWqI8eCGzq99JhTNrqwp9iBm8QrWS41tjGsYi-WORFtGsErU3bDS5AijUv92g-bNlyvC2pZolzkMp7D8zad3fcnDTouaMeliVnvvingpu-FNEKP57Z6CTnUc6BN_nN7o72xPIU11sQJM1n3eDWRQs8Vqfz6POnj09LjbHbk7jCZADhkfYlaiBN0R8BLfmhIADWLmy-XJw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS384_single_aud",
+    "token": "eyJhbGciOiJQUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.fLPLupQFdyDzvrI32Koil-9tG_ZNTuHnNq7tckIz-Jhdc3BeTSUldYwQNOa1qrVBl89-fzMI7UJJ20ybK96hxXPsVL6Tsjn7qfXq7S3Z6Hv2s37-DNmGLPK9OlVoolZELRr061eOw5heg72hgYD-U_HlkkmX_qrsLwlE-xEgJ1KMeqLydynj4tZcW17qPHCcxhm9jlpcYSmUA0LC_oZiCOnIF-8pn7IiLuxM4QhitFx_h-8z_2osgDc-e0bS01ULilrAoAPdZ21MbnEgmJ_OkXkQ_jfa5PmoXGYQ7pZ-N5bDJ4F1YsCFwn-JjEp64n8E9sCWPDSajcnFSyzkwXOjOA",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS512_multi_aud",
+    "token": "eyJhbGciOiJQUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.GcRZqFlM6zAb-3SIBBJ3MvzeRLacxQ7AdU7G_2p6vimjBmI-WBtcwPjpHhpvSL2RVGnt7d8rwozAE_WgEZqIc-uZYhEZl2dWOYQ5UaFrulqLn1pyrMGs9-yf4axPdlg8Ll5mCPMyYbEupQz_HNw3ULtGIzs6LSi2M8aUL699ZrIo1mSfZRBrxkr-YSyUvht7-v5Zy6aV4M_fWVRugHW7WwHyvLnUD-sbSG67NTJhsX2VoYSSSgE4w5__ZWMMfVal5AsCIM-jBln7_uGkwKHv8dB_q5uXY9akPnOksnoltQsG_eoj5IhUJKj8X-Bp9N56on9HfhmUa-xY3iR5wMJJ3w",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS512_no_aud",
+    "token": "eyJhbGciOiJQUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.FpVDKiOtssV33G89l9A0MFDHgQzQ6bMjv6y4_aRfduOxHPj1pgp82eZvieN38okpU4B3NtG_2RnUrARvGlyx9zFACgNk8QhM9q3DAMDGrgCS3n-BTSZ2fMhRICa3xHhLzPafeWnwzg3fknmV2YaUx6-vKeKik8RjcD0C7A3Wi5OU-fsoErCpeNEr9tns5l9ZNp9AMQrYUOidAfWN00-haalcEyHjimO2PqmAzn0OZLlzS2oQL6vhRvmgPZ-Cjo7F6douC_WgZqju4silNoKB2qI_NWdfT7wrn6r-IDK5qrc03RRRUa9k0F-Xh6RrNL6o5b7IBNCAS6Ll-v8OhAsEvg",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "PS512_single_aud",
+    "token": "eyJhbGciOiJQUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.L2-9NiyIw9CGRmd8PRdzC81FwnvJ-eTrmWv_M2FsmvCgXbirpd-uQ-GzB06YVy4xgrriFxohwhqDXj-oSG7o0CWlthYqPYrLl0ws451QRJZ6Km_thtZseOFiaAQ4SG5uCnDdIS1HvoObCFZPFaeL6rhqfTPc_0C28cIrLpkw3Yx4jpsdMBFexiXwTOOJePnuITY5VRTrGRzGhs0LTGr2QIpGfy_IbPDaZ_QB5KBTBxJyXX69kvSf1McYu9rcAdCAifdgX5Nd2y2Yy3X0Xd7XjSH-E8qn9IpyurNQSrHyJ-A4-HqdFu37ffw55eF_v_SVHTS6AJRFqPvg7IrZIctkfA",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "PS512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS256_multi_aud",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.Ro95RB9wx01ze_VBvmMEZuO9ZaHL_J1KIBYAks81Gzu-0H_jc2A8JddjRqrf8RREx1z1x8Rt-xbnXFxaU5sd6zujIjQr5Pss7c6K_USJOKy1hNEgznsY9ekipyOQ6-xGGgvrtKBfSg0K5dD48raecmajeoYCqrRfE2l0P_OToxKa3cgd9ti5JTiawAMrZ79oVG7MNKFwmRkUb3yRVi82kMZHMNUG31cjPXl5ihEbDqLTteb6zxmTnNblNTcUIEHh6M8OJMd5Co-27kgFc8cAPf20gUngCSoGmWFfBPkQ417aoEyaNAipnkAbhGHU0FQcwiVX2sC8Asb0pBksopPazA",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS256_no_aud",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.Pan_BgF0OpNo20c2_lpweSIlbM3AIQIVQ4phwUp-hEtcfjkZx0H4D7y6BCh_VIZ4quyeEm1QyVF7g8GQ8bQH-PXA9w9lG_-57yMenrShGLIOmQiPxvd8hIBKerSI07G2KKtXEf7cjNiWIMdDFTL9bh6J6ucNnoxJ0mCbDdI24xXP4xTSJJ_0DucTdoO-971PptXt20YO-VEh8mbEXlhkiCmLPYu8vcjhj4ewSyq9x6HxPKUjKUgOJD6oteYCikZoPP_ZwjPWXfsNkYflrMbLgsG7sZ3aCyUpjFk0mjD2DrnrratlH3dX44ZnW-a4npFWK8DpPaX0ljJ0SDlhMExagw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS256_single_aud",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.cdeP7q__We2krcNO5FaCvzEREFlVcxEzvKUNiIm-Kq1gSgerot6ZlG2ZzpLwnblXpBlokABFQWPONKuBAI0fPWFC83vpkft8dNGm1-pMspf4ZZy5VeIOdadhmSBKSndEgq9Z0zXssOHZ0grIfE0zFf_kDxKJ5mPgt-8CkKbui6Ns9F0w3oF6GjDBpMlolC5UGHiBc6AlMipgJTasyMd4YBLTmovemTqynrPFl_cinkpCwGacU8rnDQLgZhp59avHblZQnfJKrR_psF36i1wj0kj1pm1CrDZAQAaItCxbow2nVh0vNkzqCv8ivpF5I6IdJccJ-32fCBCYmLPNloV1pw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS384_multi_aud",
+    "token": "eyJhbGciOiJSUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.nYC_Ro7K9X9XpM2kAZRRC6Y8hk7YnwSNkNjqZhTgoCaIE2MBIR0SeFLXMdmG0z-LgCa2i5n-Ot1EEUo-Gb2MIECquHfQtycyDJb50jkazTREsIg9gYNz2a4CbyRJrGveOXIard1GnLMSQl1rWl0BJ6rnbb3hA5P89jS03VVsMsEE1x366MAyOpWTjyUTaypebbg4vVSmwII7IH7jGXdo7lKki4LI9Q2ppeb_oiGoeWpYnR7bVHUAOpBeJJYcoRNYfCl2svaI6w7Ek-S2pbkZkpLR9tVy0vQCzh0Hg-RWhEa4kGHUCq11Sc69Zh0EZn9uQ0n9gWHlWwMZWt1bXmeUOg",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS384_no_aud",
+    "token": "eyJhbGciOiJSUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.mMyPN11W-KXhm3lWAlHkcMl7cY9b2TQU3Rlf1CcYf8HF4adMLs9FlGLT3xunkQQ2wVzWmbAQ9p6lOKl9RVl7XJqNgvi2sHN_otIpoVpd6WvwGMPELlXOeVNNaxkvnqQW8Jp5iVRr52hwqwSZj0oqqyCILKSkFIyRYn0sg4f8EPxRfdks1PLJnHVy7S5pq24i34TdEBP0UZbQaWzZAwqKaZcwTYb2anMMIZq9jWYvR9N2rkJ_dkj5QVWttyhxhVxhRw1jkaeatxqlMkid7_8qZQMCSshp7hN0JeSaIRIX8hrdHIrqaHkzsX2l62GRXlTveeB93XAhduB3KRptSW3C4g",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS384_single_aud",
+    "token": "eyJhbGciOiJSUzM4NCIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.UNFGtqssuMx7U7SxWKXKKbeE8wfyDonYR5To0iU_A6qizgxIEqhxuFZTLU31j22n_rZyuSReJQHxKvTzOrwvspote1CFk5pZVSI48hc-zXWy61-S5YuvPc0Zc9stqjchaPCBbNgwqJYEvAgqiRXfxHuUxdJ95YXlTh_2IUJYcH-5uLaAcy9VGt5jn_RltHKbbB1fRXNeC0x2S3y8cO3kohtu577cEBtPaR3Q6mxL35KcK8wH9dbSvL6-peyFy2QqfGhVsrnyf_8hK6YMdlSIyZcu9YdO8bS6Re2aC17EPawN8PF8fTN_hXje5n6CeNLUgeOhBQBIaXyzlnQffuySfw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS384",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS512_multi_aud",
+    "token": "eyJhbGciOiJSUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOlsiYXVkLW9uZSIsImF1ZC10d28iXSwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.QXZugSkIq_IWkg86IrUURHHmL92GIe38jVEP8OeWSWhc81ffkPU2mFAPxtsimCqwXL4NUY8q4RDZLt9ju593fPYRk9ekt2sJ9UeGHkuuNnEMP0ddlLh9sG-IWVvf9YLtF9CGHSw_wwXX85gVYiq7Jws0AZgpzDiFjfi-vb2Kq9iWvM5m8891I9PHSZwknF6kGVSxRWe7S4zInhqBcoAMTn5mRWfLBWOdT6y-1-gofKc46cahPAPH82hF2KrfQwJN5A-fqDg3vL8ckiRVoJpX5CYvFsc1bSPrartL95CB205r6nmlbCjaEtkKcSBSeEySGsulrFhzhNW1OT6nlS_w0g",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": [
+        "aud-one",
+        "aud-two"
+      ],
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS512_no_aud",
+    "token": "eyJhbGciOiJSUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MDQwNzA4MDAsImlhdCI6MTcwNDA2NzIwMCwiaXNzIjoic3ZjLWlzc3VlciIsImp0aSI6IjExMTExMTExLTIyMjItMzMzMy00NDQ0LTU1NTU1NTU1NTU1NSJ9.cPmjCavccspmVvFlzgcmydeoN6VSUfPydPOtxuqph5_52S0VA0YFlK4Aq3KfoMwfr5J_hQSwPvzHNHsJ4ytJLT7wS5hOHQ6T8VpQi6TKVG90rK7WRX_aHTuKDOL402Pb2418vy21O87WQ6HWcAHWysntHIZ886-c8YgjCoqAfro0UBJ6ZiM_sEptdjtK38icO3XFURihBnt-JaWg-IlgBNdqjKSWZWC73T7Lg7gE6xNqaYhG_Uh7tzI3GLKnsdvI-dhsg2NhaX-lubTQAfx2AaXzTqGxL7t-u9yIB1-lALaa6WJib4e3Fq4_rOPxOW-yaQsl6_inTHvLIMop7qvsMA",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "RS512_single_aud",
+    "token": "eyJhbGciOiJSUzUxMiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiIxMTExMTExMS0yMjIyLTMzMzMtNDQ0NC01NTU1NTU1NTU1NTUifQ.jDRZval77AzxnvZ6aPF0uBXsLJbHlHXKgzX3YSz7HsXilxjR_p9HQ7Gfq5sFIK5cNu6dphVtafUf0xoe0L990ZcKIbrqmyymm_KjtrL71wT2kb9AuY-T32cP0iHKEyjKPloZw0bEGBoy0kXE9I_p-mXUpEraHyWJBIdVvticQFEEAsi62d9F7VlUk8Ndpj03hsIUEjivmlXGOwJY3ClHVPfi8mY_nbp-Wdrw1s8shf1ResZeDw6d1DiBEh7yRJAqgHQ4eIqwuATejyDtrV0n6zIn6d6ksD4MD1_QdKTPQfOHnEfb8dcz2wwTf6oRFfo5f_VDSma7SCezO6cOvm50RA",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS512",
+      "kid": "svc-issuer/key1",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "11111111-2222-3333-4444-555555555555"
+    }
+  },
+  {
+    "name": "alg_absent",
+    "token": "eyJ0eXAiOiJKV1QiLCJraWQiOiJzdmMtaXNzdWVyL2tleTEifQ.eyJpc3MiOiJzdmMtaXNzdWVyIn0.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "no algorithm found"
+  },
+  {
+    "name": "alg_hs256_confusion",
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdmMtaXNzdWVyIiwiYXVkIjoiYXVkLW9uZSJ9.xKHMDU3GoblrEtZ5UyIF-rIMKUbHq1rlhL18Z4SXhLQ",
+    "mintedBy": "handcrafted",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "HS256",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "iss": "svc-issuer"
+    }
+  },
+  {
+    "name": "alg_none",
+    "token": "eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJpc3MiOiJzdmMtaXNzdWVyIiwiYXVkIjoiYXVkLW9uZSJ9.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "none",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "iss": "svc-issuer"
+    }
+  },
+  {
+    "name": "alg_unknown",
+    "token": "eyJhbGciOiJYWDk5OSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdmMtaXNzdWVyIn0.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "no algorithm found"
+  },
+  {
+    "name": "duplicate_json_keys",
+    "token": "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhIiwiaXNzIjoiYiJ9.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256"
+    },
+    "joseClaims": {
+      "iss": "b"
+    }
+  },
+  {
+    "name": "empty_string",
+    "token": "",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "not a compact JWS"
+  },
+  {
+    "name": "four_parts",
+    "token": "abc.def.ghi.jkl",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "not a compact JWS"
+  },
+  {
+    "name": "header_not_object",
+    "token": "WzEsMl0.eyJpc3MiOiJhIn0.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "json: cannot unmarshal array into Go value of type map[string]interface {}"
+  },
+  {
+    "name": "header_variant_iss_empty",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Ii9rZXkiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6IiIsImp0aSI6ImoifQ.PKf-x-8Jggq9iY7KA8yWIRXTQbKZThGjnFo_pdSfv1jR21WLjH5glCxlDlYwUKuIckFsP-Gp0q6lRBLHBzBT4IuMvPkfuPQKqL5MhbYg-B6a-2Ex2DSrzp-pRLNc_EjZefcGYo2mqskFxSMfWOlWaXIm22V5l4XSf6K2116rVpA2Ks9H7xbDHn_Yih4I08JxSzmxLf6n-k5aAUwTHieQ4WLU-vB_3FpG0lPizhg0rCdKxRBF-eY__Ozftcp4BBaDlb2L8aByfmWpHIkWzpQ5jca6cm2-ijX4Ma0QDU7cdvNEwa5oEhgLpx_qkEPzzQe9Na3-ssFHPxw3jNBiVIfTZQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "/key",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_iss_unicode",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Imlzcy3DvC9rZXkiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6Imlzcy3DvCIsImp0aSI6ImoifQ.F2YeVS0DimQqTPkTWDHybxtkE90kvENxiDt2DNd1ZAWnYt5NIlExyCxJ9GR0YrAoA-cZIyvuZ6U1hdXfr3cbEi9ZW1i38WH1TAERrCslxY_4nfWqeVeC0ohMolhXIrusYHh1xtCcJcQk1wNFB97vw_OOZObICPJy4a9gMVXcfHRAZtvg-zKBMEbwEza2QD8z4LKT1O58q-j_D5gVYGxID7g9DrtAKKHH2lSHG5qp1rEGZCM8D9rvf8WjAw37LGHxDVgwBg0g29tSk0l3KE7AtA18t94colyTm1OCxw9zqlbMLx41Wgt9xMNzmhkDO59WFQKHIZ15tirjQM-ubDxwpw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "iss-ü/key",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "iss-ü",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_dot_segment",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIvLi9rZXkiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.KjwWZRMsFPcgh_qd2KghzCsBgLahJ5Qn1ORBJu8Sj_Y6jEwTJLZqkXx8rVz9cwTO2JLHMRFe7vtLhmZczMLvAwmZF950dIZJEc79JocCbmLBBMCp_jYe0UkHeC6QH66qIyARk-w8CQAjy9nxQavROJ6UjXvP-yKL765oQTSf2iL_4umiGR-7ky4GO6H6Kny4BYbJ0aOeBoJu9xM2Je6622WRB63WCi7gbyRoFL3ERX4XfmJYXB1UTGbKo5U9gDOaMNeL2CIAmigkhHsPnRhIUxTIh8CMQzbpZfAONa63-qeuRnBrcZLHueYoKCsMopOhUtSB-cdD38sSN-gHIqz2aw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/./key",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_empty",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6IiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.tJIlaAW3pYj9piIeCzizUbTIvxshCAgEbW6gMxvDA4s0xVU6Ola_bwJgSH-eTCnJd4kR9GNUTLBrq_lDNNFCmJhkg2SXVwz6Fo7l7XIUwutCp6Oh02RUQSRubQjmmCD3jRrM0i8g_2023pP7yCEM0fHsCElI5TZteqx_q9-P5x1lTWwg9gp2yKwVv07Zsj7PwefxzeUpe1WTp881wzJ-qNT7c5_CQDWS1I1mRl8aFTqTbGBzg-U7LHc87lppi419ZCWmrivbB0DdDDITVHQSTKMBdFVtmBgbN9pJ_yUcx9K7mezJ4nWtWI43Gx7X5DMfXb44qSzbOGZxAaMFYlQjuQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_invalid_chars",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5ISIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.bYr5XN9sQqLieUdvYUzbQOqYcEzXmJzEF9qCR5xpBxiQfCPYTpltd2EO0Gf9AMZCWBnhqW9Bw1L5i_yLYLrg1vvwIBvayX_jZDLJdnOZVe1aAkNdOTKyJNQBHnlyZ57qKZxWoHe-BKEBa5QpT3AspiCkUHpaET25yuaACce4nGTYuUMkGXiJbZV47THDatwYN8B-HgWa54vwvQ22Lkr0Z99G9VnTQcByN7OesCUhZuT8vtS2lG0GmFWv520qaA5DdOW1912Agsmb41km490ru0sO2zAGsBzxt4fQOWbh8OoHUzkaIOoEetziTxVw_AtpRG0fz2lgJwB-9JAm0VEFEg",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/key!",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_long",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIvYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.rjutHqeB7gA-om2ZvRY4-SsZ6Eg5UAbk_GgkaN_CUYuS30zcnoYdjiKwn2WiUn2NPRoXxt2KcatIwZqlUd_oKXyVIDXT3TH1RvlQNJi1PhdAFyLDzLilowFci0Zh2G6mONDk6uQLXc0NKuH1FTQphuFM8352I7Wweu89D8Sp7n172QuBF6HD9aCf8ihlLnWix07FuL8L4_abpbKKI40rcvykSEiB_IbiGYuDHCD7_Wuh-pj6gXxgxLkIkDZFFprfhUAFs1M5_bdUwqtGnrIHDpda0qjmgmYSM4r7LP_ZoMHWTx1-XUlzvVnXY-sHuL46xnPcVGEorXQL-5yXwby1gQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_missing",
+    "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.Lm_-XBnH9MKYPee5Iy5gyBXD-ZPOgK4v8DBvrWE-9WU2tepFrLrVlv9QBMeYUpn5ctTJEvAnx5sYwl65cksgd9t7r-qm8fxKNw6ToP2SBNJsu6MigMNmylr19FykHx1qpAYnw03eryHL1n3p9hgSHgQaw5bSqgY8QRFQBK_cLvfFlTMoglvRCYrRvUtk7bLIwI2WU40h2Y0VG6HWyyCBdF_0Edoqb7MwmfFoTxInWxL_3C1vmG0ocxP86xXblmNvacvHhhlWkG_flUFmEGRWNEa7DGRnG6CXET8bloNYaxz66P4QsfFlPjI8Y4gBt8TAEcdSqlEcfp7z-wpkmQmLtg",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_no_issuer_prefix",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6Im90aGVyL2tleSIsInR5cCI6IkpXVCJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.cl5Vamgg0SwOpNu6DCotKQQ_iC0Zu5kuEgaG-sgFLhw76JShDQ2ixn-C9WNU1DD-nQCCHM7gX4G-wX3WSFVg6RWWmwjVcv0B-3fwyxvm5-y--tdGqERqkD3KFO7pEmvIXaayPgFBNusTOYjNbUt07B_QgKxS1JWJt56MxrvxO5rOWohP9Wj2LcUlgjCd-qEFrmwYkP5KSfFJ6tOupn0bbEKxb9f_kpeOzKCcERgdr9ajMJiBT-bDM8uHo3m8Dl1i7CWB39GsA2ULwUcSjsWsjr_zG-eMjv0fCd88tIDmK_F2t_POvVSAYBE7E9_iWExj2smniuW1FKei_MYu5osRTw",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "other/key",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_non_string",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6NSwidHlwIjoiSldUIn0.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.ShXoU_rthcgdG9kiggCOBgMIAEj3U_G-8SHi0bHI8Og7wYmVsY23GhYt6L85PaC701fRq1ZtNZ-ht5Uh0d2y57Y90NS8hoNhEVve_w86vOzKEIOgdj-JC4wPQ3-HaWGu5AcwOjEzkbylM3xredT3JVlNd2ypV0PebTwRrIyWYfC1DYj76_RsdnnlhaR25gXchvyXeqd4A0GsYljcN-DrZNP_kYigypfG_Mo4HHYUa-PHM-fcXXX-9Q51cSPot5zCAz2yAavpBbJFW46AfUiNjd4xtsChMyawPsrTjN5s_P0bdbmDoUGOzhpxe6EImxuA0qFj-oacESNPv_jutDeIJA",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": 5,
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_traversal",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIvLi4va2V5IiwidHlwIjoiSldUIn0.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.QnoPn1U1J6mYxHBhc0HMean3tmLi9VmPTitt0r_455scmyuZ1mkHEqS0B-b8pdcd9d2SQJc1gNWGTQgs70HhmDcOOClkHabKi5TN4Nmr9ds0C7w2PVQB7TE1sYg54utEIJ58An4u9VdwoYI6C0iUF39n0OrrDd-fplxagzCp78WjNyBbOtYICGQAM7LuwbixR9OPoUx6ETm2Wvv0xU57ACDTAqvEuxIuCBoWBTJ3RKsqqrMgVtcDZqGE9trIl0ZKAeQKfwUgw3TN7apbTaKmBk_RhbdFlTHHXEOfEQS6xZXMckFTvTDlc8e7gr9ydBbuoGajG8d6Xdes5q8TUJfYXQ",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/../key",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_kid_unicode",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIv0LrQu9GO0YciLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.B-HNcQevztN7DELXBWt62ck6ycO8gooE6OGdH87JDESXe4vpvy3u4vWE9hq9BC2islx0VF7e-Q-fxXmaI1yolOiI70ydymKPNJB3gBmDCr4thAEpK1-zuP17yUU-u378TeFUiKNlNddv20eXiP7i3OJgwNsdOTz9hJZpvcJCaas82RFhGNkUUpoKyHtm1K4L3Aa4LKkZSAc8-_FeKWNWEzw5Ir9CNYLqJTTWIUbaYECZtWTjtxv4-yCl4LEhhM0MIfrjx7OX8FYj3iefsGMRUSjg4zzf-Z7mbwv_fx0k2jIJU4Gfwi8DjfHIDUJevkna0T8mH6b2fGubANjlfWJO7w",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/ключ",
+      "typ": "JWT"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "header_variant_typ_missing",
+    "token": "eyJhbGciOiJSUzI1NiIsImtpZCI6InN2Yy1pc3N1ZXIva2V5MSJ9.eyJhdWQiOiJhdWQtb25lIiwiZXhwIjoxNzA0MDcwODAwLCJpYXQiOjE3MDQwNjcyMDAsImlzcyI6InN2Yy1pc3N1ZXIiLCJqdGkiOiJqIn0.QamN47B_KRv7_YKWpluhdt0kqTMdVSeRBBWLvIGYPXWB8uJYt_v18vZcMDlfSD9zOBE-GcmWvAFN_DKfYpR-u2GeU-Q7AQGm0qCJz-rBcBayAUFM9_QrSeBJoy1NVhKMsZ3z2UhTDSJ6Yga9Wa7LZXGbqrCBIgYUT4_wmdkgIf6GTkHgszpVz9XBp_cAmymuJfR2GfpEW75wJsOLNN-94BRJVgcWrtwW9zDRW600QHkOrZzZDMqKXHz7LFTypAUJ-jzOhbrjQG1pPbi9QEGlE57be0f_hE-DPXbqIftmg74dTInT7Pah7Lrq3YreRpG_1EaEFrVBMeZOFFUveEj98w",
+    "mintedBy": "jose",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256",
+      "kid": "svc-issuer/key1"
+    },
+    "joseClaims": {
+      "aud": "aud-one",
+      "exp": 1704070800,
+      "iat": 1704067200,
+      "iss": "svc-issuer",
+      "jti": "j"
+    }
+  },
+  {
+    "name": "one_part",
+    "token": "abc",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "not a compact JWS"
+  },
+  {
+    "name": "padded_base64",
+    "token": "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhIn0=.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "illegal base64 data at input byte 15"
+  },
+  {
+    "name": "payload_not_json",
+    "token": "eyJhbGciOiJSUzI1NiJ9.bm90LWpzb24.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "invalid character 'o' in literal null (expecting 'u')"
+  },
+  {
+    "name": "payload_not_object",
+    "token": "eyJhbGciOiJSUzI1NiJ9.WzEsMiwzXQ.AAAA",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "JWS is not a JWT"
+  },
+  {
+    "name": "signature_empty",
+    "token": "eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhIn0.",
+    "mintedBy": "handcrafted",
+    "joseParseOK": true,
+    "joseHeader": {
+      "alg": "RS256"
+    },
+    "joseClaims": {
+      "iss": "a"
+    }
+  },
+  {
+    "name": "two_parts",
+    "token": "abc.def",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "not a compact JWS"
+  },
+  {
+    "name": "whitespace_around",
+    "token": " eyJhbGciOiJSUzI1NiJ9.eyJpc3MiOiJhIn0.AAAA ",
+    "mintedBy": "handcrafted",
+    "joseParseOK": false,
+    "joseParseErr": "illegal base64 data at input byte 0"
+  }
+]

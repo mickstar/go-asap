@@ -1,0 +1,9 @@
+{
+  "anchor": "2026-10-03T08:20:43Z",
+  "generator": "bitbucket.org/atlassian/go-asap/tools/paritygen",
+  "goToolchain": "go1.26.0",
+  "joseVersion": "v0.9.2-0.20161205224733-f6df55f235c2",
+  "validCases": 20,
+  "version": 1,
+  "wireCases": 54
+}

@@ -1,0 +1,12 @@
+panic: crypto: RegisterHash of unknown hash function
+
+goroutine 1 [running]:
+crypto.RegisterHash(...)
+	/opt/homebrew/Cellar/go/1.27.1/libexec/src/crypto/crypto.go:158
+github.com/SermoDigital/jose/crypto.init.0()
+	/Users/michael/go/pkg/mod/github.com/!sermo!digital/jose@v0.9.2-0.20161205224733-f6df55f235c2/crypto/none.go:11 +0x30
+FAIL	bitbucket.org/atlassian/go-asap/v2	0.291s
+ok  	bitbucket.org/atlassian/go-asap/v2/internal/keyrefresh	(cached)
+?   	bitbucket.org/atlassian/go-asap/v2/mocks	[no test files]
+FAIL
+exit=1
