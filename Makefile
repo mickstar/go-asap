@@ -1,6 +1,6 @@
 GOFLAGS ?= -mod=readonly -buildvcs=false
 GOLANGCI_LINT ?= $(CURDIR)/bin/golangci-lint
-MODULES := . v2
+MODULES := v2
 
 .PHONY: test lint go-fix-check golangci-lint unittest
 

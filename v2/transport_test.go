@@ -5,8 +5,6 @@ import (
 	"net/textproto"
 	"testing"
 	"time"
-
-	"github.com/SermoDigital/jose/crypto"
 )
 
 type asapDecoratorRoundTripper struct {
@@ -25,7 +23,7 @@ func (rt *asapDecoratorRoundTripper) RoundTrip(r *http.Request) (*http.Response,
 
 func TestTransportDecoratorHeaders(t *testing.T) {
 	t.Parallel()
-	var provisioner = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var provisioner = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)
@@ -34,7 +32,7 @@ func TestTransportDecoratorHeaders(t *testing.T) {
 
 func TestTransportDecoratorHeadersDontDuplicate(t *testing.T) {
 	t.Parallel()
-	var provisioner = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var provisioner = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var client = NewTransportDecorator(provisioner, pk)(&asapDecoratorRoundTripper{t})
 	var r, _ = http.NewRequest("GET", "/", nil)

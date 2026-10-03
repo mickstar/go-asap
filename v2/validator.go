@@ -6,10 +6,6 @@ import (
 	"slices"
 	"strings"
 	"time"
-
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
-	"github.com/SermoDigital/jose/jwt"
 )
 
 const (
@@ -177,7 +173,7 @@ func (v *allowedAudienceValidator) Validate(t Token) error {
 var kidRegex = regexp.MustCompile(`^[\w.\-\+/]*$`)
 
 func kidValidator(t Token) error {
-	var kid, ok = t.(jws.JWS).Protected().Get(ClaimKeyID).(string)
+	var kid, ok = t.Protected().Get(ClaimKeyID).(string)
 	if !ok {
 		return fmt.Errorf("missing or invalid kid")
 	}
@@ -202,14 +198,14 @@ func kidValidator(t Token) error {
 // KidValidator enforces the ASAP formatting rules for the kid header.
 var KidValidator = validatorFunc(kidValidator)
 
-func retrieveAndValidateAlgorithm(t Token) (crypto.SigningMethod, error) {
-	given, ok := t.(jws.JWS).Protected().Get(ClaimAlgorithm).(string)
+func retrieveAndValidateAlgorithm(t Token) (SigningMethod, error) {
+	given, ok := t.Protected().Get(ClaimAlgorithm).(string)
 	if !ok {
-		return nil, fmt.Errorf("Missing algorithm")
+		return SigningMethod{}, fmt.Errorf("Missing algorithm")
 	}
 	signingMethod, ok := signingMethodMap[given]
 	if !ok {
-		return nil, fmt.Errorf("Unsupported algorithm: %s", given)
+		return SigningMethod{}, fmt.Errorf("Unsupported algorithm: %s", given)
 	}
 	return signingMethod, nil
 }
@@ -283,7 +279,7 @@ func NewSignatureValidator(fetcher KeyFetcher, options ...SignatureValidatorOpti
 }
 
 func (v *signatureValidator) Validate(t Token) error {
-	kid, ok := t.(jws.JWS).Protected().Get(ClaimKeyID).(string)
+	kid, ok := t.Protected().Get(ClaimKeyID).(string)
 	if !ok {
 		return fmt.Errorf("Missing or invalid key id")
 	}
@@ -296,5 +292,5 @@ func (v *signatureValidator) Validate(t Token) error {
 	if e != nil {
 		return e
 	}
-	return t.Validate(k, signingMethod, &jwt.Validator{EXP: v.leeway, NBF: v.leeway})
+	return t.Validate(k, signingMethod, &ValidationOptions{EXP: v.leeway, NBF: v.leeway})
 }

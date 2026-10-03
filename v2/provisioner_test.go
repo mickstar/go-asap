@@ -5,14 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SermoDigital/jose/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCacheProvisionerWhenNil(t *testing.T) {
 	t.Parallel()
-	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	require.Nilf(t, cache.cache, "Expected the cache to start as nil but found %s", cache.cache)
 	var token, e = cache.Provision()
@@ -22,7 +21,7 @@ func TestCacheProvisionerWhenNil(t *testing.T) {
 
 func TestCacheProvisionerReturnsCache(t *testing.T) {
 	t.Parallel()
-	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	var token, e = cache.Provision()
 	require.NoError(t, e, "Got unexpected error provisioning a token")
@@ -33,7 +32,7 @@ func TestCacheProvisionerReturnsCache(t *testing.T) {
 
 func TestCacheProvisionerExpired(t *testing.T) {
 	t.Parallel()
-	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	var token, e = cache.Provision()
 	require.NoError(t, e, "Got unexpected error provisioning a token")
@@ -45,7 +44,7 @@ func TestCacheProvisionerExpired(t *testing.T) {
 
 func TestCacheProvisionerAlmostExpired(t *testing.T) {
 	t.Parallel()
-	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 	_, _ = cache.Provision()
 	cache.cache.Claims().SetExpiration(time.Now().Add(2 * time.Second)) // about to expire, but still valid
@@ -79,7 +78,7 @@ func TestCacheProvisionerGenerationRace(t *testing.T) {
 	}
 
 	for _, tc := range testcases {
-		var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+		var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 		var cache = NewCachingProvisioner(wrapped).(*cacheProvisioner)
 
 		tc.setup(tc.name, cache)
@@ -110,7 +109,7 @@ func TestCacheProvisionerGenerationRace(t *testing.T) {
 
 func TestCacheToken(t *testing.T) {
 	t.Parallel()
-	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256)
+	var wrapped = NewProvisioner("TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256)
 	var cache = NewCachingProvisioner(wrapped)
 	var token, e = cache.Provision()
 	require.NoError(t, e)

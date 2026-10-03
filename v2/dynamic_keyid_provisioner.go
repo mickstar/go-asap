@@ -3,8 +3,7 @@ package asap
 import (
 	"time"
 
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
+	golangjwt "github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -13,26 +12,28 @@ type DynamicKeyIDProvisioner struct {
 	ttl           time.Duration
 	issuer        string
 	audience      []string
-	signingMethod crypto.SigningMethod
+	signingMethod SigningMethod
 	provider      AutorotatingKeypairProvider
 }
 
-func NewDynamicKeyIDProvisioner(ttl time.Duration, issuer string, audience []string, signingMethod crypto.SigningMethod, provider AutorotatingKeypairProvider) Provisioner {
+func NewDynamicKeyIDProvisioner(ttl time.Duration, issuer string, audience []string, signingMethod SigningMethod, provider AutorotatingKeypairProvider) Provisioner {
 	return &DynamicKeyIDProvisioner{func() string { return uuid.New().String() }, ttl, issuer, audience, signingMethod, provider}
 }
 
 func (p *DynamicKeyIDProvisioner) Provision() (Token, error) {
-	var claims = jws.Claims{}
+	now := nowFunc()
+	claims := Claims{}
 	claims.SetIssuer(p.issuer)
 	claims.SetJWTID(p.jitProvider())
-	claims.SetIssuedAt(time.Now())
-	claims.SetExpiration(time.Now().Add(p.ttl))
+	claims.SetIssuedAt(now)
+	claims.SetExpiration(now.Add(p.ttl))
 	claims.SetAudience(p.audience...)
-	var t = jws.NewJWT(claims, p.signingMethod)
+
+	parsed := golangjwt.NewWithClaims(p.signingMethod.m, claims)
 	keyID, err := p.provider.GetKeyID()
 	if err != nil {
 		return nil, err
 	}
-	t.(jws.JWS).Protected().Set(ClaimKeyID, keyID)
-	return t, nil
+	parsed.Header[ClaimKeyID] = keyID
+	return &cacheableToken{parsed, claims, ""}, nil
 }

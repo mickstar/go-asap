@@ -4,60 +4,30 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SermoDigital/jose"
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
-	"github.com/SermoDigital/jose/jwt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// NonJWS does not implement the jws.JWS interface, simulating a non-JWS token.
-type NonJWS struct{}
+// notAToken implements nothing, simulating a value that is not a token.
+type notAToken struct{}
 
-func (NonJWS) Claims() jwt.Claims { return nil }
-func (NonJWS) Validate(key any, method crypto.SigningMethod, v ...*jwt.Validator) error {
+// stubToken is a minimal Token implementation for header edge cases.
+type stubToken struct {
+	header Header
+	claims Claims
+}
+
+func (t stubToken) Claims() Claims              { return t.claims }
+func (t stubToken) Protected() Header           { return t.header }
+func (stubToken) Serialize(any) ([]byte, error) { return nil, nil }
+func (stubToken) Validate(any, SigningMethod, ...*ValidationOptions) error {
 	return nil
 }
-func (NonJWS) Serialize(key any) ([]byte, error) { return nil, nil }
-
-// TestJWS is a mock implementation of the jws.JWS interface.
-type TestJWS struct {
-	header jose.Header
-}
-
-func (t TestJWS) Protected() jose.Protected {
-	if t.header == nil {
-		return nil
-	}
-	return jose.Protected(t.header)
-}
-func (TestJWS) Payload() any                                                      { return nil }
-func (TestJWS) SetPayload(any)                                                    {}
-func (TestJWS) ProtectedAt(int) jose.Protected                                    { return nil }
-func (TestJWS) Header() jose.Header                                               { return nil }
-func (TestJWS) HeaderAt(int) jose.Header                                          { return nil }
-func (TestJWS) Verify(any, crypto.SigningMethod) error                            { return nil }
-func (TestJWS) VerifyMulti([]any, []crypto.SigningMethod, *jws.SigningOpts) error { return nil }
-func (TestJWS) VerifyCallback(jws.VerifyCallback, []crypto.SigningMethod, *jws.SigningOpts) error {
-	return nil
-}
-func (TestJWS) General(...any) ([]byte, error) { return nil, nil }
-func (TestJWS) Flat(any) ([]byte, error)       { return nil, nil }
-func (TestJWS) Compact(any) ([]byte, error)    { return nil, nil }
-func (TestJWS) IsJWT() bool                    { return false }
-
-func (TestJWS) Claims() jwt.Claims { return nil }
-
-func (TestJWS) Validate(key any, method crypto.SigningMethod, v ...*jwt.Validator) error {
-	return nil
-}
-func (TestJWS) Serialize(key any) ([]byte, error) { return nil, nil }
 
 func TestGetKeyIDFromToken(t *testing.T) {
 	t.Run("Gets the keyID", func(t *testing.T) {
 		t.Parallel()
-		provisioner := NewProvisioner("testKeyID", time.Hour, "iss", []string{"aud"}, crypto.SigningMethodRS256)
+		provisioner := NewProvisioner("testKeyID", time.Hour, "iss", []string{"aud"}, SigningMethodRS256)
 		token, err := provisioner.Provision()
 		require.NoError(t, err)
 
@@ -73,22 +43,18 @@ func TestGetKeyIDFromToken(t *testing.T) {
 		errMsg string
 	}{
 		{
-			"not a JWS",
-			NonJWS{},
-			"Token is not a JSON web signature",
-		},
-		{
 			"nil header",
-			TestJWS{nil},
+			stubToken{header: nil},
 			"Protected header is nil",
 		},
 		{
 			"missing kid",
-			TestJWS{jose.Header{}},
-			"Missing the kid header"},
+			stubToken{header: Header{}},
+			"Missing the kid header",
+		},
 		{
 			"non-string kid",
-			TestJWS{jose.Header{"kid": 5}},
+			stubToken{header: Header{"kid": 5}},
 			"kid header value is not a string",
 		},
 	}

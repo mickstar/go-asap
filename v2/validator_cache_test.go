@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
 )
 
 func TestValidatorCacheChainRunsAll(t *testing.T) {
@@ -37,11 +34,11 @@ func TestValidatorCacheChainRunsAll(t *testing.T) {
 
 func makeToken(key string, expiry time.Time) Token {
 	privateKey, _ := rsa.GenerateKey(rand.Reader, minValidBits)
-	claims := jws.Claims{}
+	claims := Claims{}
 	claims.Set(key, key)
 	claims.SetExpiration(expiry)
 
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 
 	data, e := token.Serialize(privateKey)
 	if e != nil {

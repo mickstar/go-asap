@@ -8,8 +8,6 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	"github.com/SermoDigital/jose/crypto"
 )
 
 type fixtureHandler struct {
@@ -64,7 +62,7 @@ func TestMiddlewareHandlesValidationFailure(t *testing.T) {
 	var validator = validatorFunc(func(Token) error { return fmt.Errorf("") })
 	var wrapped = &fixtureHandler{}
 	var m = NewMiddleware(validator, callback)(wrapped)
-	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
+	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256).Provision()
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var headerValue, _ = token.Serialize(pk)
 
@@ -85,7 +83,7 @@ func TestMiddlewareHandlesAcceptsValidTokens(t *testing.T) {
 	var callback = func(w http.ResponseWriter, r *http.Request, e error) { calledCallback = true }
 	var wrapped = &fixtureHandler{}
 	var m = NewMiddleware(DefaultValidator, callback)(wrapped)
-	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
+	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256).Provision()
 	var pk, _ = NewPrivateKey([]byte(privateKey))
 	var headerValue, _ = token.Serialize(pk)
 

@@ -4,8 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
 	"github.com/aws/aws-sdk-go/service/secretsmanager"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -20,7 +18,7 @@ func TestProvision(t *testing.T) {
 		mockSecretsManager, provider := buildMockAndProvider(t)
 		provider.cacheTTL = time.Duration(0) // force a cache refresh
 		setUpMockWithValidSecretString(mockSecretsManager, keyIDTwo, privateKeyTwo)
-		provisioner := NewDynamicKeyIDProvisioner(ttl, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256, provider)
+		provisioner := NewDynamicKeyIDProvisioner(ttl, "testIssuer", []string{"testAudience"}, SigningMethodRS256, provider)
 
 		token, err := provisioner.Provision()
 
@@ -49,7 +47,7 @@ func TestProvision(t *testing.T) {
 		require.True(t, ok)
 		assert.Equal(t, []string{"testAudience"}, audience)
 
-		keyID, ok := token.(jws.JWS).Protected().Get(ClaimKeyID).(string)
+		keyID, ok := token.Protected().Get(ClaimKeyID).(string)
 		require.True(t, ok)
 		assert.Equal(t, "keyIDTwo", keyID)
 	})
@@ -66,7 +64,7 @@ func TestProvision(t *testing.T) {
 		mockErr := errors.New("Internal server error")
 		mockSecretsManager.On("GetSecretValue", input).Return(nil, mockErr)
 
-		provisioner := NewDynamicKeyIDProvisioner(ttl, "testIssuer", []string{"testAudience"}, crypto.SigningMethodRS256, provider)
+		provisioner := NewDynamicKeyIDProvisioner(ttl, "testIssuer", []string{"testAudience"}, SigningMethodRS256, provider)
 
 		_, err := provisioner.Provision()
 

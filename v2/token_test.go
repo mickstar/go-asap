@@ -4,9 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"testing"
-
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
 )
 
 const minValidBits = 2048
@@ -16,9 +13,9 @@ func TestParseToken(t *testing.T) {
 	var token Token
 
 	var privateKey, _ = rsa.GenerateKey(rand.Reader, minValidBits)
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token = newJWT(claims, SigningMethodRS256)
 	var data []byte
 	data, e = token.Serialize(privateKey)
 	if e != nil {

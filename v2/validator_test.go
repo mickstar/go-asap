@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"github.com/SermoDigital/jose/crypto"
-	"github.com/SermoDigital/jose/jws"
 )
 
 func TestValidatorChainRunsAll(t *testing.T) {
@@ -44,9 +41,9 @@ func TestValidatorChainExitsOnFirstFailure(t *testing.T) {
 }
 
 func TestClaimsValidatorFound(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewRequiredClaimsValidator("TEST")
 	var e = v.Validate(token)
 	if e != nil {
@@ -55,9 +52,9 @@ func TestClaimsValidatorFound(t *testing.T) {
 }
 
 func TestClaimsValidatorMissing(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewRequiredClaimsValidator("TEST2")
 	var e = v.Validate(token)
 	if e == nil {
@@ -66,9 +63,9 @@ func TestClaimsValidatorMissing(t *testing.T) {
 }
 
 func TestStringsValidatorMatch(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewAllowedStringsValidator("TEST", "TEST")
 	var e = v.Validate(token)
 	if e != nil {
@@ -77,9 +74,9 @@ func TestStringsValidatorMatch(t *testing.T) {
 }
 
 func TestStringsValidatorNoMatch(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewAllowedStringsValidator("TEST", "TEST2")
 	var e = v.Validate(token)
 	if e == nil {
@@ -88,9 +85,9 @@ func TestStringsValidatorNoMatch(t *testing.T) {
 }
 
 func TestStringsValidatorMissing(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewAllowedStringsValidator("TEST2", "TEST2")
 	var e = v.Validate(token)
 	if e == nil {
@@ -99,10 +96,10 @@ func TestStringsValidatorMissing(t *testing.T) {
 }
 
 func TestAudienceValidatorMatch(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetAudience("TEST2")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewAllowedAudienceValidator("TEST", "TEST2")
 	var e = v.Validate(token)
 	if e != nil {
@@ -111,10 +108,10 @@ func TestAudienceValidatorMatch(t *testing.T) {
 }
 
 func TestAudienceValidatorNoMatch(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetAudience("TEST3")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewAllowedStringsValidator("TEST", "TEST2")
 	var e = v.Validate(token)
 	if e == nil {
@@ -123,9 +120,9 @@ func TestAudienceValidatorNoMatch(t *testing.T) {
 }
 
 func TestAudienceValidatorMissing(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = NewAllowedAudienceValidator("TEST", "TEST2")
 	var e = v.Validate(token)
 	if e == nil {
@@ -134,11 +131,11 @@ func TestAudienceValidatorMissing(t *testing.T) {
 }
 
 func TestKidValidatorMatch(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetIssuer("TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST")
+	var token = newJWT(claims, SigningMethodRS256)
+	token.Protected().Set(ClaimKeyID, "TEST/TEST")
 	var v = KidValidator
 	var e = v.Validate(token)
 	if e != nil {
@@ -147,11 +144,11 @@ func TestKidValidatorMatch(t *testing.T) {
 }
 
 func TestKidValidatorKidMissingIssuer(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetIssuer("TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "/TEST")
+	var token = newJWT(claims, SigningMethodRS256)
+	token.Protected().Set(ClaimKeyID, "/TEST")
 	var v = KidValidator
 	var e = v.Validate(token)
 	if e == nil {
@@ -160,10 +157,10 @@ func TestKidValidatorKidMissingIssuer(t *testing.T) {
 }
 
 func TestKidValidatorKidMissing(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetIssuer("TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = KidValidator
 	var e = v.Validate(token)
 	if e == nil {
@@ -172,11 +169,11 @@ func TestKidValidatorKidMissing(t *testing.T) {
 }
 
 func TestKidValidatorInvalidPathSegments(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetIssuer("TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST/./..")
+	var token = newJWT(claims, SigningMethodRS256)
+	token.Protected().Set(ClaimKeyID, "TEST/TEST/./..")
 	var v = KidValidator
 	var e = v.Validate(token)
 	if e == nil {
@@ -185,11 +182,11 @@ func TestKidValidatorInvalidPathSegments(t *testing.T) {
 }
 
 func TestKidValidatorInvalidCharacters(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetIssuer("TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST/\\")
+	var token = newJWT(claims, SigningMethodRS256)
+	token.Protected().Set(ClaimKeyID, "TEST/TEST/\\")
 	var v = KidValidator
 	var e = v.Validate(token)
 	if e == nil {
@@ -198,9 +195,9 @@ func TestKidValidatorInvalidCharacters(t *testing.T) {
 }
 
 func TestAlgorithmValidatorSupported(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = AlgorithmValidator
 	var e = v.Validate(token)
 	if e != nil {
@@ -209,9 +206,10 @@ func TestAlgorithmValidatorSupported(t *testing.T) {
 }
 
 func TestAlgorithmValidatorUnsupported(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.Unsecured)
+	var token = newJWT(claims, SigningMethodRS256)
+	token.Protected().Set(ClaimAlgorithm, "none")
 	var v = AlgorithmValidator
 	var e = v.Validate(token)
 	if e == nil {
@@ -220,11 +218,11 @@ func TestAlgorithmValidatorUnsupported(t *testing.T) {
 }
 
 func TestExpirationValidatorShortLived(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetIssuedAt(time.Now())
 	claims.SetExpiration(time.Now().Add(time.Hour))
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = ExpirationValidator
 	var e = v.Validate(token)
 	if e != nil {
@@ -233,9 +231,9 @@ func TestExpirationValidatorShortLived(t *testing.T) {
 }
 
 func TestExpirationValidatorMissingIssuedAt(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = ExpirationValidator
 	var e = v.Validate(token)
 	if e == nil {
@@ -244,11 +242,11 @@ func TestExpirationValidatorMissingIssuedAt(t *testing.T) {
 }
 
 func TestExpirationValidatorLongLived(t *testing.T) {
-	var claims = jws.Claims{}
+	var claims = Claims{}
 	claims.Set("TEST", "TEST")
 	claims.SetIssuedAt(time.Now())
 	claims.SetExpiration(time.Now().Add(5 * time.Hour))
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var token = newJWT(claims, SigningMethodRS256)
 	var v = ExpirationValidator
 	var e = v.Validate(token)
 	if e == nil {
@@ -257,7 +255,7 @@ func TestExpirationValidatorLongLived(t *testing.T) {
 }
 
 func TestSignatureValidator(t *testing.T) {
-	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, crypto.SigningMethodRS256).Provision()
+	var token, _ = NewProvisioner("TEST/TEST", time.Hour, "TEST", []string{"TEST"}, SigningMethodRS256).Provision()
 	var privKey, _ = NewPrivateKey([]byte(privateKey))
 	var pubKey, _ = NewPublicKey([]byte(publicKey))
 	var b, _ = token.Serialize(privKey)
@@ -293,14 +291,14 @@ func TestSignatureValidatorInvalidAlgorithm(t *testing.T) {
 // DefaultValidator tests
 
 func TestIssRequired(t *testing.T) {
-	var claims = jws.Claims{}
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var claims = Claims{}
+	var token = newJWT(claims, SigningMethodRS256)
 	token.Claims().SetIssuer("TEST")
 	token.Claims().SetIssuedAt(time.Now())
 	token.Claims().SetExpiration(time.Now().Add(time.Hour))
 	token.Claims().SetAudience("TEST")
 	token.Claims().SetJWTID("TEST")
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST")
+	token.Protected().Set(ClaimKeyID, "TEST/TEST")
 	token.Claims().RemoveIssuer()
 	var v = DefaultValidator
 	var e = v.Validate(token)
@@ -310,14 +308,14 @@ func TestIssRequired(t *testing.T) {
 }
 
 func TestExpRequired(t *testing.T) {
-	var claims = jws.Claims{}
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var claims = Claims{}
+	var token = newJWT(claims, SigningMethodRS256)
 	token.Claims().SetIssuer("TEST")
 	token.Claims().SetIssuedAt(time.Now())
 	token.Claims().SetExpiration(time.Now().Add(time.Hour))
 	token.Claims().SetAudience("TEST")
 	token.Claims().SetJWTID("TEST")
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST")
+	token.Protected().Set(ClaimKeyID, "TEST/TEST")
 	token.Claims().RemoveExpiration()
 	var v = DefaultValidator
 	var e = v.Validate(token)
@@ -327,14 +325,14 @@ func TestExpRequired(t *testing.T) {
 }
 
 func TestIatRequired(t *testing.T) {
-	var claims = jws.Claims{}
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var claims = Claims{}
+	var token = newJWT(claims, SigningMethodRS256)
 	token.Claims().SetIssuer("TEST")
 	token.Claims().SetIssuedAt(time.Now())
 	token.Claims().SetExpiration(time.Now().Add(time.Hour))
 	token.Claims().SetAudience("TEST")
 	token.Claims().SetJWTID("TEST")
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST")
+	token.Protected().Set(ClaimKeyID, "TEST/TEST")
 	token.Claims().RemoveIssuedAt()
 	var v = DefaultValidator
 	var e = v.Validate(token)
@@ -344,14 +342,14 @@ func TestIatRequired(t *testing.T) {
 }
 
 func TestAudRequired(t *testing.T) {
-	var claims = jws.Claims{}
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var claims = Claims{}
+	var token = newJWT(claims, SigningMethodRS256)
 	token.Claims().SetIssuer("TEST")
 	token.Claims().SetIssuedAt(time.Now())
 	token.Claims().SetExpiration(time.Now().Add(time.Hour))
 	token.Claims().SetAudience("TEST")
 	token.Claims().SetJWTID("TEST")
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST")
+	token.Protected().Set(ClaimKeyID, "TEST/TEST")
 	token.Claims().RemoveAudience()
 	var v = DefaultValidator
 	var e = v.Validate(token)
@@ -361,14 +359,14 @@ func TestAudRequired(t *testing.T) {
 }
 
 func TestJtiRequired(t *testing.T) {
-	var claims = jws.Claims{}
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var claims = Claims{}
+	var token = newJWT(claims, SigningMethodRS256)
 	token.Claims().SetIssuer("TEST")
 	token.Claims().SetIssuedAt(time.Now())
 	token.Claims().SetExpiration(time.Now().Add(time.Hour))
 	token.Claims().SetAudience("TEST")
 	token.Claims().SetJWTID("TEST")
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST")
+	token.Protected().Set(ClaimKeyID, "TEST/TEST")
 	token.Claims().RemoveJWTID()
 	var v = DefaultValidator
 	var e = v.Validate(token)
@@ -378,14 +376,14 @@ func TestJtiRequired(t *testing.T) {
 }
 
 func TestSubNotRequired(t *testing.T) {
-	var claims = jws.Claims{}
-	var token = jws.NewJWT(claims, crypto.SigningMethodRS256)
+	var claims = Claims{}
+	var token = newJWT(claims, SigningMethodRS256)
 	token.Claims().SetIssuer("TEST")
 	token.Claims().SetIssuedAt(time.Now())
 	token.Claims().SetExpiration(time.Now().Add(time.Hour))
 	token.Claims().SetAudience("TEST")
 	token.Claims().SetJWTID("TEST")
-	token.(jws.JWS).Protected().Set(ClaimKeyID, "TEST/TEST")
+	token.Protected().Set(ClaimKeyID, "TEST/TEST")
 	token.Claims().RemoveSubject()
 	var v = DefaultValidator
 	var e = v.Validate(token)
@@ -397,9 +395,9 @@ func TestSubNotRequired(t *testing.T) {
 // --- NewAllowedClaimValuesValidator tests ---
 
 func TestAllowedClaimValuesValidator_ScalarMatch(t *testing.T) {
-	claims := jws.Claims{}
+	claims := Claims{}
 	claims.Set("iss", "micros/foo")
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("iss", "micros/foo", "micros/bar")
 	if err := v.Validate(token); err != nil {
 		t.Fatalf("expected scalar match to pass, got: %s", err)
@@ -407,9 +405,9 @@ func TestAllowedClaimValuesValidator_ScalarMatch(t *testing.T) {
 }
 
 func TestAllowedClaimValuesValidator_ScalarNoMatch(t *testing.T) {
-	claims := jws.Claims{}
+	claims := Claims{}
 	claims.Set("iss", "micros/other")
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("iss", "micros/foo", "micros/bar")
 	if err := v.Validate(token); err == nil {
 		t.Fatal("expected scalar no-match to fail, but it passed")
@@ -417,9 +415,9 @@ func TestAllowedClaimValuesValidator_ScalarNoMatch(t *testing.T) {
 }
 
 func TestAllowedClaimValuesValidator_ArrayMatch(t *testing.T) {
-	claims := jws.Claims{}
+	claims := Claims{}
 	claims.Set("roles", []any{"reader", "writer"})
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer", "admin")
 	if err := v.Validate(token); err != nil {
 		t.Fatalf("expected array match to pass, got: %s", err)
@@ -427,9 +425,9 @@ func TestAllowedClaimValuesValidator_ArrayMatch(t *testing.T) {
 }
 
 func TestAllowedClaimValuesValidator_ArrayNoMatch(t *testing.T) {
-	claims := jws.Claims{}
+	claims := Claims{}
 	claims.Set("roles", []any{"reader"})
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer", "admin")
 	if err := v.Validate(token); err == nil {
 		t.Fatal("expected array no-match to fail, but it passed")
@@ -437,9 +435,9 @@ func TestAllowedClaimValuesValidator_ArrayNoMatch(t *testing.T) {
 }
 
 func TestAllowedClaimValuesValidator_ArrayEmpty(t *testing.T) {
-	claims := jws.Claims{}
+	claims := Claims{}
 	claims.Set("roles", []any{})
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer")
 	if err := v.Validate(token); err == nil {
 		t.Fatal("expected empty array to fail, but it passed")
@@ -447,8 +445,8 @@ func TestAllowedClaimValuesValidator_ArrayEmpty(t *testing.T) {
 }
 
 func TestAllowedClaimValuesValidator_MissingClaim(t *testing.T) {
-	claims := jws.Claims{}
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	claims := Claims{}
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer")
 	if err := v.Validate(token); err == nil {
 		t.Fatal("expected missing claim to fail, but it passed")
@@ -456,9 +454,9 @@ func TestAllowedClaimValuesValidator_MissingClaim(t *testing.T) {
 }
 
 func TestAllowedClaimValuesValidator_UnsupportedType(t *testing.T) {
-	claims := jws.Claims{}
+	claims := Claims{}
 	claims.Set("roles", 12345) // integer, not string or []interface{}
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer")
 	if err := v.Validate(token); err == nil {
 		t.Fatal("expected unsupported type to fail, but it passed")
@@ -466,10 +464,10 @@ func TestAllowedClaimValuesValidator_UnsupportedType(t *testing.T) {
 }
 
 func TestAllowedClaimValuesValidator_ArrayWithNonStringElements(t *testing.T) {
-	claims := jws.Claims{}
+	claims := Claims{}
 	// Mix of non-string elements and a matching string — non-strings should be skipped
 	claims.Set("roles", []any{42, true, "writer"})
-	token := jws.NewJWT(claims, crypto.SigningMethodRS256)
+	token := newJWT(claims, SigningMethodRS256)
 	v := NewAllowedClaimValuesValidator("roles", "writer")
 	if err := v.Validate(token); err != nil {
 		t.Fatalf("expected match despite non-string elements, got: %s", err)

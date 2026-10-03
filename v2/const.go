@@ -1,7 +1,5 @@
 package asap
 
-import "github.com/SermoDigital/jose/crypto"
-
 const (
 	// ClaimAlgorithm is the JWT specific encryption algorithm claim.
 	ClaimAlgorithm = "alg"
@@ -37,19 +35,21 @@ const (
 	methodPS512 = "PS512"
 )
 
-var signingMethodMap = map[string]crypto.SigningMethod{
+// signingMethodMap is the allow list of algorithms ASAP accepts. A token naming
+// anything else is rejected by AlgorithmValidator.
+var signingMethodMap = map[string]SigningMethod{
 	// ECDSA
-	methodES256: crypto.SigningMethodES256,
-	methodES384: crypto.SigningMethodES384,
-	methodES512: crypto.SigningMethodES512,
+	methodES256: SigningMethodES256,
+	methodES384: SigningMethodES384,
+	methodES512: SigningMethodES512,
 
 	// RSA PKCS#1 v1.5
-	methodRS256: crypto.SigningMethodRS256,
-	methodRS384: crypto.SigningMethodRS384,
-	methodRS512: crypto.SigningMethodRS512,
+	methodRS256: SigningMethodRS256,
+	methodRS384: SigningMethodRS384,
+	methodRS512: SigningMethodRS512,
 
 	// RSA-PSS
-	methodPS256: crypto.SigningMethodPS256,
-	methodPS384: crypto.SigningMethodPS384,
-	methodPS512: crypto.SigningMethodPS512,
+	methodPS256: SigningMethodPS256,
+	methodPS384: SigningMethodPS384,
+	methodPS512: SigningMethodPS512,
 }

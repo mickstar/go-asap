@@ -1,17 +1,10 @@
 package asap
 
-import (
-	"github.com/SermoDigital/jose/jws"
-	"github.com/pkg/errors"
-)
+import "errors"
 
+// GetKeyIDFromToken returns the "kid" protected header of the given token.
 func GetKeyIDFromToken(token Token) (string, error) {
-	jsonWebSignature, ok := token.(jws.JWS)
-	if !ok {
-		return "", errors.New("Token is not a JSON web signature")
-	}
-
-	header := jsonWebSignature.Protected()
+	header := token.Protected()
 	if header == nil {
 		return "", errors.New("Protected header is nil")
 	}
