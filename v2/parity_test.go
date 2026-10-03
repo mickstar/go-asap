@@ -53,6 +53,8 @@ type parityValidationCase struct {
 	DefaultErr  string `json:"asapDefaultErr"`
 	SigOK       bool   `json:"asapSigOK"`
 	SigErr      string `json:"asapSigErr"`
+	AudienceOK  bool   `json:"asapAudienceOK"`
+	RolesOK     bool   `json:"asapRolesOK"`
 	ExpectValid bool   `json:"expectValid"`
 	Note        string `json:"note"`
 }
@@ -270,6 +272,14 @@ func TestParityValidation(t *testing.T) {
 			require.Equal(t, c.DefaultOK, err == nil, "DefaultValidator verdict changed (%s): %v", c.Note, err)
 			requireParityError(t, c.DefaultErr, err)
 
+			// Validators that consume the parsed claim shapes, not just the
+			// individual claim values.
+			err = NewAllowedAudienceValidator("aud-one").Validate(tok)
+			require.Equal(t, c.AudienceOK, err == nil, "audience verdict changed (%s): %v", c.Note, err)
+
+			err = NewAllowedClaimValuesValidator("roles", "writer").Validate(tok)
+			require.Equal(t, c.RolesOK, err == nil, "array claim verdict changed (%s): %v", c.Note, err)
+
 			if c.Method == "" {
 				return
 			}
@@ -423,6 +433,7 @@ func TestParityFixtureCoverage(t *testing.T) {
 
 	validation := loadParityJSON[[]parityValidationCase](t, "validation.json")
 	var requiredClaimsCovered, kidCovered, timeCovered, signatureCovered bool
+	var audienceAccepted, audienceRejected bool
 	for _, c := range validation {
 		switch {
 		case strings.HasPrefix(c.Name, "missing_"):
@@ -434,9 +445,16 @@ func TestParityFixtureCoverage(t *testing.T) {
 		case c.Name == "signed_by_wrong_key", c.Name == "payload_tampered":
 			signatureCovered = true
 		}
+		if c.AudienceOK {
+			audienceAccepted = true
+		} else {
+			audienceRejected = true
+		}
 	}
 	require.True(t, requiredClaimsCovered, "validation fixtures no longer cover required claims")
 	require.True(t, kidCovered, "validation fixtures no longer cover kid rules")
 	require.True(t, timeCovered, "validation fixtures no longer cover token lifetime")
 	require.True(t, signatureCovered, "validation fixtures no longer cover signature failures")
+	require.True(t, audienceAccepted && audienceRejected,
+		"the audience oracle no longer discriminates between an allowed and a rejected audience")
 }

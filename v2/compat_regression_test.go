@@ -43,17 +43,26 @@ func TestClaimsAudienceNormalisation(t *testing.T) {
 	}
 }
 
-// TestAudienceValidatorArrayClaim guards a port bug where a JSON array audience
-// produced no audiences at all, so a multi-audience token was rejected even
-// though it listed an allowed audience.
+// TestAudienceValidatorArrayClaim guards against a port bug where a JSON array
+// audience produced no audiences at all, so a multi-audience token was rejected
+// even though it listed an allowed audience. The claim is taken off the wire,
+// because an in-memory []string audience never went through the broken path.
 func TestAudienceValidatorArrayClaim(t *testing.T) {
-	claims := Claims{}
-	claims.SetAudience("aud-one", "aud-two")
-	token := newJWT(claims, SigningMethodRS256)
+	priv, _ := loadParityKeys(t)
 
-	require.NoError(t, NewAllowedAudienceValidator("aud-one").Validate(token))
-	require.NoError(t, NewAllowedAudienceValidator("aud-two").Validate(token))
-	require.Error(t, NewAllowedAudienceValidator("aud-three").Validate(token))
+	provisioner := NewProvisioner(parityIssuer+"/key1", time.Hour, parityIssuer, []string{"aud-one", "aud-two"}, SigningMethodRS256)
+	minted, err := provisioner.Provision()
+	require.NoError(t, err)
+	raw, err := minted.Serialize(priv["rsa2048"])
+	require.NoError(t, err)
+
+	parsed, err := ParseToken(string(raw))
+	require.NoError(t, err)
+	require.IsType(t, []any{}, parsed.Claims().Get(ClaimAudience))
+
+	require.NoError(t, NewAllowedAudienceValidator("aud-one").Validate(parsed))
+	require.NoError(t, NewAllowedAudienceValidator("aud-two").Validate(parsed))
+	require.Error(t, NewAllowedAudienceValidator("aud-three").Validate(parsed))
 }
 
 // TestMultiAudienceTokenPassesDocumentedValidation is the end-to-end form of the

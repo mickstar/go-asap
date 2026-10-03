@@ -8,8 +8,12 @@
 //	cd tools/paritygen
 //	GOTOOLCHAIN=go1.26.0 go run . -out ../../v2/testdata/parity
 //
-// The command is idempotent: keys are reused when keys.json already exists, so
-// re-running it does not invalidate previously committed tokens.
+// The command reuses keys.json when it already exists, so committed key
+// material stays valid. It is NOT byte-for-byte reproducible: jose randomises
+// ECDSA and RSA-PSS signatures, so every ES*/PS* token changes on each run, and
+// the validation fixtures are anchored at the generation instant. Treat the
+// committed fixtures as frozen and re-run only when fixture content has to
+// change deliberately.
 //
 // It records two kinds of fixture:
 //
@@ -86,6 +90,13 @@ type validCase struct {
 	SigErr       string `json:"asapSigErr,omitempty"`
 	JoseValidOK  bool   `json:"joseValidateOK"`
 	JoseValidErr string `json:"joseValidateErr,omitempty"`
+
+	// AudienceOK records NewAllowedAudienceValidator("aud-one"), which is the
+	// validator that consumes Claims.Audience(). RolesOK records
+	// NewAllowedClaimValuesValidator("roles", "writer"), which consumes a JSON
+	// array claim.
+	AudienceOK bool `json:"asapAudienceOK"`
+	RolesOK    bool `json:"asapRolesOK"`
 
 	ExpectValid bool   `json:"expectValid"`
 	Note        string `json:"note,omitempty"`
@@ -308,6 +319,7 @@ type mintOpts struct {
 	exp     *time.Time
 	omitEXP bool
 	nbf     *time.Time
+	extra   map[string]any
 }
 
 func mint(ks *keySet, o mintOpts) (string, error) {
@@ -329,6 +341,9 @@ func mint(ks *keySet, o mintOpts) (string, error) {
 	}
 	if !o.omitAud && len(o.aud) > 0 {
 		claims.SetAudience(o.aud...)
+	}
+	for k, v := range o.extra {
+		claims.Set(k, v)
 	}
 
 	t := jws.NewJWT(claims, ks.meth[o.alg])
@@ -497,6 +512,9 @@ func buildValidation(ks *keySet, anchor time.Time) ([]validCase, error) {
 		c.DefaultOK = e == nil
 		c.DefaultErr = errString(e)
 
+		c.AudienceOK = asap.NewAllowedAudienceValidator("aud-one").Validate(vt) == nil
+		c.RolesOK = asap.NewAllowedClaimValuesValidator("roles", "writer").Validate(vt) == nil
+
 		if method == "" {
 			if c.DefaultOK != expectValid {
 				return fmt.Errorf("%s: DefaultValidator ok=%v want %v (%v)", name, c.DefaultOK, expectValid, c.DefaultErr)
@@ -529,7 +547,8 @@ func buildValidation(ks *keySet, anchor time.Time) ([]validCase, error) {
 		iat := anchor.Add(iatOff)
 		exp := anchor.Add(expOff)
 		return mintOpts{alg: "RS256", key: "rsa2048", iss: issuer, jti: "11111111-2222-3333-4444-555555555555",
-			aud: aud, iat: &iat, exp: &exp}
+			aud: aud, iat: &iat, exp: &exp,
+			extra: map[string]any{"roles": []any{"reader", "writer"}}}
 	}
 	mintOK := func(o mintOpts, name, method, key string, expectValid bool, note string) error {
 		tok, err := mint(ks, o)
@@ -661,6 +680,20 @@ func buildValidation(ks *keySet, anchor time.Time) ([]validCase, error) {
 			"payload replaced after signing"); err != nil {
 			return nil, err
 		}
+	}
+
+	// The audience verdict has to discriminate, otherwise the fixture would pass
+	// no matter what Claims.Audience() does.
+	var anyAudienceOK, anyAudienceRejected bool
+	for _, c := range cases {
+		if c.AudienceOK {
+			anyAudienceOK = true
+		} else {
+			anyAudienceRejected = true
+		}
+	}
+	if !anyAudienceOK || !anyAudienceRejected {
+		return nil, fmt.Errorf("audience verdicts do not discriminate (ok=%v rejected=%v)", anyAudienceOK, anyAudienceRejected)
 	}
 
 	sort.SliceStable(cases, func(i, j int) bool { return cases[i].Name < cases[j].Name })
