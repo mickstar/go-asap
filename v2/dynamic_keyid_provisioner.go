@@ -35,5 +35,5 @@ func (p *DynamicKeyIDProvisioner) Provision() (Token, error) {
 		return nil, err
 	}
 	parsed.Header[ClaimKeyID] = keyID
-	return &cacheableToken{parsed, claims, ""}, nil
+	return &token{parsed, claims}, nil
 }

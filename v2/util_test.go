@@ -8,9 +8,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// notAToken implements nothing, simulating a value that is not a token.
-type notAToken struct{}
-
 // stubToken is a minimal Token implementation for header edge cases.
 type stubToken struct {
 	header Header

@@ -3,6 +3,7 @@ package asap
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"sync/atomic"
 	"time"
 
@@ -87,11 +88,18 @@ func (h Header) Get(key string) any {
 // Set sets the given header parameter.
 func (h Header) Set(key string, val any) { h[key] = val }
 
+// Has reports whether a value exists for the given header parameter.
+func (h Header) Has(key string) bool {
+	_, ok := h[key]
+	return ok
+}
+
 // Del removes the given header parameter.
 func (h Header) Del(key string) { delete(h, key) }
 
-// Claims is a set of JWT claims. It is a plain map whose helper accessors match
-// the ones the previous implementation exposed.
+// Claims is a set of JWT claims: a plain map, as before, with the same helper
+// accessors. It also satisfies the underlying JWT library's claims interface so
+// a Claims value can be handed to its parser directly.
 type Claims map[string]any
 
 // Get returns the value for key, or nil.
@@ -142,7 +150,7 @@ func (c Claims) Audience() ([]string, bool) {
 	case []string:
 		return t, true
 	case []any:
-		return stringify(t)
+		return stringify(t...)
 	case any:
 		return stringify(t)
 	}
@@ -185,10 +193,16 @@ func (c Claims) GetTime(key string) (time.Time, bool) {
 	case int64:
 		return time.Unix(int64(t), 0), true
 	case uint:
+		if uint64(t) > math.MaxInt64 {
+			return time.Time{}, false
+		}
 		return time.Unix(int64(t), 0), true
 	case uint32:
 		return time.Unix(int64(t), 0), true
 	case uint64:
+		if t > math.MaxInt64 {
+			return time.Time{}, false
+		}
 		return time.Unix(int64(t), 0), true
 	case float64:
 		return time.Unix(int64(t), 0), true

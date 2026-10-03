@@ -35,7 +35,7 @@ func (p *standardProvisioner) Provision() (Token, error) {
 
 	parsed := golangjwt.NewWithClaims(p.signingMethod.m, claims)
 	parsed.Header[ClaimKeyID] = p.kid
-	return &cacheableToken{parsed, claims, ""}, nil
+	return &token{parsed, claims}, nil
 }
 
 // NewProvisioner generates a Provisioner implementation that sets all the
