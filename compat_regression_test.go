@@ -142,3 +142,32 @@ func TestHeaderHas(t *testing.T) {
 	require.False(t, absent.Has(ClaimKeyID))
 	require.Nil(t, absent.Get(ClaimKeyID))
 }
+
+// TestExpirationMessageIgnoresHostZone guards a message that used to render
+// claim timestamps in the host's zone. On a machine at +1000 it read
+// "... 18:34:50 +1000 AEST ..." and on a UTC runner the same token produced
+// "... 08:34:50 +0000 UTC ...", which broke the frozen parity corpus in CI.
+//
+// Claim times come back from time.Unix in the local zone, so the assertion is
+// made the only way that is independent of the host: the same instant, expressed
+// in two different zones, must render identically.
+func TestExpirationMessageIgnoresHostZone(t *testing.T) {
+	instant := time.Unix(1700000000, 0)
+	aest := time.FixedZone("AEST", 10*60*60)
+
+	require.Equal(t, formatInstant(instant.In(time.UTC)), formatInstant(instant.In(aest)))
+	require.Contains(t, formatInstant(instant.In(aest)), "+0000 UTC")
+
+	build := func(loc *time.Location) error {
+		claims := Claims{}
+		claims.SetIssuedAt(instant.In(loc))
+		claims.SetExpiration(instant.In(loc).Add(2 * time.Hour))
+		return ExpirationValidator.Validate(newJWT(claims, SigningMethodRS256))
+	}
+
+	fromUTC := build(time.UTC)
+	require.NotNil(t, fromUTC)
+	require.Equal(t, fromUTC.Error(), build(aest).Error(),
+		"the expiration message must not depend on the host time zone")
+	require.Contains(t, fromUTC.Error(), "+0000 UTC")
+}

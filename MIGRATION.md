@@ -250,6 +250,28 @@ Array audiences, `null` payloads, `Header.Has` and the cache-key collision — s
 below. These were regressions introduced by the port and closed before the
 module was published.
 
+### 7.5 Deliberate: the expiration message no longer depends on the host time zone
+
+`ExpirationValidator` reports the two claim timestamps it compared. Claim times
+are read back through `time.Unix`, which carries the **host's** zone, so the
+message used to read differently on different machines for the same token:
+
+```
+machine at +1000:  IssuedAt time 2026-10-03 18:34:50 +1000 AEST is more than an hour before …
+UTC runner:        IssuedAt time 2026-10-03 08:34:50 +0000 UTC is more than an hour before …
+```
+
+That is a defect rather than a feature: the text is not comparable across logs,
+and it made the frozen corpus non-portable. The first CI run of this repository
+caught it precisely that way — the fixture recorded the generator's `AEST`
+rendering and the ubuntu runner produced `UTC`, failing `TestParityValidation`.
+
+The message is now rendered in UTC, so it depends only on the instant. This is a
+textual change from the jose era; the instant reported, the wording and the
+accept/reject decision are unchanged. `TestExpirationMessageIgnoresHostZone`
+pins it by asserting that the same instant, expressed in two different zones,
+renders identically, and the suite is exercised under several `TZ` values.
+
 ## 8. Defects found during the migration
 
 | # | Defect | Impact | Guard |
@@ -259,14 +281,16 @@ module was published.
 | 3 | `null` payload accepted and yielded empty claims that passed the lifetime check | `ParseToken` accepted what jose rejected; `SignatureValidator` alone would have accepted such a token | `TestNonObjectPayloadIsRejected` |
 | 4 | `Header` lost the `Has` accessor | Source-compatibility break for `token.Protected().Has(…)` | `TestHeaderHas` |
 | 5 | jose emitted DER ECDSA signatures (upstream defect, not introduced here) | Every `ES*` token the old stack minted was rejected by compliant peers | `TestParityECDSAEncoding` |
+| 6 | `ExpirationValidator` rendered claim timestamps in the host's time zone, so its message differed by machine | Log text is not comparable across hosts; the frozen corpus was not portable, and the first CI run failed on a UTC runner while passing locally | `TestExpirationMessageIgnoresHostZone`, plus running the suite under several `TZ` values |
 
 Defects 1–4 were found by independent review of the diff against the frozen
-behaviour, not by the implementation itself. Defect 1 was additionally invisible
-to the first version of the corpus: the fixtures replayed `DefaultValidator` and
-`SignatureValidator`, neither of which reads `Claims.Audience()`. The corpus was
-extended to record `NewAllowedAudienceValidator` and
-`NewAllowedClaimValuesValidator` verdicts so that this class of bug is covered by
-the oracle and not only by a hand-written test.
+behaviour, not by the implementation itself; defect 6 was found by the first CI
+run on a UTC runner. Defect 1 was additionally invisible to the first version of
+the corpus: the fixtures replayed `DefaultValidator` and `SignatureValidator`,
+neither of which reads `Claims.Audience()`. The corpus was extended to record
+`NewAllowedAudienceValidator` and `NewAllowedClaimValuesValidator` verdicts so
+that this class of bug is covered by the oracle and not only by a hand-written
+test.
 
 ## 9. Verification evidence
 
@@ -282,6 +306,8 @@ the oracle and not only by a hand-written test.
 | Differential fuzz | `make difffuzz` | 0 unexpected divergences |
 | Fresh clone | `git clone . /tmp/x && go test -race ./...` | green, no `replace` in `go.mod` |
 | README examples | compiled against the module in a scratch module | build and vet clean |
+| Time-zone portability | `TZ=<zone> go test -count=1 ./...` for UTC, Australia/Sydney, America/New_York, Asia/Kolkata | green in all four |
+| CI | `.github/workflows/ci.yml` on GitHub runners | `test` (Go 1.26.x and 1.27.x), `lint` (golangci-lint v2), `parity generator`, `differential fuzz` |
 
 Test corpus: 89 test functions in the main package plus 20 in
 `internal/keyrefresh`.
@@ -325,7 +351,9 @@ make parity-fixtures
 * **`ES*` interoperability is broken in both directions by design** (7.1). This
   is the one change that requires coordinated action by users of the old stack.
 * **Message parity is deliberately not preserved** for errors raised inside the
-  JWT library (7.2). If a caller matches on those strings, it must be updated.
+  JWT library (7.2), and one package-owned message changed on purpose so that it
+  no longer depends on the host's time zone (7.5). If a caller matches on either,
+  it must be updated.
 * **The oracle only covers what its generator enumerates.** It is a strong
   regression net, not a proof. The differential harness widens it, but both are
   limited by the claim, header and algorithm shapes they generate.

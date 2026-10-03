@@ -226,10 +226,20 @@ func expirationValidator(t Token) error {
 	var expiration, _ = t.Claims().Expiration()
 
 	if issuedAt.Add(time.Hour).Before(expiration) {
-		return fmt.Errorf("IssuedAt time %v is more than an hour before Expiration time %v", issuedAt, expiration)
+		return fmt.Errorf("IssuedAt time %s is more than an hour before Expiration time %s", formatInstant(issuedAt), formatInstant(expiration))
 	}
 
 	return nil
+}
+
+// formatInstant renders a claim timestamp for an error message.
+//
+// Claim times are read back through time.Unix, which carries the host's local
+// zone, so rendering them directly made the message differ from machine to
+// machine (and made a recorded expectation non-portable). Render in UTC so the
+// text depends only on the instant.
+func formatInstant(t time.Time) string {
+	return t.UTC().String()
 }
 
 // ExpirationValidator enforces the ASAP rules around token lifetime. Specifically,
